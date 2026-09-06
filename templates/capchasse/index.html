@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QCM permis de chasser gratuit – Cap Chasse, l'app pour réussir l'examen</title>
+<meta name="description" content="Entraînez-vous gratuitement à l'examen du permis de chasser : 20 questions corrigées en ligne, et 331 questions, schémas de sécurité et examens blancs au format officiel dans l'app Cap Chasse.">
+<link rel="canonical" href="https://profcalendar.org/capchasse">
+<meta property="og:title" content="Cap Chasse – Réussir le permis de chasser">
+<meta property="og:description" content="QCM gratuit du permis de chasser + l'app avec 331 questions et examens blancs au format officiel (10 questions, sécurité éliminatoire).">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://profcalendar.org/capchasse">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Cap Chasse – Permis de Chasser","operatingSystem":"iOS","applicationCategory":"EducationalApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"url":"https://apps.apple.com/fr/app/id6806226193"}</script>
+<style>
+  :root{--teal:#2A6A3D;--deep:#12331F;--coral:#FF6B5A;--ink:#16262E;--muted:#5A6B70;--bg:#F4F7F7;--card:#fff;--line:#D8E1E2;--good:#2F7D4F;--bad:#AF3A3A}
+  *{box-sizing:border-box}body{margin:0;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55}
+  .hero{background:linear-gradient(160deg,var(--teal),var(--deep));color:#fff;padding:64px 20px 56px;text-align:center}
+  .hero img{width:112px;height:112px;border-radius:26px;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+  .hero h1{font-size:clamp(1.8rem,5vw,2.8rem);margin:.6em auto .3em;max-width:22ch;line-height:1.15}
+  .hero p{max-width:52ch;margin:0 auto 1.4em;color:#d7ecee;font-size:1.1rem}
+  .btn{display:inline-block;background:#000;color:#fff;text-decoration:none;font-weight:700;padding:14px 26px;border-radius:14px;font-size:1.05rem}
+  .btn.coral{background:var(--coral)}
+  .wrap{max-width:760px;margin:0 auto;padding:0 20px}
+  section{padding:44px 0}
+  h2{font-size:1.5rem;margin:0 0 .5em}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .q{font-size:1.15rem;font-weight:700;margin:0 0 14px}
+  .opt{display:block;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:13px 16px;margin:8px 0;font:inherit;font-size:1rem;cursor:pointer}
+  .opt:hover{border-color:var(--teal)}
+  .opt.good{background:#E2F0E7;border-color:var(--good)}.opt.bad{background:#F5E3E3;border-color:var(--bad)}
+  .opt[disabled]{cursor:default}
+  .exp{margin:12px 0 0;padding:12px 14px;background:var(--bg);border-radius:10px;font-size:.95rem;color:var(--muted)}
+  .meta{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin-bottom:10px}
+  .next{margin-top:14px}
+  .feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+  .feats .card h3{margin:0 0 6px;font-size:1.05rem}
+  details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:8px 0}
+  summary{font-weight:700;cursor:pointer}
+  footer{padding:30px 20px;text-align:center;color:var(--muted);font-size:.85rem}
+  footer a{color:var(--teal)}
+  .score{text-align:center}.score .big{font-size:3rem;font-weight:800;color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="hero">
+  <img src="{{ url_for('static', filename='capchasse/icon.png') }}" alt="Icône de l'app Cap Chasse">
+  <h1>Réussissez l'examen du permis de chasser du premier coup</h1>
+  <p>Cap Chasse, c'est 331 questions sur les huit thèmes de l'examen, les schémas de sécurité (angle de 30°, tir fichant, battue) et des examens blancs au format officiel : 10 questions dont une de sécurité éliminatoire — 100 % hors-ligne.</p>
+  <a class="btn" href="https://apps.apple.com/fr/app/id6806226193">Télécharger sur l'App Store</a>
+</div>
+
+<div class="wrap">
+<section id="quiz">
+  <h2>Testez-vous : 20 questions d'examen gratuites</h2>
+  <p>Le format exact de l'examen : une question, quatre réponses, une seule bonne. Corrigé immédiat.</p>
+  <div class="card" id="quizbox"></div>
+</section>
+
+<section>
+  <h2>Ce que contient l'app</h2>
+  <div class="feats">
+    <div class="card"><h3>Examens blancs au format officiel</h3>10 questions dont une de sécurité éliminatoire, comme le jour J, avec corrigé complet.</div>
+    <div class="card"><h3>331 questions par thème</h3>Faune, sécurité, armes, réglementation, modes de chasse et chiens, gestion, venaison, éthique — avec les schémas de sécurité de l'examen.</div>
+    <div class="card"><h3>Révision ciblée</h3>Vos erreurs reviennent automatiquement jusqu'à être maîtrisées.</div>
+    <div class="card"><h3>Hors-ligne, sans compte</h3>Révisez partout, même sans réseau. Aucune publicité, aucun abonnement.</div>
+  </div>
+  <p style="text-align:center;margin-top:24px"><a class="btn coral" href="https://apps.apple.com/fr/app/id6806226193">Essayer gratuitement</a></p>
+</section>
+
+<section>
+  <h2>L'examen du permis de chasser en bref</h2>
+  <details><summary>Comment se passe l'examen ?</summary>Un examen unique organisé par l'OFB, en une séance d'environ 45 minutes : des ateliers pratiques (parcours de chasse simulé, rangement de l'arme dans un véhicule, tir sur plateaux, tir à balle sur sanglier mobile) notés sur 21 points, puis 10 questions théoriques notées sur 10 points. Il faut 25 points sur 31, aucune faute éliminatoire, et la bonne réponse à la question de sécurité éliminatoire.</details>
+<details><summary>Quelles sont les conditions pour le passer ?</summary>Avoir 16 ans le jour de l'examen (inscription possible dès 15 ans), suivre la formation théorique et pratique de la fédération départementale des chasseurs, et présenter un certificat médical. Environ 35 000 candidats passent l'examen chaque année, avec un taux de réussite de l'ordre de 70 %.</details>
+<details><summary>Combien coûte le permis de chasser ?</summary>Comptez 46 € de droits d'examen et de délivrance (31 € pour un mineur), 55 à 65 € de formation en fédération et le manuel officiel, soit environ 120 à 150 € avant la première validation annuelle. Cap Chasse est gratuit à l'essai ; l'accès complet est un achat unique, sans abonnement.</details>
+<details><summary>Quels sont les thèmes du programme ?</summary>Quatre thèmes officiels, répartis équitablement : connaissance de la faune sauvage et de ses habitats ; connaissance de la chasse ; lois et règlements ; armes, munitions et sécurité. Cap Chasse les détaille en huit thèmes pour une révision plus fine.</details>
+<details><summary>L'app remplace-t-elle la formation en fédération ?</summary>Non. Cap Chasse est un outil d'entraînement indépendant, non affilié à l'OFB ni à la Fédération nationale des chasseurs ; ses questions sont originales. La formation en fédération départementale reste obligatoire pour se présenter à l'examen.</details>
+</section>
+</div>
+
+<footer>Cap Chasse – Permis de Chasser · <a href="https://apps.apple.com/fr/app/id6806226193">App Store</a> · <a href="/capchasse/confidentialite">Confidentialité</a> · <a href="/support">Support</a></footer>
+
+<script>
+const Q=[{"t": "Un canard de surface présente un miroir alaire bleu-violet bordé de deux liserés blancs ; le mâle a la tête vert bouteille et un fin collier blanc, la femelle est brune mouchetée. De quelle espèce s'agit-il ?", "o": ["Canard chipeau", "Canard colvert", "Sarcelle d'hiver", "Fuligule milouin"], "a": 1, "e": "Le colvert est le plus commun des canards de surface ; son miroir bleu-violet bordé de blanc est visible chez les deux sexes, ce qui permet d'identifier la femelle."}, {"t": "Quel est le plus petit canard chassable d'Europe, au miroir vert et noir, dont le mâle porte une tête rousse traversée d'une bande verte ?", "o": ["Le canard siffleur", "La sarcelle d'été", "Le canard pilet", "La sarcelle d'hiver"], "a": 3, "e": "La sarcelle d'hiver, à peine plus grosse qu'un pigeon, se reconnaît à son miroir vert et noir ; la sarcelle d'été s'en distingue par le large sourcil blanc du mâle."}, {"t": "Un canard de surface au plumage gris discret, dont le miroir est franchement blanc et le croupion noir chez le mâle, s'envole devant vous. Quelle espèce est-ce ?", "o": ["Le canard chipeau", "Le canard colvert", "Le fuligule morillon", "Le harle bièvre"], "a": 0, "e": "Le miroir blanc est le critère clé du chipeau ; le colvert a un miroir bleu-violet et le harle bièvre est une espèce protégée."}, {"t": "En battue, que représente la règle de l'angle de 30 degrés ?", "o": ["La hauteur minimale à laquelle il faut tirer un oiseau", "La pente maximale du terrain autorisant le tir", "Un secteur interdit au tir de part et d'autre de la direction de chaque voisin de poste, matérialisé au sol", "La distance minimale entre deux postes"], "a": 2, "e": "Le chasseur posté ne tire jamais dans le cône de 30 degrés qui le sépare de chaque voisin ; le non-respect de cette règle est la cause majeure d'accidents et constitue une faute éliminatoire à l'examen."}, {"t": "Comment matérialiser simplement l'angle de 30 degrés à son poste de battue ?", "o": ["Faire 5 pas vers le voisin, puis 3 pas perpendiculairement et planter un repère", "Faire 10 pas vers le voisin et planter un repère", "Viser le voisin et décaler le canon d'une largeur de main", "Compter 30 pas dans chaque direction"], "a": 0, "e": "La méthode des 5 pas puis 3 pas donne un angle voisin de 30 degrés ; on plante une branche ou un piquet fluo à l'extrémité et on ne tire jamais entre ce repère et le voisin."}, {"t": "Qu'est-ce qu'un tir fichant ?", "o": ["Un tir effectué vers le ciel sur un gibier volant", "Un tir dirigé vers le sol, de façon que le projectile se fiche dans la terre derrière l'animal", "Un tir à courte distance sur un animal arrêté", "Un tir réalisé depuis un véhicule à l'arrêt"], "a": 1, "e": "Le tir fichant limite la portée et les ricochets : il est la règle pour le tir à balle, en particulier depuis un poste surélevé."}, {"t": "Quelle est la différence fondamentale entre un fusil de chasse et une carabine ?", "o": ["Le fusil a une crosse en bois, la carabine une crosse synthétique", "Le fusil a un canon lisse, la carabine un canon rayé", "Le fusil tire des balles, la carabine des plombs", "Le fusil est à un coup, la carabine à répétition"], "a": 1, "e": "Le fusil possède un ou plusieurs canons lisses conçus pour la grenaille (ou la balle lisse), la carabine un canon rayé conçu pour la balle. Ce critère du canon, et non la crosse ou le mécanisme, définit chaque famille d'armes."}, {"t": "Dans quelle catégorie réglementaire sont classés la plupart des fusils de chasse à canon lisse et les carabines à verrou ?", "o": ["Catégorie A, interdite", "Catégorie B, soumise à autorisation préfectorale", "Catégorie C, soumise à déclaration", "Catégorie D, en vente libre"], "a": 2, "e": "Les armes de chasse classiques (fusils à canons lisses, carabines à verrou, semi-automatiques limités à 3 coups) relèvent de la catégorie C, soumise à déclaration. Seules certaines armes plus puissantes ou à chargeur amovible relèvent de la catégorie B."}, {"t": "Pour acheter une arme de catégorie C chez un armurier, un chasseur doit présenter son permis de chasser accompagné :", "o": ["D'un certificat médical de moins de trois mois", "De la validation de l'année en cours ou de l'année précédente", "D'une autorisation préfectorale d'acquisition", "D'une attestation de son président d'ACCA"], "a": 1, "e": "Le permis de chasser doit être accompagné d'un titre de validation de l'année en cours ou de l'année précédente, avec une pièce d'identité et le numéro SIA de l'acheteur. Aucune autorisation préfectorale n'est requise pour la catégorie C."}, {"t": "Quel organisme organise l'examen du permis de chasser et délivre le titre permanent ?", "o": ["La Fédération nationale des chasseurs", "La préfecture du département", "L'Office français de la biodiversité (OFB)", "La mairie du domicile"], "a": 2, "e": "Depuis le 1er janvier 2020, l'OFB (issu de la fusion de l'ONCFS et de l'AFB) organise l'examen unique et délivre le permis de chasser. Les fédérations départementales assurent la formation des candidats."}, {"t": "Quelle est la durée de validité du permis de chasser une fois obtenu ?", "o": ["Un an, renouvelable après un nouvel examen", "Dix ans", "Il est permanent (valable à vie), mais doit être validé chaque année pour chasser", "Jusqu'à l'âge de 70 ans"], "a": 2, "e": "Le permis de chasser est un titre permanent. En revanche, pour chasser, son titulaire doit chaque saison obtenir une validation (paiement des redevances, cotisation fédérale, assurance)."}, {"t": "Auprès de qui un chasseur valide-t-il chaque année son permis de chasser ?", "o": ["Auprès de la préfecture", "Auprès de la fédération départementale des chasseurs (guichet unique)", "Auprès de l'OFB", "Auprès de la gendarmerie"], "a": 1, "e": "La validation se fait au guichet unique de la fédération départementale des chasseurs, souvent en ligne, qui encaisse les redevances cynégétiques, le timbre fiscal, la cotisation fédérale et propose l'assurance."}, {"t": "Lors d'une battue au grand gibier, qui est chargé de rappeler les consignes de sécurité et d'attribuer les postes avant le départ ?", "o": ["Le garde particulier du territoire", "Le chef de battue (responsable de la chasse collective)", "Le chasseur le plus ancien du groupe", "Le maire de la commune"], "a": 1, "e": "Le chef de battue organise la chasse collective : il rappelle les consignes, désigne les postes et les angles de tir, et s'assure que chaque participant les a comprises."}, {"t": "En battue, quel angle de sécurité doit-on respecter de part et d'autre de la direction d'un voisin de poste ou d'une zone dangereuse ?", "o": ["15°", "20°", "30°", "45°"], "a": 2, "e": "La règle générale est l'angle de 30° : on ne tire jamais dans un cône de 30° autour d'un voisin, d'une route ou d'une habitation, angle que l'on matérialise à son poste avec des repères."}, {"t": "Que doit faire un chasseur posté lorsqu'il entend le signal sonore de fin de battue ?", "o": ["Décharger immédiatement son arme et rester à son poste jusqu'à l'ordre de regroupement", "Rejoindre la traque pour aider les chiens à rassembler le gibier", "Tirer les derniers animaux qui sortent tant qu'ils sont visibles", "Recharger son arme pour le retour au rendez-vous"], "a": 0, "e": "Après le signal de fin de battue, tout tir est interdit : on décharge son arme et on ne quitte son poste que selon les consignes du chef de battue."}, {"t": "L'Office français de la biodiversité (OFB), créé le 1er janvier 2020, résulte de la fusion de quels organismes ?", "o": ["De l'ONF et des fédérations de chasseurs", "De l'ONCFS et de l'INRAE", "De l'Agence française pour la biodiversité (AFB) et de l'Office national de la chasse et de la faune sauvage (ONCFS)", "Du Conservatoire du littoral et de l'ONCFS"], "a": 2, "e": "La loi du 24 juillet 2019 a fusionné l'AFB et l'ONCFS en un établissement unique, l'OFB, chargé notamment de la police de la chasse et de la délivrance du permis de chasser."}, {"t": "Pour quelle durée le schéma départemental de gestion cynégétique (SDGC) est-il établi ?", "o": ["3 ans", "6 ans", "10 ans", "Durée illimitée"], "a": 1, "e": "Le SDGC est établi pour six ans renouvelables ; il fixe les règles de gestion des espèces, de sécurité, d'agrainage et les plans de gestion opposables aux chasseurs du département."}, {"t": "Qui élabore et qui approuve le schéma départemental de gestion cynégétique ?", "o": ["Élaboré par la fédération départementale des chasseurs, approuvé par le préfet", "Élaboré par le préfet, approuvé par l'OFB", "Élaboré par la chambre d'agriculture, approuvé par le conseil départemental", "Élaboré par l'ONF, approuvé par le ministre"], "a": 0, "e": "La FDC rédige le SDGC en concertation avec les acteurs ruraux (agriculteurs, forestiers, environnement) et le préfet l'approuve après avis de la commission départementale de la chasse et de la faune sauvage."}, {"t": "Après avoir tué un grand gibier, quel est le geste prioritaire pour préserver la qualité sanitaire de la viande ?", "o": ["Le laisser reposer plusieurs heures sur place avant d'y toucher", "L'éviscérer le plus tôt possible après la mort", "Le dépouiller entièrement sur le lieu du tir", "Le rincer abondamment dans le ruisseau le plus proche"], "a": 1, "e": "L'éviscération précoce limite la prolifération bactérienne et permet un refroidissement rapide de la carcasse. C'est la première mesure d'hygiène de la venaison."}, {"t": "À quelle température maximale à cœur doit être ramenée et conservée une carcasse de grand gibier en peau ?", "o": ["12 °C", "7 °C", "4 °C", "0 °C"], "a": 1, "e": "La réglementation impose un refroidissement des carcasses de grand gibier à 7 °C au plus, et à 4 °C pour le petit gibier."}];
+let i=0,score=0;const box=document.getElementById('quizbox');
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function show(){
+  if(i>=Q.length){box.innerHTML='<div class="score"><div class="big">'+score+'/'+Q.length+'</div><p>'+(score>=Q.length*0.83?'Niveau examen : vous auriez réussi ! Continuez avec les 311 autres questions dans l\'app.':'À l\'examen, une question de sécurité est éliminatoire. Entraînez-vous avec les 331 questions et les examens blancs de Cap Chasse.')+'</p><a class="btn coral" href="https://apps.apple.com/fr/app/id6806226193">Télécharger Cap Chasse</a></div>';return;}
+  const q=Q[i];
+  box.innerHTML='<div class="meta"><span>Question '+(i+1)+' / '+Q.length+'</span><span>Score : '+score+'</span></div><p class="q">'+esc(q.t)+'</p>'+q.o.map((o,k)=>'<button class="opt" data-k="'+k+'">'+esc(o)+'</button>').join('')+'<div id="fb"></div>';
+  box.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const k=+b.dataset.k;box.querySelectorAll('.opt').forEach(x=>{x.disabled=true;if(+x.dataset.k===q.a)x.classList.add('good')});
+    if(k===q.a)score++;else b.classList.add('bad');
+    document.getElementById('fb').innerHTML='<div class="exp">'+esc(q.e)+'</div><button class="btn next" id="nx">Question suivante</button>';
+    document.getElementById('nx').onclick=()=>{i++;show();};
+  });
+}
+show();
+</script>
+</body>
+</html>
