@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QCM permis bateau côtier gratuit – Cap Côtier, l'app pour réussir l'examen</title>
+<meta name="description" content="Entraînez-vous gratuitement au permis bateau côtier : 20 questions d'examen corrigées en ligne, et 411 questions, schémas et examens blancs dans l'app Cap Côtier.">
+<link rel="canonical" href="https://profcalendar.org/capcotier">
+<meta property="og:title" content="Cap Côtier – Réussir le permis bateau côtier">
+<meta property="og:description" content="QCM gratuit du permis côtier + l'app avec 411 questions illustrées et examens blancs au barème officiel.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://profcalendar.org/capcotier">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Cap Côtier – Permis Bateau","operatingSystem":"iOS","applicationCategory":"EducationalApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"url":"https://apps.apple.com/fr/app/id6806226193"}</script>
+<style>
+  :root{--teal:#0E7C86;--deep:#093F4A;--coral:#FF6B5A;--ink:#16262E;--muted:#5A6B70;--bg:#F4F7F7;--card:#fff;--line:#D8E1E2;--good:#2F7D4F;--bad:#AF3A3A}
+  *{box-sizing:border-box}body{margin:0;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55}
+  .hero{background:linear-gradient(160deg,var(--teal),var(--deep));color:#fff;padding:64px 20px 56px;text-align:center}
+  .hero img{width:112px;height:112px;border-radius:26px;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+  .hero h1{font-size:clamp(1.8rem,5vw,2.8rem);margin:.6em auto .3em;max-width:22ch;line-height:1.15}
+  .hero p{max-width:52ch;margin:0 auto 1.4em;color:#d7ecee;font-size:1.1rem}
+  .btn{display:inline-block;background:#000;color:#fff;text-decoration:none;font-weight:700;padding:14px 26px;border-radius:14px;font-size:1.05rem}
+  .btn.coral{background:var(--coral)}
+  .wrap{max-width:760px;margin:0 auto;padding:0 20px}
+  section{padding:44px 0}
+  h2{font-size:1.5rem;margin:0 0 .5em}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .q{font-size:1.15rem;font-weight:700;margin:0 0 14px}
+  .opt{display:block;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:13px 16px;margin:8px 0;font:inherit;font-size:1rem;cursor:pointer}
+  .opt:hover{border-color:var(--teal)}
+  .opt.good{background:#E2F0E7;border-color:var(--good)}.opt.bad{background:#F5E3E3;border-color:var(--bad)}
+  .opt[disabled]{cursor:default}
+  .exp{margin:12px 0 0;padding:12px 14px;background:var(--bg);border-radius:10px;font-size:.95rem;color:var(--muted)}
+  .meta{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin-bottom:10px}
+  .next{margin-top:14px}
+  .feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+  .feats .card h3{margin:0 0 6px;font-size:1.05rem}
+  details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:8px 0}
+  summary{font-weight:700;cursor:pointer}
+  footer{padding:30px 20px;text-align:center;color:var(--muted);font-size:.85rem}
+  footer a{color:var(--teal)}
+  .score{text-align:center}.score .big{font-size:3rem;font-weight:800;color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="hero">
+  <img src="{{ url_for('static', filename='capcotier/icon.png') }}" alt="Icône de l'app Cap Côtier">
+  <h1>Réussissez votre permis bateau côtier du premier coup</h1>
+  <p>Cap Côtier, c'est 411 questions conformes à la réforme 2024, des schémas de balisage et de feux, et des examens blancs au barème officiel — 100 % hors-ligne.</p>
+  <a class="btn" href="https://apps.apple.com/fr/app/id6806226193">Télécharger sur l'App Store</a>
+</div>
+
+<div class="wrap">
+<section id="quiz">
+  <h2>Testez-vous : 20 questions d'examen gratuites</h2>
+  <p>Le format exact de l'examen : une question, quatre réponses, une seule bonne. Corrigé immédiat.</p>
+  <div class="card" id="quizbox"></div>
+</section>
+
+<section>
+  <h2>Ce que contient l'app</h2>
+  <div class="feats">
+    <div class="card"><h3>Examens blancs comme le jour J</h3>30 questions, 5 fautes maximum : le barème officiel, avec corrigé complet.</div>
+    <div class="card"><h3>411 questions illustrées</h3>Balisage, règles de barre, feux, sécurité, météo, VHF, réglementation, environnement — avec les schémas de l'examen.</div>
+    <div class="card"><h3>Révision ciblée</h3>Vos erreurs reviennent automatiquement jusqu'à être maîtrisées.</div>
+    <div class="card"><h3>Hors-ligne, sans compte</h3>Révisez au port, dans le train, en mer. Aucune publicité.</div>
+  </div>
+  <p style="text-align:center;margin-top:24px"><a class="btn coral" href="https://apps.apple.com/fr/app/id6806226193">Essayer gratuitement</a></p>
+</section>
+
+<section>
+  <h2>L'examen du permis côtier en bref</h2>
+  <details><summary>Comment se passe l'épreuve théorique ?</summary>30 questions à choix multiples sur écran, 5 fautes maximum autorisées. Les thèmes : balisage, règles de barre et de route, feux et marques, sécurité, météo, VHF, réglementation et environnement. Depuis la réforme de 2024, le format est proche de celui du code de la route.</details>
+  <details><summary>Quelles sont les conditions pour le passer ?</summary>Avoir 16 ans minimum, suivre la formation théorique et pratique dans un bateau-école agréé, puis passer l'examen théorique. Le permis côtier autorise la navigation jusqu'à 6 milles d'un abri, de jour comme de nuit.</details>
+  <details><summary>Combien coûte le permis bateau ?</summary>Comptez en moyenne 350 à 400 € tout compris (formation, timbres fiscaux, examen). Cap Côtier est gratuit à l'essai ; l'accès complet est un achat unique de 29,99 €, sans abonnement.</details>
+  <details><summary>Faut-il un examen VHF en plus ?</summary>Non pour naviguer dans les eaux françaises : le permis côtier permet d'utiliser une VHF. Le CRR n'est nécessaire que pour les eaux étrangères ou internationales.</details>
+  <details><summary>L'app remplace-t-elle le bateau-école ?</summary>Non. Cap Côtier est un outil d'entraînement ; la formation en bateau-école reste obligatoire pour se présenter à l'examen.</details>
+</section>
+</div>
+
+<footer>Cap Côtier – Permis Bateau · <a href="https://apps.apple.com/fr/app/id6806226193">App Store</a> · <a href="/capcotier/confidentialite">Confidentialité</a> · <a href="/support">Support</a></footer>
+
+<script>
+const Q=[{"t": "En entrant dans un port (venant du large), vous laissez les bouées vertes coniques :", "o": ["Sur votre bâbord", "Sur votre tribord", "Indifféremment d'un côté ou de l'autre", "Vous devez les contourner par le large"], "a": 1, "e": "En région A (Europe), au retour du large, les marques latérales tribord (vertes, coniques) se laissent à tribord et les marques bâbord (rouges, cylindriques) à bâbord."}, {"t": "Une marque cardinale nord porte comme voyant :", "o": ["Deux cônes noirs pointes en haut", "Deux cônes noirs pointes en bas", "Deux cônes noirs opposés par la base", "Deux sphères noires"], "a": 0, "e": "Cardinale nord : deux cônes superposés pointes vers le haut. On passe au nord de la marque, le danger est au sud."}, {"t": "Vous apercevez une marque cardinale ouest. De quel côté de la marque devez-vous passer ?", "o": ["À l'est de la marque", "Au sud de la marque", "À l'ouest de la marque", "Au nord de la marque"], "a": 2, "e": "Une cardinale indique le côté où se trouvent les eaux saines : une cardinale ouest se contourne par l'ouest. Son voyant : deux cônes pointe contre pointe."}, {"t": "Deux navires à moteur font des routes qui se croisent. Le navire qui arrive sur votre tribord :", "o": ["Doit s'écarter de votre route", "Est privilégié : c'est à vous de manœuvrer", "Doit s'arrêter", "Doit faire demi-tour"], "a": 1, "e": "En cas de routes croisées entre navires à moteur, celui qui voit l'autre sur son tribord doit s'écarter. Le navire venant de tribord est privilégié."}, {"t": "En route libre, entre un navire à moteur et un voilier faisant route à la voile :", "o": ["Le navire à moteur est privilégié", "Le voilier est privilégié", "Le plus rapide est privilégié", "Le plus grand est privilégié"], "a": 1, "e": "Un navire à propulsion mécanique s'écarte de la route d'un voilier, sauf cas particuliers (voilier rattrapant, grand navire dans un chenal étroit…)."}, {"t": "Un navire en rattrape un autre. Qui doit manœuvrer ?", "o": ["Le navire rattrapé", "Le navire rattrapant, quel que soit son mode de propulsion", "Le voilier, s'il y en a un", "Le plus petit des deux"], "a": 1, "e": "Tout navire qui en rattrape un autre doit s'écarter de sa route, même si c'est un voilier qui rattrape un navire à moteur."}, {"t": "De nuit, vous voyez devant vous un feu rouge et un feu vert côte à côte, sous un feu blanc :", "o": ["Un navire s'éloigne de vous", "Un navire vient droit sur vous", "Un navire est au mouillage", "Un navire montre son côté tribord"], "a": 1, "e": "Voir simultanément les deux feux de côté (rouge à bâbord, vert à tribord) et le feu de mât signifie que le navire fait route droit vers vous : situation de face à face."}, {"t": "De nuit, un navire de moins de 50 mètres au mouillage montre :", "o": ["Un feu blanc visible sur tout l'horizon", "Un feu rouge sur tout l'horizon", "Ses feux de côté", "Aucun feu"], "a": 0, "e": "Au mouillage, un navire de moins de 50 m montre un feu blanc visible sur tout l'horizon, à l'endroit le plus visible."}, {"t": "De nuit, vous distinguez le feu vert d'un navire. Vous voyez :", "o": ["Son côté bâbord", "Son côté tribord", "Son arrière", "Sa proue exactement"], "a": 1, "e": "Le feu vert est le feu de côté tribord (le rouge est à bâbord). Voir le vert seul signifie que le navire vous présente son flanc tribord et croise de votre gauche vers votre droite."}, {"t": "Avec l'armement de sécurité « côtier », vous pouvez vous éloigner d'un abri jusqu'à :", "o": ["2 milles", "6 milles", "12 milles", "20 milles"], "a": 1, "e": "L'armement côtier (division 240) permet de naviguer jusqu'à 6 milles d'un abri. Au-delà, il faut l'armement hauturier ; jusqu'à 2 milles, l'armement basique suffit."}, {"t": "En navigation côtière (jusqu'à 6 milles d'un abri), les gilets de sauvetage embarqués doivent offrir une flottabilité d'au moins :", "o": ["50 newtons", "100 newtons", "150 newtons", "275 newtons"], "a": 1, "e": "En côtier, il faut un équipement individuel de flottabilité d'au moins 100 N par personne embarquée (50 N suffisent en basique dans certaines conditions)."}, {"t": "De nuit, pour signaler une détresse, vous utilisez en priorité :", "o": ["Une lampe torche ordinaire", "Des feux rouges à main", "Le klaxon du bord", "Un pavillon noir"], "a": 1, "e": "Les feux rouges à main font partie de l'armement côtier (3 exigés) : ils signalent visuellement une détresse, de jour comme de nuit, en complément de l'alerte VHF."}, {"t": "La météo annonce un vent de force 8 Beaufort. Cela correspond à :", "o": ["Une jolie brise", "Un grand frais", "Un coup de vent", "Une tempête"], "a": 2, "e": "Force 8 = coup de vent (34 à 40 nœuds). En plaisance côtière, on reste au port bien avant ce niveau."}, {"t": "Un BMS diffusé par les CROSS est :", "o": ["Un bulletin météo régulier", "Un Bulletin Météorologique Spécial signalant un phénomène dangereux", "Un avis de course au large", "Un bulletin réservé aux navires de commerce"], "a": 1, "e": "Le BMS est émis dès qu'un phénomène dangereux est prévu ou en cours (vent ≥ force 7 en côtier, orages violents…). Il est diffusé en VHF par les CROSS."}, {"t": "Par beau temps l'été, la brise thermique de l'après-midi souffle généralement :", "o": ["De la terre vers la mer", "De la mer vers la terre", "Parallèlement à la côte", "Elle est imprévisible"], "a": 1, "e": "L'après-midi, la terre chauffe plus vite que la mer : l'air chaud s'élève et aspire l'air marin. C'est la brise de mer, qui se renforce en journée et tombe le soir."}, {"t": "Le canal VHF d'appel et de détresse est le :", "o": ["Canal 9", "Canal 16", "Canal 72", "Canal 77"], "a": 1, "e": "Le canal 16 est réservé à la détresse, à l'urgence et aux appels initiaux. Une fois le contact établi, on dégage sur un canal de travail."}, {"t": "Le message « MAYDAY » s'emploie :", "o": ["Pour tout appel au CROSS", "En cas de danger grave et imminent pour le navire ou les personnes", "Pour signaler une panne sans gravité", "Pour demander la météo"], "a": 1, "e": "MAYDAY est strictement réservé à la détresse : danger grave et imminent nécessitant une assistance immédiate. Répété trois fois sur le canal 16."}, {"t": "Pour une avarie sérieuse mais sans danger immédiat (moteur en panne, dérive lente), vous transmettez :", "o": ["MAYDAY", "PAN PAN", "SÉCURITÉ", "Rien, on attend"], "a": 1, "e": "PAN PAN est le message d'urgence : situation sérieuse pour le navire ou une personne, sans danger grave et imminent. SÉCURITÉ concerne les avis à la navigation et la météo."}, {"t": "Le permis plaisance option côtière autorise la navigation :", "o": ["Sans limite de distance", "Jusqu'à 6 milles d'un abri", "Jusqu'à 12 milles d'un abri", "Uniquement de jour"], "a": 1, "e": "L'option côtière couvre la mer jusqu'à 6 milles d'un abri, de jour comme de nuit. Au-delà, il faut l'extension hauturière."}, {"t": "L'âge minimum pour passer le permis plaisance option côtière est de :", "o": ["14 ans", "16 ans", "18 ans", "21 ans"], "a": 1, "e": "Le permis côtier peut être obtenu dès 16 ans. La conduite accompagnée dans un club est possible plus tôt dans certaines conditions."}];
+let i=0,score=0;const box=document.getElementById('quizbox');
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function show(){
+  if(i>=Q.length){box.innerHTML='<div class="score"><div class="big">'+score+'/'+Q.length+'</div><p>'+(score>=Q.length*0.83?'Niveau examen : vous auriez réussi ! Continuez avec les 391 autres questions dans l\'app.':'À l\'examen, il faut 25/30. Entraînez-vous avec les 411 questions et les examens blancs de Cap Côtier.')+'</p><a class="btn coral" href="https://apps.apple.com/fr/app/id6806226193">Télécharger Cap Côtier</a></div>';return;}
+  const q=Q[i];
+  box.innerHTML='<div class="meta"><span>Question '+(i+1)+' / '+Q.length+'</span><span>Score : '+score+'</span></div><p class="q">'+esc(q.t)+'</p>'+q.o.map((o,k)=>'<button class="opt" data-k="'+k+'">'+esc(o)+'</button>').join('')+'<div id="fb"></div>';
+  box.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const k=+b.dataset.k;box.querySelectorAll('.opt').forEach(x=>{x.disabled=true;if(+x.dataset.k===q.a)x.classList.add('good')});
+    if(k===q.a)score++;else b.classList.add('bad');
+    document.getElementById('fb').innerHTML='<div class="exp">'+esc(q.e)+'</div><button class="btn next" id="nx">Question suivante</button>';
+    document.getElementById('nx').onclick=()=>{i++;show();};
+  });
+}
+show();
+</script>
+</body>
+</html>
