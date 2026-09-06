@@ -1763,6 +1763,11 @@ def create_app(config_name='development'):
         """Page de présentation de l'app Cap Côtier avec quiz gratuit (SEO)."""
         return render_template('capcotier/index.html')
 
+    @app.route('/capchasse/confidentialite')
+    def capchasse_privacy():
+        """Politique de confidentialité de l'app Cap Chasse (exigence App Store)."""
+        return render_template('legal/capchasse_confidentialite.html')
+
     @app.route('/capcotier/confidentialite')
     def capcotier_privacy():
         """Politique de confidentialité de l'app Cap Côtier (exigence App Store)."""
