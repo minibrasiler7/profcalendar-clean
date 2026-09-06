@@ -6,11 +6,14 @@ from utils.custom_types import EncryptedString, EncryptedText
 class Devoir(db.Model):
     """Un devoir donné par l'enseignant à une classe, à rendre pour une date.
 
-    Deux types :
+    Trois types :
       - 'submission' : l'élève rend un travail (photo → PDF), le prof corrige et
                        renvoie individuellement.
       - 'exercise'   : un exercice interactif assigné ; le suivi (points, badge)
                        se fait via StudentExerciseAttempt.
+      - 'classic'    : simple devoir noté au calendrier ; rien à rendre en ligne.
+                       C'est le SEUL type proposé quand aucun élève de la classe
+                       n'a de compte : les deux autres seraient inutilisables.
 
     La classe visée est résolue via le ROSTER PARTAGÉ (classroom.get_students()),
     donc un devoir couvre bien tous les élèves de la classe même quand celle-ci
@@ -22,7 +25,7 @@ class Devoir(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False, index=True)
 
-    devoir_type = db.Column(db.String(20), nullable=False, default='submission')  # submission | exercise
+    devoir_type = db.Column(db.String(20), nullable=False, default='submission')  # submission | exercise | classic
     title = db.Column(EncryptedString(), nullable=False)
     instructions = db.Column(EncryptedText(), nullable=True)  # consignes optionnelles
 

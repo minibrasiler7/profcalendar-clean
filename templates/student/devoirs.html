@@ -34,6 +34,7 @@
     .dv-type { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; white-space: nowrap; }
     .dv-type.submission { background: #EEF2FF; color: #4F46E5; }
     .dv-type.exercise { background: #FEF3C7; color: #B45309; }
+    .dv-type.classic { background: #F3F4F6; color: #374151; }
     .dv-instructions { font-size: 0.88rem; color: #374151; margin: 0.6rem 0 0; white-space: pre-wrap; }
     .dv-status { margin-top: 0.8rem; font-size: 0.85rem; }
     .dv-status.ok { color: #059669; font-weight: 600; }
@@ -93,7 +94,7 @@
                         <p class="dv-title">{{ d.title }}</p>
                         <div class="dv-meta">{{ d.subject }} · {{ _('à rendre le') }} <strong>{{ d.due_date.strftime('%d.%m.%Y') }}</strong></div>
                     </div>
-                    <span class="dv-type {{ d.devoir_type }}">{% if d.devoir_type == 'exercise' %}{{ _('Exercice') }}{% else %}{{ _('À rendre') }}{% endif %}</span>
+                    <span class="dv-type {{ d.devoir_type }}">{% if d.devoir_type == 'exercise' %}{{ _('Exercice') }}{% elif d.devoir_type == 'classic' %}{{ _('Devoir') }}{% else %}{{ _('À rendre') }}{% endif %}</span>
                 </div>
 
                 {% if d.instructions %}<p class="dv-instructions">{{ d.instructions }}</p>{% endif %}
@@ -110,6 +111,9 @@
                     <div class="dv-actions">
                         <a class="dv-btn" href="/student/missions/{{ d.exercise_id }}"><i class="fas fa-play"></i> {{ _("Faire l'exercice") }}</a>
                     </div>
+                {% elif d.devoir_type == 'classic' %}
+                    {# Devoir classique : à faire pour la date, rien à envoyer ici. #}
+                    <div class="dv-status"><i class="fas fa-list-check"></i> {{ _('À faire pour la date indiquée — rien à rendre en ligne.') }}</div>
                 {% else %}
                     {% if sub %}
                         <div class="dv-status ok"><i class="fas fa-check-circle"></i> {{ _('Rendu le %(date)s', date=sub.submitted_at.strftime('%d.%m.%Y')) }} ({{ ngettext('%(num)d page', '%(num)d pages', sub.page_count) }})</div>

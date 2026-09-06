@@ -61,6 +61,9 @@ function openPlanningModal(cell, fromAnnualView = false) {
             console.log('Debug existing planning - setting modalClassroomValue:', modalClassroomValue);
             console.log('Debug existing planning - planning data:', data.planning);
             document.getElementById('modalClassroom').value = modalClassroomValue;
+            // Le bouton « Créer un devoir » du calendrier suit la classe choisie ;
+            // l'affectation par script ne déclenche pas l'événement change.
+            if (typeof syncPlanningDevoirBtn === 'function') syncPlanningDevoirBtn();
             document.getElementById('modalPlanningTitle').value = data.planning.title || '';
 
             // Charger les groupes pour la classe sélectionnée, puis définir le groupe
@@ -127,6 +130,7 @@ function openPlanningModal(cell, fromAnnualView = false) {
                 console.log('Debug openPlanningModal - no default class, resetting to empty');
                 document.getElementById('modalClassroom').value = '';
             }
+            if (typeof syncPlanningDevoirBtn === 'function') syncPlanningDevoirBtn();
             
             document.getElementById('modalPlanningTitle').value = '';
             const modalDesc = document.getElementById('modalDescription');

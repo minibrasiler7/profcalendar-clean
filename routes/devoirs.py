@@ -4,9 +4,13 @@ Phase 1 : l'enseignant crée un devoir pour une classe, avec une date de rendu
 choisie parmi les prochaines dates de cours de la classe (jour de la semaine
 indiqué). Le devoir apparaîtra comme une tâche à la date de rendu.
 
-Deux types : 'submission' (l'élève rend une photo, le prof corrige) et
-'exercise' (exercice interactif, suivi points/badges). Le rendu côté élève et
-la correction arrivent dans les phases suivantes.
+Trois types : 'submission' (l'élève rend une photo, le prof corrige),
+'exercise' (exercice interactif, suivi points/badges) et 'classic' (rien à
+rendre en ligne — le devoir est simplement noté au calendrier).
+
+Les deux premiers supposent que des élèves de la classe ont un compte. Quand
+ce n'est pas le cas, l'interface ne propose que 'classic' (cf. le champ
+`student_accounts` renvoyé par /suggest-dates).
 """
 from datetime import datetime, timedelta
 
@@ -56,6 +60,16 @@ def get_upcoming_class_dates(user, classroom, count=8, from_date=None):
     return out
 
 
+def count_student_accounts(classroom):
+    """Nombre d'élèves de la classe (roster partagé) ayant activé un compte.
+
+    C'est ce qui décide si les devoirs « à rendre » et « exercice interactif »
+    ont un sens : sans compte élève, personne ne peut rien rendre ni ouvrir un
+    exercice, et l'enseignant ne doit donc pas se voir proposer ces types.
+    """
+    return sum(1 for s in classroom.get_students() if getattr(s, 'is_authenticated', False))
+
+
 def _date_label(d):
     return f"{_WEEKDAYS_FR[d.weekday()]} {d.day} {_MONTHS_FR[d.month]}"
 
@@ -75,6 +89,9 @@ def suggest_dates():
     dates = get_upcoming_class_dates(current_user, classroom, count=10)
     return jsonify({
         'success': True,
+        # Pilote les types de devoir proposés par la modale : à 0, seul le
+        # devoir « classique » est utilisable.
+        'student_accounts': count_student_accounts(classroom),
         'dates': [
             {'date': d.isoformat(), 'weekday': _WEEKDAYS_FR[d.weekday()], 'label': _date_label(d)}
             for d in dates
@@ -116,7 +133,14 @@ def create_devoir():
     if not title:
         return jsonify({'success': False, 'error': 'Titre manquant'}), 400
 
-    devoir_type = data.get('type') if data.get('type') in ('submission', 'exercise') else 'submission'
+    devoir_type = data.get('type') if data.get('type') in ('submission', 'exercise', 'classic') else 'submission'
+
+    # Garde-fou serveur : sans aucun compte élève dans la classe, un devoir « à
+    # rendre » ou « exercice » ne pourrait jamais être ouvert par personne. On
+    # le ramène au devoir classique plutôt que de créer un devoir mort.
+    classroom = Classroom.query.get_or_404(classroom_id)
+    if devoir_type != 'classic' and count_student_accounts(classroom) == 0:
+        devoir_type = 'classic'
 
     try:
         due_date = datetime.strptime(data.get('due_date'), '%Y-%m-%d').date()
@@ -155,7 +179,6 @@ def create_devoir():
     # « Exercice non disponible » (web) et l'app mobile n'a pas de mission_id.
     if devoir_type == 'exercise' and exercise_id:
         from models.exercise_progress import ExercisePublication
-        classroom = Classroom.query.get(classroom_id)
         for cid in (classroom.get_group_classroom_ids() if classroom else [classroom_id]):
             if not ExercisePublication.query.filter_by(
                     exercise_id=exercise_id, classroom_id=cid).first():
