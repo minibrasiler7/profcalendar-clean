@@ -11921,6 +11921,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     loadGroups();
                 } else if (selectedTab === 'accommodations') {
                     loadAccommodations();
+                } else if (selectedTab === 'formative') {
+                    // Arrivée directe sur l'onglet : ce bloc double la logique de
+                    // showTab() et doit donc l'initialiser lui aussi, sinon le
+                    // sélecteur de discipline reste vide et inutilisable.
+                    if (typeof initFormativeTab === 'function') initFormativeTab();
                 } else if (selectedTab === 'student-report') {
                     loadStudentsForReport();
                 } else if (selectedTab === 'seating') {
@@ -12629,14 +12634,18 @@ function debugAdditionalInfo() {
     window.initFormativeTab = function () {
         const sel = document.getElementById('formative-classroom-select');
         if (!sel) return;
+        const classrooms = ({{ classrooms_json | tojson }} || []).filter(c => c.is_editable);
         if (!sel.options.length) {
-            const classrooms = ({{ classrooms_json | tojson }} || []).filter(c => c.is_editable);
             sel.innerHTML = classrooms.map(c =>
                 `<option value="${c.id}">${esc(c.subject || c.name)}</option>`).join('');
-            // Une seule discipline : le sélecteur n'apporte rien.
-            document.getElementById('formative-classroom-picker').style.display =
-                classrooms.length > 1 ? '' : 'none';
+            // Une seule discipline enseignée : elle est déjà sélectionnée, choisir
+            // n'aurait aucun sens — on masque le sélecteur.
+            if (classrooms.length) sel.value = String(classrooms[0].id);
         }
+        // Visibilité réévaluée à chaque ouverture : ce calcul ne doit pas
+        // dépendre du fait que les options viennent d'être créées ou non.
+        document.getElementById('formative-classroom-picker').style.display =
+            classrooms.length > 1 ? '' : 'none';
         if (!levels.length && FIELDS.includes('level')) {
             fetch('/api/formative/levels').then(r => r.json()).then(j => {
                 levels = j.levels || [];
