@@ -20,6 +20,10 @@
             <i class="fas fa-list"></i>
             Affichage
         </a>
+        <a href="#formative" class="settings-nav-link" onclick="showSection('formative', this)">
+            <i class="fas fa-check-double"></i>
+            Éval. formative
+        </a>
         <a href="#security" class="settings-nav-link" onclick="showSection('security', this)">
             <i class="fas fa-shield-alt"></i>
             Sécurité
@@ -153,6 +157,83 @@
                 </div>
 
                 <button type="button" class="btn btn-primary" onclick="saveDisplaySettings()">
+                    <i class="fas fa-save"></i> Enregistrer les paramètres
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Évaluation formative -->
+    <div id="formative-section" class="settings-section" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-check-double"></i> Évaluation formative</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Permet d'annoter rapidement le travail des élèves (test formatif, devoir)
+                    pour voir d'un coup d'œil qui a bien fait son travail. Une fois activée,
+                    un onglet « Éval. formative » apparaît dans <em>Gérer les classes</em>,
+                    et les appréciations se retrouvent dans le rapport de l'élève.
+                </p>
+
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" id="formative_enabled"
+                           {% if preferences.formative_enabled %}checked{% endif %}
+                           onchange="toggleFormativeOptions()">
+                    <label class="form-check-label" for="formative_enabled">
+                        <strong>Activer l'évaluation formative</strong>
+                    </label>
+                </div>
+
+                <div id="formative-options" {% if not preferences.formative_enabled %}style="display: none;"{% endif %}>
+                    {% set active_fields = preferences.formative_field_list() %}
+                    <div class="mb-4">
+                        <label class="form-label">Ce que tu veux saisir</label>
+                        <p class="text-muted">Retire ce dont tu ne te sers pas : les colonnes décochées n'apparaîtront nulle part.</p>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="formative_field_level"
+                                   value="level" {% if 'level' in active_fields %}checked{% endif %}>
+                            <label class="form-check-label" for="formative_field_level">
+                                Appréciation <span class="text-muted">(selon ton échelle ci-dessous)</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="formative_field_comment"
+                                   value="comment" {% if 'comment' in active_fields %}checked{% endif %}>
+                            <label class="form-check-label" for="formative_field_comment">
+                                Commentaire <span class="text-muted">(texte libre, visible de toi seul)</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="formative_field_color"
+                                   value="color" {% if 'color' in active_fields %}checked{% endif %}>
+                            <label class="form-check-label" for="formative_field_color">
+                                Pastille de couleur <span class="text-muted">(repère visuel rapide)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Échelle d'appréciation</label>
+                        <p class="text-muted">
+                            Les niveaux proposés quand tu annotes un élève, du plus élevé au plus bas.
+                            Supprimer un niveau ne supprime pas les commentaires ni les pastilles déjà posés.
+                        </p>
+                        <div id="formative-levels-list" class="formative-levels"></div>
+                        <div class="formative-level-add">
+                            <input type="text" id="formative-new-level" class="form-control"
+                                   placeholder="Nouveau niveau (ex. : Acquis)" maxlength="60"
+                                   onkeydown="if (event.key === 'Enter') { event.preventDefault(); addFormativeLevel(); }">
+                            <button type="button" class="btn btn-outline-primary" onclick="addFormativeLevel()">
+                                <i class="fas fa-plus"></i> Ajouter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-primary" onclick="saveFormativeSettings()">
                     <i class="fas fa-save"></i> Enregistrer les paramètres
                 </button>
             </div>
@@ -645,6 +726,15 @@
     transition: all 0.3s ease; cursor: pointer;
 }
 .tuto-dot-active { background: var(--primary-color); transform: scale(1.3); }
+
+/* Évaluation formative : éditeur d'échelle */
+.formative-levels { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; }
+.formative-level-row { display: flex; align-items: center; gap: 0.4rem; }
+.formative-level-row input[type=text] { flex: 1; min-width: 0; }
+.formative-level-rank { width: 1.6rem; text-align: center; font-weight: 700; color: #6B7280; flex-shrink: 0; }
+.formative-level-del:hover { color: #DC2626; }
+.formative-level-add { display: flex; gap: 0.4rem; align-items: center; }
+.formative-level-add input { flex: 1; min-width: 0; }
 </style>
 
 <script>
@@ -1090,5 +1180,116 @@ async function deleteAccount() {
         btn.innerHTML = '<i class="fas fa-trash"></i> Supprimer définitivement mon compte';
     }
 }
+
+// ---------------------------------------------------------- Évaluation formative
+
+function formativeEsc(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function toggleFormativeOptions() {
+    const on = document.getElementById('formative_enabled').checked;
+    document.getElementById('formative-options').style.display = on ? 'block' : 'none';
+    if (on) loadFormativeLevels();
+}
+
+async function loadFormativeLevels() {
+    const box = document.getElementById('formative-levels-list');
+    if (!box) return;
+    try {
+        const j = await (await fetch('/api/formative/levels')).json();
+        const levels = (j.levels || []);
+        if (!levels.length) {
+            box.innerHTML = '<p class="text-muted"><em>Aucun niveau. Enregistre une première fois pour obtenir l\'échelle par défaut, ou ajoute les tiens.</em></p>';
+            return;
+        }
+        box.innerHTML = levels.map((l, i) => `
+            <div class="formative-level-row" data-id="${l.id}">
+                <span class="formative-level-rank">${i + 1}</span>
+                <input type="text" class="form-control" value="${formativeEsc(l.label)}" maxlength="60"
+                       onchange="renameFormativeLevel(${l.id}, this.value)">
+                <button type="button" class="btn btn-sm btn-light" title="Monter"
+                        onclick="moveFormativeLevel(${l.id}, -1)" ${i === 0 ? 'disabled' : ''}>
+                    <i class="fas fa-arrow-up"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light" title="Descendre"
+                        onclick="moveFormativeLevel(${l.id}, 1)" ${i === levels.length - 1 ? 'disabled' : ''}>
+                    <i class="fas fa-arrow-down"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-light formative-level-del" title="Supprimer"
+                        onclick="deleteFormativeLevel(${l.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>`).join('');
+    } catch (e) {
+        box.innerHTML = '<p class="text-danger">Impossible de charger l\'échelle.</p>';
+    }
+}
+
+async function addFormativeLevel() {
+    const input = document.getElementById('formative-new-level');
+    const label = input.value.trim();
+    if (!label) return;
+    const j = await (await fetch('/api/formative/levels', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label })
+    })).json();
+    if (j.success) { input.value = ''; loadFormativeLevels(); }
+}
+
+async function renameFormativeLevel(id, label) {
+    if (!label.trim()) { loadFormativeLevels(); return; }
+    await fetch('/api/formative/levels/' + id, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label })
+    });
+}
+
+async function deleteFormativeLevel(id) {
+    if (!confirm('Supprimer ce niveau ? Les appréciations qui l\'utilisaient repasseront à « aucune ».')) return;
+    const j = await (await fetch('/api/formative/levels/' + id, { method: 'DELETE' })).json();
+    if (j.success) loadFormativeLevels();
+}
+
+async function moveFormativeLevel(id, delta) {
+    const rows = [...document.querySelectorAll('#formative-levels-list .formative-level-row')];
+    const ids = rows.map(r => parseInt(r.dataset.id, 10));
+    const from = ids.indexOf(id);
+    const to = from + delta;
+    if (from < 0 || to < 0 || to >= ids.length) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    const j = await (await fetch('/api/formative/levels/reorder', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+    })).json();
+    if (j.success) loadFormativeLevels();
+}
+
+async function saveFormativeSettings() {
+    const enabled = document.getElementById('formative_enabled').checked;
+    const fields = ['level', 'comment', 'color'].filter(
+        k => document.getElementById('formative_field_' + k).checked);
+
+    const response = await fetch('/settings/update-formative', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled, fields })
+    });
+    const result = await response.json();
+
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-' + (result.success ? 'success' : 'danger') + ' alert-dismissible fade show mt-3';
+    alertDiv.innerHTML = `${formativeEsc(result.message)}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.querySelector('#formative-section .card-body').appendChild(alertDiv);
+    setTimeout(() => { if (alertDiv.parentNode) alertDiv.remove(); }, 4000);
+
+    // Première activation : le serveur vient de semer l'échelle par défaut.
+    if (result.success && enabled) loadFormativeLevels();
+}
+
+// L'échelle n'est chargée que si la section est déjà ouverte au chargement.
+document.addEventListener('DOMContentLoaded', function () {
+    const cb = document.getElementById('formative_enabled');
+    if (cb && cb.checked) loadFormativeLevels();
+});
 </script>
 {% endblock %}

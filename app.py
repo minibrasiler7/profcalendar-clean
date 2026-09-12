@@ -186,6 +186,12 @@ def create_app(config_name='development'):
         print(f"devoirs blueprint non trouvé: {_e}")
 
     try:
+        from routes.formative import formative_bp
+        app.register_blueprint(formative_bp)
+    except ImportError as _e:
+        print(f"formative blueprint non trouvé: {_e}")
+
+    try:
         from routes.attendance import attendance_bp
         app.register_blueprint(attendance_bp)
     except ImportError:
@@ -575,6 +581,59 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Vérification table devoirs échouée: {e}")
 
+        # Filet de sécurité : évaluation formative (fonction optionnelle).
+        # title/comment sont chiffrés côté ORM -> stockés en TEXT.
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS formative_levels (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    label VARCHAR(60) NOT NULL,
+                    position INTEGER NOT NULL DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS formative_assessments (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    classroom_id INTEGER NOT NULL REFERENCES classrooms(id) ON DELETE CASCADE,
+                    title TEXT NOT NULL,
+                    date DATE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS formative_entries (
+                    id SERIAL PRIMARY KEY,
+                    assessment_id INTEGER NOT NULL REFERENCES formative_assessments(id) ON DELETE CASCADE,
+                    student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+                    level_id INTEGER REFERENCES formative_levels(id) ON DELETE SET NULL,
+                    comment TEXT,
+                    color VARCHAR(7),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT _formative_entry_uc UNIQUE (assessment_id, student_id)
+                )
+            """))
+            db.session.execute(db.text(
+                "CREATE INDEX IF NOT EXISTS ix_formative_assess_classroom "
+                "ON formative_assessments (classroom_id, date)"
+            ))
+            db.session.execute(db.text(
+                "ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS "
+                "formative_enabled BOOLEAN NOT NULL DEFAULT FALSE"
+            ))
+            db.session.execute(db.text(
+                "ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS "
+                "formative_fields VARCHAR(40)"
+            ))
+            db.session.commit()
+            print("✅ Tables évaluation formative vérifiées")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Vérification évaluation formative échouée: {e}")
         # Filet de sécurité : mode de découpage + semaines sélectionnées.
         try:
             db.session.execute(db.text("ALTER TABLE decoupages ADD COLUMN IF NOT EXISTS mode VARCHAR(10) DEFAULT 'duration'"))

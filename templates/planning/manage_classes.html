@@ -3159,6 +3159,9 @@
                     <option value="attendance">📅 Absences</option>
                     <option value="seating">🪑 Plan de classe</option>
                     <option value="groups">👥 Groupes</option>
+                    {% if formative_enabled %}
+                    <option value="formative">✅ Éval. formative</option>
+                    {% endif %}
                     <option value="accommodations">♿ Aménagements</option>
                     <option value="announcements">📣 Annonces</option>
                     {% if show_teachers_tab %}
@@ -3192,6 +3195,11 @@
                 <button class="tab-button" onclick="showTab('groups')">
                     <i class="fas fa-users"></i> Groupes
                 </button>
+                {% if formative_enabled %}
+                <button class="tab-button" onclick="showTab('formative')">
+                    <i class="fas fa-check-double"></i> Éval. formative
+                </button>
+                {% endif %}
                 <button class="tab-button" onclick="showTab('accommodations')">
                     <i class="fas fa-universal-access"></i> Aménagements
                 </button>
@@ -3763,6 +3771,18 @@
                         <!-- Populated by JavaScript -->
                     </div>
                 </div>
+
+                {% if formative_enabled %}
+                <!-- Évaluations formatives -->
+                <div class="report-section">
+                    <h3 class="report-section-title">
+                        <i class="fas fa-check-double"></i> Évaluations formatives
+                    </h3>
+                    <div id="report-formative" class="formative-report-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                {% endif %}
 
                 <!-- Coches/Sanctions -->
                 <div class="report-section">
@@ -4648,6 +4668,105 @@
         </div>
     </div>
 </div>
+
+    <!-- Onglet Évaluation formative (fonction optionnelle, cf. Paramètres) -->
+    {% if formative_enabled %}
+    <div id="formative-tab" class="tab-content">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-check-double"></i> Évaluation formative
+            </h2>
+            <button class="btn btn-primary" onclick="openFormativeAssessmentModal()">
+                <i class="fas fa-plus"></i> Nouvelle évaluation
+            </button>
+        </div>
+
+        {# Une évaluation formative appartient à UNE discipline : si l'enseignant
+           en a plusieurs dans cette classe, il choisit laquelle. #}
+        <div class="form-group" id="formative-classroom-picker" style="max-width: 420px; margin-bottom: 1rem;">
+            <label for="formative-classroom-select">Discipline :</label>
+            <select id="formative-classroom-select" class="form-control" onchange="loadFormativeGrid()"></select>
+        </div>
+
+        <p class="text-muted" style="font-size: 0.85rem;">
+            Clique sur une case pour annoter l'élève. Les colonnes affichées dépendent
+            de tes paramètres.
+        </p>
+
+        <div id="formative-grid-wrap" class="formative-grid-wrap">
+            <!-- Rempli par JavaScript -->
+        </div>
+    </div>
+
+    <!-- Modale : créer / renommer une évaluation formative -->
+    <div id="formativeAssessmentModal" class="formative-modal-overlay" style="display: none;"
+         onclick="if (event.target === this) closeFormativeAssessmentModal()">
+        <div class="formative-modal">
+            <div class="formative-modal-head">
+                <strong id="formativeAssessmentModalTitle"><i class="fas fa-check-double"></i> Nouvelle évaluation</strong>
+                <button type="button" class="formative-modal-close" onclick="closeFormativeAssessmentModal()" aria-label="Fermer">&times;</button>
+            </div>
+            <label class="formative-field">
+                <span>Titre</span>
+                <input type="text" id="formativeAssessmentTitle" maxlength="200"
+                       placeholder="Ex : Fiche d'exercices p. 42">
+            </label>
+            <label class="formative-field">
+                <span>Date</span>
+                <input type="date" id="formativeAssessmentDate">
+            </label>
+            <div class="formative-modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeFormativeAssessmentModal()">Annuler</button>
+                <button type="button" class="btn btn-primary" id="formativeAssessmentSaveBtn"
+                        onclick="submitFormativeAssessment()">
+                    <i class="fas fa-check"></i> Créer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale : annoter un élève -->
+    <div id="formativeEntryModal" class="formative-modal-overlay" style="display: none;"
+         onclick="if (event.target === this) closeFormativeEntryModal()">
+        <div class="formative-modal">
+            <div class="formative-modal-head">
+                <strong id="formativeEntryModalTitle"><i class="fas fa-user"></i> Élève</strong>
+                <button type="button" class="formative-modal-close" onclick="closeFormativeEntryModal()" aria-label="Fermer">&times;</button>
+            </div>
+            <div id="formativeEntrySubtitle" class="formative-entry-subtitle"></div>
+
+            {% if 'level' in formative_fields %}
+            <div class="formative-field">
+                <span>Appréciation</span>
+                <div id="formativeEntryLevels" class="formative-level-choices"></div>
+            </div>
+            {% endif %}
+
+            {% if 'color' in formative_fields %}
+            <div class="formative-field">
+                <span>Pastille</span>
+                <div id="formativeEntryColors" class="formative-color-choices"></div>
+            </div>
+            {% endif %}
+
+            {% if 'comment' in formative_fields %}
+            <label class="formative-field">
+                <span>Commentaire</span>
+                <textarea id="formativeEntryComment" rows="3"
+                          placeholder="Visible de toi seul…"></textarea>
+            </label>
+            {% endif %}
+
+            <div class="formative-modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeFormativeEntryModal()">Annuler</button>
+                <button type="button" class="btn btn-primary" id="formativeEntrySaveBtn"
+                        onclick="submitFormativeEntry()">
+                    <i class="fas fa-check"></i> Enregistrer
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
 <!-- Onglet Aménagements -->
 <div id="accommodations-tab" class="tab-content">
@@ -7640,6 +7759,53 @@ async function deleteAccommodation(accommodationId) {
     color: var(--gray-color);
     font-style: italic;
 }
+
+/* ---------- Évaluation formative (onglet optionnel) ---------- */
+.formative-grid-wrap { margin-top: 0.5rem; }
+.formative-scroll { overflow-x: auto; border: 1px solid #E5E7EB; border-radius: 10px; }
+.formative-table { border-collapse: collapse; width: 100%; background: #fff; font-size: 0.85rem; }
+.formative-table th, .formative-table td { border: 1px solid #E5E7EB; padding: 0.45rem 0.6rem; }
+.formative-student-head { background: #F9FAFB; text-align: left; position: sticky; left: 0; z-index: 2; min-width: 150px; }
+.formative-student { background: #F9FAFB; text-align: left; font-weight: 600; color: #374151; position: sticky; left: 0; z-index: 1; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.formative-col-head { background: #F9FAFB; vertical-align: top; min-width: 130px; }
+.formative-col-title { font-weight: 600; color: #111827; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.formative-col-date { font-size: 0.72rem; color: #6B7280; font-weight: normal; }
+.formative-col-actions { margin-top: 0.25rem; display: flex; gap: 0.2rem; }
+.formative-col-actions button { background: none; border: none; color: #9CA3AF; cursor: pointer; padding: 0.1rem 0.25rem; font-size: 0.75rem; }
+.formative-col-actions button:hover { color: #4F46E5; }
+.formative-cell { cursor: pointer; text-align: center; white-space: nowrap; }
+.formative-cell:hover { background: #EEF2FF; }
+.formative-cell-empty { color: #D1D5DB; }
+.formative-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: middle; margin-right: 0.3rem; }
+.formative-chip { display: inline-block; background: #EEF2FF; color: #4338CA; border-radius: 999px; padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 600; vertical-align: middle; }
+.formative-comment-flag { color: #9CA3AF; margin-left: 0.3rem; font-size: 0.75rem; }
+
+.formative-modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.5); z-index: 5000; display: flex; align-items: flex-start; justify-content: center; padding: 8vh 1rem 1rem; }
+.formative-modal { background: #fff; border-radius: 14px; width: 100%; max-width: 420px; padding: 1.1rem 1.2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.25); max-height: 84vh; overflow-y: auto; }
+.formative-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; }
+.formative-modal-head strong { font-size: 1rem; color: #312E81; }
+.formative-modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; color: #6B7280; cursor: pointer; padding: 0 0.25rem; }
+.formative-entry-subtitle { font-size: 0.8rem; color: #6B7280; margin-bottom: 0.8rem; }
+.formative-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
+.formative-field > span { font-size: 0.78rem; font-weight: 600; color: #374151; }
+.formative-field input[type=text], .formative-field input[type=date], .formative-field textarea { width: 100%; border: 1px solid #D1D5DB; border-radius: 8px; padding: 0.5rem 0.6rem; font-size: 0.85rem; font-family: inherit; box-sizing: border-box; }
+.formative-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.formative-level-choices { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.formative-level-choice { background: #fff; border: 1px solid #D1D5DB; border-radius: 999px; padding: 0.3rem 0.7rem; font-size: 0.8rem; cursor: pointer; color: #374151; }
+.formative-level-choice:hover { border-color: #6366F1; }
+.formative-level-choice.selected { background: #4F46E5; border-color: #4F46E5; color: #fff; font-weight: 600; }
+.formative-level-none { color: #9CA3AF; }
+.formative-color-choices { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.formative-color-choice { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
+.formative-color-choice.selected { border-color: #111827; }
+.formative-color-none { background: #fff; border: 1px dashed #D1D5DB; color: #9CA3AF; font-size: 0.7rem; }
+
+.formative-report-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.formative-report-item { border: 1px solid #E5E7EB; border-radius: 8px; padding: 0.5rem 0.7rem; background: #F9FAFB; }
+.formative-report-head { display: flex; align-items: center; gap: 0.4rem; }
+.formative-report-title { font-weight: 600; color: #111827; }
+.formative-report-meta { font-size: 0.75rem; color: #6B7280; margin-top: 0.1rem; }
+.formative-report-comment { font-size: 0.82rem; color: #374151; margin-top: 0.35rem; white-space: pre-wrap; }
 </style>
 
 <script>
@@ -7699,6 +7865,11 @@ function showTab(tabName) {
     // Charger les aménagements si on est sur l'onglet aménagements
     if (tabName === 'accommodations') {
         loadAccommodations();
+    }
+
+    // Charger la grille si on est sur l'onglet évaluation formative
+    if (tabName === 'formative' && typeof initFormativeTab === 'function') {
+        initFormativeTab();
     }
     
     // Charger la liste des élèves si on est sur l'onglet rapport élève
@@ -11264,6 +11435,7 @@ function loadStudentReport() {
     loadStudentAdditionalInfo(studentId);
     loadStudentInfoHistory(studentId);
     loadStudentFiles(studentId);
+    if (typeof loadStudentFormative === 'function') loadStudentFormative(studentId);
 }
 
 // Charger les informations de base de l'élève
@@ -12415,5 +12587,340 @@ function debugAdditionalInfo() {
 // Test rapide - à exécuter dans la console
 // debugAdditionalInfo(); printStudentReport();
 
+
+// ==================== Évaluation formative (fonction optionnelle) ====================
+// La grille croise les élèves (lignes) et les évaluations (colonnes) pour voir
+// d'un coup d'œil qui a fait son travail. Un clic sur une case ouvre la saisie.
+{% if formative_enabled %}
+(function () {
+    const FIELDS = {{ formative_fields | tojson }};
+    // Palette volontairement courte : une pastille doit se lire instantanément.
+    const PALETTE = [
+        { value: '#22C55E', name: 'Vert' },
+        { value: '#FACC15', name: 'Jaune' },
+        { value: '#F97316', name: 'Orange' },
+        { value: '#EF4444', name: 'Rouge' },
+        { value: '#3B82F6', name: 'Bleu' },
+        { value: '#A855F7', name: 'Violet' },
+    ];
+    const MONTHS = ['', 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+    let levels = [];            // échelle de l'enseignant
+    let grid = null;            // { assessments, students, entries }
+    let editing = null;         // { assessmentId, studentId, entry }
+    let editingAssessmentId = null;  // modale évaluation : null = création
+
+    function esc(s) { return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+    function fmtDate(iso) { if (!iso) return ''; const p = iso.split('-').map(Number); return `${p[2]} ${MONTHS[p[1]]}`; }
+    function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+    function currentClassroom() {
+        const sel = document.getElementById('formative-classroom-select');
+        const v = sel && sel.value;
+        return v ? parseInt(v, 10) : null;
+    }
+
+    function entryFor(assessmentId, studentId) {
+        if (!grid) return null;
+        return grid.entries.find(e => e.assessment_id === assessmentId && e.student_id === studentId) || null;
+    }
+
+    // Remplit le sélecteur de discipline avec les classes éditables du groupe.
+    window.initFormativeTab = function () {
+        const sel = document.getElementById('formative-classroom-select');
+        if (!sel) return;
+        if (!sel.options.length) {
+            const classrooms = ({{ classrooms_json | tojson }} || []).filter(c => c.is_editable);
+            sel.innerHTML = classrooms.map(c =>
+                `<option value="${c.id}">${esc(c.subject || c.name)}</option>`).join('');
+            // Une seule discipline : le sélecteur n'apporte rien.
+            document.getElementById('formative-classroom-picker').style.display =
+                classrooms.length > 1 ? '' : 'none';
+        }
+        if (!levels.length && FIELDS.includes('level')) {
+            fetch('/api/formative/levels').then(r => r.json()).then(j => {
+                levels = j.levels || [];
+            }).catch(() => {});
+        }
+        loadFormativeGrid();
+    };
+
+    window.loadFormativeGrid = async function () {
+        const wrap = document.getElementById('formative-grid-wrap');
+        const cid = currentClassroom();
+        if (!wrap) return;
+        if (!cid) { wrap.innerHTML = '<p class="text-muted">Aucune discipline disponible.</p>'; return; }
+        wrap.innerHTML = '<p class="text-muted">Chargement…</p>';
+        try {
+            const j = await (await fetch('/api/formative/assessments?classroom_id=' + cid)).json();
+            if (!j.success) { wrap.innerHTML = '<p class="text-muted">Erreur de chargement.</p>'; return; }
+            grid = j;
+            renderFormativeGrid();
+        } catch (e) {
+            wrap.innerHTML = '<p class="text-muted">Erreur réseau.</p>';
+        }
+    };
+
+    function cellContent(entry) {
+        if (!entry) return '<span class="formative-cell-empty">–</span>';
+        let html = '';
+        if (FIELDS.includes('color') && entry.color) {
+            html += `<span class="formative-dot" style="background:${esc(entry.color)}"></span>`;
+        }
+        if (FIELDS.includes('level') && entry.level_label) {
+            html += `<span class="formative-chip">${esc(entry.level_label)}</span>`;
+        }
+        if (FIELDS.includes('comment') && entry.comment) {
+            html += `<i class="fas fa-comment-dots formative-comment-flag" title="${esc(entry.comment)}"></i>`;
+        }
+        return html || '<span class="formative-cell-empty">–</span>';
+    }
+
+    function renderFormativeGrid() {
+        const wrap = document.getElementById('formative-grid-wrap');
+        if (!grid.students.length) {
+            wrap.innerHTML = '<p class="text-muted">Aucun élève dans cette classe.</p>';
+            return;
+        }
+        if (!grid.assessments.length) {
+            wrap.innerHTML = '<p class="text-muted">Aucune évaluation formative pour l\'instant. '
+                + 'Clique sur « Nouvelle évaluation » pour commencer.</p>';
+            return;
+        }
+
+        const head = grid.assessments.map(a => `
+            <th class="formative-col-head">
+                <div class="formative-col-title" title="${esc(a.title)}">${esc(a.title)}</div>
+                <div class="formative-col-date">${fmtDate(a.date)}</div>
+                <div class="formative-col-actions">
+                    <button type="button" title="Modifier" onclick="openFormativeAssessmentModal(${a.id})">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button type="button" title="Supprimer" onclick="deleteFormativeAssessment(${a.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </th>`).join('');
+
+        const rows = grid.students.map(s => {
+            const cells = grid.assessments.map(a => {
+                const entry = entryFor(a.id, s.id);
+                return `<td class="formative-cell" onclick="openFormativeEntryModal(${a.id}, ${s.id})">
+                            ${cellContent(entry)}
+                        </td>`;
+            }).join('');
+            return `<tr>
+                        <th class="formative-student">${esc(s.first_name)} ${esc(s.last_name)}</th>
+                        ${cells}
+                    </tr>`;
+        }).join('');
+
+        wrap.innerHTML = `<div class="formative-scroll">
+            <table class="formative-table">
+                <thead><tr><th class="formative-student-head">Élève</th>${head}</tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`;
+    }
+
+    // ----------------------------------------------- modale « évaluation »
+
+    window.openFormativeAssessmentModal = function (assessmentId) {
+        const cid = currentClassroom();
+        if (!cid) { showNotification('error', 'Aucune discipline sélectionnée.'); return; }
+        editingAssessmentId = assessmentId || null;
+        const a = editingAssessmentId && grid
+            ? grid.assessments.find(x => x.id === editingAssessmentId) : null;
+
+        document.getElementById('formativeAssessmentModalTitle').innerHTML = a
+            ? '<i class="fas fa-pen"></i> Modifier l\'évaluation'
+            : '<i class="fas fa-check-double"></i> Nouvelle évaluation';
+        document.getElementById('formativeAssessmentSaveBtn').innerHTML = a
+            ? '<i class="fas fa-check"></i> Enregistrer'
+            : '<i class="fas fa-check"></i> Créer';
+        document.getElementById('formativeAssessmentTitle').value = a ? a.title : '';
+        document.getElementById('formativeAssessmentDate').value = a ? a.date : todayISO();
+
+        const m = document.getElementById('formativeAssessmentModal');
+        if (m.parentElement !== document.body) document.body.appendChild(m);
+        m.style.display = 'flex';
+        document.getElementById('formativeAssessmentTitle').focus();
+    };
+
+    window.closeFormativeAssessmentModal = function () {
+        document.getElementById('formativeAssessmentModal').style.display = 'none';
+    };
+
+    window.submitFormativeAssessment = async function () {
+        const title = document.getElementById('formativeAssessmentTitle').value.trim();
+        const date = document.getElementById('formativeAssessmentDate').value;
+        if (!title) { showNotification('error', 'Donne un titre à l\'évaluation.'); return; }
+
+        const btn = document.getElementById('formativeAssessmentSaveBtn');
+        btn.disabled = true;
+        try {
+            const url = editingAssessmentId
+                ? '/api/formative/assessments/' + editingAssessmentId
+                : '/api/formative/assessments';
+            const body = editingAssessmentId
+                ? { title, date }
+                : { title, date, classroom_id: currentClassroom() };
+            const j = await (await fetch(url, {
+                method: editingAssessmentId ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })).json();
+            if (!j.success) { showNotification('error', j.error || 'Erreur'); return; }
+            closeFormativeAssessmentModal();
+            loadFormativeGrid();
+        } catch (e) { showNotification('error', 'Erreur réseau'); }
+        finally { btn.disabled = false; }
+    };
+
+    window.deleteFormativeAssessment = async function (assessmentId) {
+        if (!confirm('Supprimer cette évaluation et toutes les appréciations associées ?')) return;
+        try {
+            const j = await (await fetch('/api/formative/assessments/' + assessmentId,
+                { method: 'DELETE' })).json();
+            if (j.success) loadFormativeGrid();
+            else showNotification('error', j.error || 'Erreur');
+        } catch (e) { showNotification('error', 'Erreur réseau'); }
+    };
+
+    // ---------------------------------------------------- modale « élève »
+
+    window.openFormativeEntryModal = function (assessmentId, studentId) {
+        const a = grid.assessments.find(x => x.id === assessmentId);
+        const s = grid.students.find(x => x.id === studentId);
+        if (!a || !s) return;
+        const entry = entryFor(assessmentId, studentId);
+        editing = { assessmentId, studentId, entry };
+
+        document.getElementById('formativeEntryModalTitle').innerHTML =
+            `<i class="fas fa-user"></i> ${esc(s.first_name)} ${esc(s.last_name)}`;
+        document.getElementById('formativeEntrySubtitle').textContent =
+            `${a.title} — ${fmtDate(a.date)}`;
+
+        if (FIELDS.includes('level')) {
+            const box = document.getElementById('formativeEntryLevels');
+            box.innerHTML = levels.length
+                ? levels.map(l => `
+                    <button type="button" class="formative-level-choice${entry && entry.level_id === l.id ? ' selected' : ''}"
+                            data-level="${l.id}" onclick="pickFormativeLevel(${l.id})">${esc(l.label)}</button>`).join('')
+                  + `<button type="button" class="formative-level-choice formative-level-none${entry && !entry.level_id ? ' selected' : ''}"
+                             data-level="" onclick="pickFormativeLevel('')">Aucune</button>`
+                : '<span class="text-muted">Aucun niveau défini — ajoute ton échelle dans les paramètres.</span>';
+        }
+
+        if (FIELDS.includes('color')) {
+            const box = document.getElementById('formativeEntryColors');
+            box.innerHTML = PALETTE.map(c => `
+                <button type="button" class="formative-color-choice${entry && entry.color === c.value ? ' selected' : ''}"
+                        style="background:${c.value}" title="${c.name}"
+                        data-color="${c.value}" onclick="pickFormativeColor('${c.value}')"></button>`).join('')
+              + `<button type="button" class="formative-color-choice formative-color-none${entry && !entry.color ? ' selected' : ''}"
+                         title="Aucune" data-color="" onclick="pickFormativeColor('')"><i class="fas fa-ban"></i></button>`;
+        }
+
+        if (FIELDS.includes('comment')) {
+            document.getElementById('formativeEntryComment').value = (entry && entry.comment) || '';
+        }
+
+        const m = document.getElementById('formativeEntryModal');
+        if (m.parentElement !== document.body) document.body.appendChild(m);
+        m.style.display = 'flex';
+    };
+
+    window.pickFormativeLevel = function (levelId) {
+        document.querySelectorAll('#formativeEntryLevels .formative-level-choice')
+            .forEach(b => b.classList.toggle('selected', b.dataset.level === String(levelId)));
+    };
+
+    window.pickFormativeColor = function (color) {
+        document.querySelectorAll('#formativeEntryColors .formative-color-choice')
+            .forEach(b => b.classList.toggle('selected', b.dataset.color === color));
+    };
+
+    window.closeFormativeEntryModal = function () {
+        document.getElementById('formativeEntryModal').style.display = 'none';
+    };
+
+    window.submitFormativeEntry = async function () {
+        if (!editing) return;
+        const body = { assessment_id: editing.assessmentId, student_id: editing.studentId };
+
+        if (FIELDS.includes('level')) {
+            const sel = document.querySelector('#formativeEntryLevels .formative-level-choice.selected');
+            body.level_id = sel ? sel.dataset.level : '';
+        }
+        if (FIELDS.includes('color')) {
+            const sel = document.querySelector('#formativeEntryColors .formative-color-choice.selected');
+            body.color = sel ? sel.dataset.color : '';
+        }
+        if (FIELDS.includes('comment')) {
+            body.comment = document.getElementById('formativeEntryComment').value;
+        }
+
+        const btn = document.getElementById('formativeEntrySaveBtn');
+        btn.disabled = true;
+        try {
+            const j = await (await fetch('/api/formative/entries', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })).json();
+            if (!j.success) { showNotification('error', j.error || 'Erreur'); return; }
+
+            // Mise à jour locale : évite de recharger toute la grille à chaque case.
+            grid.entries = grid.entries.filter(
+                e => !(e.assessment_id === editing.assessmentId && e.student_id === editing.studentId));
+            if (j.entry) grid.entries.push(j.entry);
+            renderFormativeGrid();
+            closeFormativeEntryModal();
+        } catch (e) { showNotification('error', 'Erreur réseau'); }
+        finally { btn.disabled = false; }
+    };
+})();
+{% endif %}
+
+// Évaluations formatives dans le rapport élève (fonction optionnelle).
+{% if formative_enabled %}
+function loadStudentFormative(studentId) {
+    const container = document.getElementById('report-formative');
+    if (!container) return;
+    const FIELDS = {{ formative_fields | tojson }};
+    const esc = s => (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    fetch(`/api/formative/student/${studentId}`)
+        .then(r => r.json())
+        .then(data => {
+            const items = data.items || [];
+            if (!items.length) {
+                container.innerHTML = '<p class="text-muted">Aucune évaluation formative</p>';
+                return;
+            }
+            container.innerHTML = items.map(it => {
+                const dot = (FIELDS.includes('color') && it.color)
+                    ? `<span class="formative-dot" style="background:${esc(it.color)}"></span>` : '';
+                const chip = (FIELDS.includes('level') && it.level_label)
+                    ? `<span class="formative-chip">${esc(it.level_label)}</span>` : '';
+                const comment = (FIELDS.includes('comment') && it.comment)
+                    ? `<div class="formative-report-comment">${esc(it.comment)}</div>` : '';
+                const date = it.date ? it.date.split('-').reverse().join('.') : '';
+                return `<div class="formative-report-item">
+                    <div class="formative-report-head">
+                        ${dot}
+                        <span class="formative-report-title">${esc(it.title)}</span>
+                        ${chip}
+                    </div>
+                    <div class="formative-report-meta">${esc(it.subject || '')}${it.subject && date ? ' · ' : ''}${date}</div>
+                    ${comment}
+                </div>`;
+            }).join('');
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des évaluations formatives:', error);
+        });
+}
+{% endif %}
 </script>
 {% endblock %}

@@ -32,6 +32,7 @@ def _delete_student_dependencies(student_ids):
     from models.rpg import StudentRPGProfile, StudentBadge, StudentItem
     from models.combat import CombatParticipant
     from models.exercise_progress import StudentExerciseAttempt, StudentBlockAnswer
+    from models.formative import FormativeEntry
 
     # Supprimer toutes les tables avec FK vers students
     Attendance.query.filter(Attendance.student_id.in_(student_ids)).delete(synchronize_session='fetch')
@@ -50,6 +51,7 @@ def _delete_student_dependencies(student_ids):
     ParentChild.query.filter(ParentChild.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     StudentAccessCode.query.filter(StudentAccessCode.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     StudentFile.query.filter(StudentFile.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    FormativeEntry.query.filter(FormativeEntry.student_id.in_(student_ids)).delete(synchronize_session='fetch')
 
     # Système RPG / combat / exercices (FK vers students, sans ON DELETE CASCADE en base).
     # student_block_answers dépend de student_exercise_attempts → supprimer les réponses d'abord.
@@ -94,6 +96,7 @@ def _delete_classroom_dependencies(classroom_id):
     from models.combat import CombatSession, CombatParticipant, CombatMonster
     from models.exercise_progress import ExercisePublication, StudentExerciseAttempt, StudentBlockAnswer
     from models.exercise import Exercise
+    from models.formative import FormativeAssessment, FormativeEntry
 
     # --- 1. Gérer la chaîne de collaboration ---
     # Si cette classe est une classe originale (maître de classe),
@@ -105,6 +108,15 @@ def _delete_classroom_dependencies(classroom_id):
     # Les classes dérivées et toutes leurs données restent intactes
     SharedClassroom.query.filter_by(original_classroom_id=classroom_id).delete(synchronize_session='fetch')
     SharedClassroom.query.filter_by(derived_classroom_id=classroom_id).delete(synchronize_session='fetch')
+
+    # Évaluations formatives de cette classe (entrées d'abord : FK sans cascade
+    # côté ORM si la table a été créée par db.create_all()).
+    _fa_ids = [a.id for a in FormativeAssessment.query.filter_by(classroom_id=classroom_id).all()]
+    if _fa_ids:
+        FormativeEntry.query.filter(
+            FormativeEntry.assessment_id.in_(_fa_ids)).delete(synchronize_session='fetch')
+        FormativeAssessment.query.filter(
+            FormativeAssessment.id.in_(_fa_ids)).delete(synchronize_session='fetch')
 
     # --- 2. Supprimer les élèves de cette classe et leurs dépendances ---
     class_student_ids = [s.id for s in Student.query.filter_by(classroom_id=classroom_id).all()]

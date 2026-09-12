@@ -24,11 +24,25 @@ class UserPreferences(db.Model):
     # dashboard_layout, qui ne stocke que le nom du mode.
     dashboard_layout_custom = db.Column(db.Text, nullable=True)
 
+    # Évaluation formative : fonction optionnelle, DÉSACTIVÉE par défaut pour ne
+    # pas alourdir l'interface de ceux qui n'en veulent pas.
+    formative_enabled = db.Column(db.Boolean, nullable=False, default=False)
+
+    # Colonnes utilisées parmi 'level' (appréciation), 'comment' et 'color'
+    # (pastille), en CSV. L'enseignant en retire celles dont il ne se sert pas.
+    formative_fields = db.Column(db.String(40), nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relations
     user = db.relationship('User', backref='preferences')
+
+    def formative_field_list(self):
+        """Colonnes actives de l'évaluation formative (liste de clés)."""
+        from models.formative import DEFAULT_FIELDS, FIELD_KEYS
+        raw = self.formative_fields if self.formative_fields is not None else DEFAULT_FIELDS
+        return [k for k in raw.split(',') if k in FIELD_KEYS]
     
     # Index unique pour un seul paramétrage par utilisateur
     __table_args__ = (db.UniqueConstraint('user_id', name='unique_user_prefs'),)

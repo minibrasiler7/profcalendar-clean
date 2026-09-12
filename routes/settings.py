@@ -83,6 +83,48 @@ def update_student_sort_preference():
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@settings_bp.route('/update-formative', methods=['POST'])
+@login_required
+def update_formative():
+    """Active/désactive l'évaluation formative et choisit ses colonnes.
+
+    À la PREMIÈRE activation, on sème l'échelle d'appréciation par défaut :
+    sans niveaux, la colonne « appréciation » serait vide et la fonction
+    paraîtrait cassée.
+    """
+    from models.formative import FIELD_KEYS, FormativeLevel
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+
+    enabled = bool(data.get('enabled'))
+    fields = data.get('fields')
+    if fields is not None:
+        if not isinstance(fields, list):
+            return jsonify({'success': False, 'message': 'Colonnes invalides'}), 400
+        fields = [f for f in fields if f in FIELD_KEYS]
+        if enabled and not fields:
+            return jsonify({'success': False,
+                            'message': 'Garde au moins une colonne (appréciation, '
+                                       'commentaire ou pastille).'}), 400
+
+    try:
+        preferences = UserPreferences.get_or_create_for_user(current_user.id)
+        preferences.formative_enabled = enabled
+        if fields is not None:
+            preferences.formative_fields = ','.join(fields)
+        db.session.commit()
+
+        if enabled:
+            FormativeLevel.ensure_defaults(current_user.id)
+
+        return jsonify({'success': True, 'message': 'Préférences mises à jour'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @settings_bp.route('/class-codes')
 @login_required
 def class_codes():
@@ -469,6 +511,7 @@ def _delete_all_user_data(user_id):
     from models.student_group import StudentGroup
     from models.lesson_blank_sheet import LessonBlankSheet
     from models.seating_plan import SeatingPlan
+    from models.formative import FormativeAssessment, FormativeEntry, FormativeLevel
     from services.year_end_cleanup import _delete_classroom_dependencies
 
     classrooms = Classroom.query.filter_by(user_id=user_id).all()
@@ -595,6 +638,15 @@ def _delete_all_user_data(user_id):
     StudentGroup.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     LessonBlankSheet.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     SeatingPlan.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+
+    # 15 bis. Évaluation formative (entrées → évaluations → échelle)
+    _fa_ids = [a.id for a in FormativeAssessment.query.filter_by(user_id=user_id).all()]
+    if _fa_ids:
+        FormativeEntry.query.filter(
+            FormativeEntry.assessment_id.in_(_fa_ids)).delete(synchronize_session='fetch')
+        FormativeAssessment.query.filter(
+            FormativeAssessment.id.in_(_fa_ids)).delete(synchronize_session='fetch')
+    FormativeLevel.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
 
     # 16. Préférences
     UserSanctionPreferences.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')

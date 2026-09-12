@@ -3523,7 +3523,16 @@ def manage_classes():
         is_creator_no_master = (primary_classroom.user_id == current_user.id and not primary_class_master)
         can_manage_access_codes = is_primary_class_master or is_creator_no_master
 
+    # Évaluation formative : fonction optionnelle, l'onglet n'existe que si
+    # l'enseignant l'a activée dans ses paramètres.
+    from models.user_preferences import UserPreferences as _UserPrefs
+    _formative_prefs = _UserPrefs.query.filter_by(user_id=current_user.id).first()
+    formative_enabled = bool(_formative_prefs and _formative_prefs.formative_enabled)
+    formative_fields = _formative_prefs.formative_field_list() if formative_enabled else []
+
     return render_template('planning/manage_classes.html',
+                         formative_enabled=formative_enabled,
+                         formative_fields=formative_fields,
                          class_groups=class_groups,
                          selected_group=selected_group,
                          selected_class_group=selected_class_group,
