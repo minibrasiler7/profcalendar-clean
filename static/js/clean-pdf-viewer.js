@@ -158,6 +158,9 @@ class CleanPDFViewer {
         this.annotations = new Map(); // pageNum -> [{type, data, timestamp}, ...]
         this.annotationHistory = []; // Historique global pour undo/redo
         this.historyIndex = -1;
+        // Geste de gomme en cours : UNE entrée d'historique par geste (cf.
+        // _beginEraseGesture / _endEraseGesture), pas une par point effacé.
+        this._eraseGesture = null;
 
         // Outil actuel
         this.currentTool = 'pen'; // pen, highlighter, eraser, ruler, compass, angle, arc, arrow, rectangle, disk, grid, text-hider, student-tracking
@@ -6420,6 +6423,7 @@ class CleanPDFViewer {
      * Effacer à un point donné
      */
     eraseAtPoint(canvas, pageId, x, y) {
+        this._beginEraseGesture(pageId);
         const eraserSize = this.currentSize * 5; // Gomme assez grande
         const pageAnnotations = this.annotations.get(pageId) || [];
 
@@ -6492,6 +6496,7 @@ class CleanPDFViewer {
         }
 
         if (hasErased) {
+            if (this._eraseGesture && this._eraseGesture.pageId === pageId) this._eraseGesture.changed = true;
             this.annotations.set(pageId, newAnnotations);
             const drawn = this.redrawAnnotations(canvas, pageId);
             // Page précise connue → l'effacement partira dans une sauvegarde PARTIELLE
@@ -7160,14 +7165,11 @@ class CleanPDFViewer {
         this.currentCanvas = null;
         this.currentPageId = null;
 
-        // Gérer la gomme : on retire juste le stroke courant. La méthode
-        // saveToHistory() qui était appelée ici n'existe pas dans cette
-        // classe, ce qui levait une TypeError non rattrapée à chaque
-        // levée de stylet en mode gomme — bloquant tous les outils
-        // suivants. L'undo/redo de la gomme reste à reconstruire (TODO),
-        // mais au moins la gomme ne crashe plus l'app.
+        // Gérer la gomme : le geste entier devient UNE entrée d'historique
+        // (cf. _endEraseGesture) pour que undo/redo le prennent en compte.
         if (this.currentTool === 'eraser') {
             this.currentStroke = null;
+            this._endEraseGesture();
             // PERSISTER l'effacement : eraseAtPoint a marqué les pages touchées,
             // la sauvegarde (partielle) part regroupée après le geste.
             this.scheduleSave();
@@ -9165,6 +9167,9 @@ class CleanPDFViewer {
      * Ajouter une annotation à l'historique
      */
     addAnnotationToHistory(pageId, annotation) {
+        // Un geste de gomme encore ouvert doit être consigné AVANT ce nouvel
+        // ajout, sinon l'ordre de l'historique ne refléterait plus l'écran.
+        this._endEraseGesture();
         console.log('[History] ADD AVANT - pageId:', pageId, 'type:', typeof pageId, 'historyIndex:', this.historyIndex, 'historyLength:', this.annotationHistory.length, 'tool:', annotation.tool);
 
         // Tronquer l'historique si on est au milieu (cela invalide le redo)
@@ -9257,6 +9262,15 @@ class CleanPDFViewer {
                         this.annotations.get(pageId).push({...entry.annotation});
                         totalRebuilt++;
                     }
+                } else if (entry.action === 'erase') {
+                    // Geste de gomme : l'entrée porte l'état COMPLET de la page
+                    // (hors grille) à la fin du geste. On remplace donc la page
+                    // par cet état — les ajouts rejoués avant sont déjà inclus
+                    // (ou découpés) dedans, et la grille est conservée.
+                    const pageId = entry.pageId;
+                    const grids = (this.annotations.get(pageId) || []).filter(a => a.tool === 'grid');
+                    this.annotations.set(pageId, [...grids, ...entry.after.map(a => ({...a}))]);
+                    totalRebuilt += entry.after.length;
                 }
             }
         }
@@ -9265,16 +9279,91 @@ class CleanPDFViewer {
     }
 
     /**
+     * iPad : l'historique web et l'encre native PencilKit ne se parlent pas.
+     * Le canvas natif ne connaît ni l'ordre des entrées ni les gestes de gomme ;
+     * avant d'annuler ou de rétablir, on rend donc le canvas WEB seul maître du
+     * rendu : les traits « live native » sont matérialisés côté web et le canvas
+     * natif est vidé — exactement ce qui se passe déjà au changement de page ou
+     * d'outil. Sans ça, undo retirait l'annotation du store mais l'encre native
+     * restait à l'écran, et redo remettait un trait que le web refusait de
+     * dessiner (toujours marqué natif) : aucun effet visible sur iPad.
+     */
+    _releaseNativeInkForHistory() {
+        if (!this.isPencilKitAvailable || !this.pencilKitActive) return;
+        if (this._liveNativeIds && this._liveNativeIds.size) this._liveNativeIds.clear();
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pencilKit) {
+            window.webkit.messageHandlers.pencilKit.postMessage({ action: 'clearNative' });
+        }
+        console.log('[History] Encre native relâchée : le canvas web fait foi');
+    }
+
+    /** Outils dont l'encre est tracée nativement par PencilKit sur iPad. */
+    _toolWantsNativeInk() {
+        return this.currentTool === 'pen' || this.currentTool === 'highlighter' || this.currentTool === 'eraser';
+    }
+
+    /** État d'une page tel qu'il entre dans l'historique (sans la grille). */
+    _snapshotPageForHistory(pageId) {
+        return (this.annotations.get(pageId) || [])
+            .filter(a => a && a.tool !== 'grid')
+            .map(a => ({...a}));
+    }
+
+    /**
+     * Ouvre (si besoin) le geste de gomme sur une page. Appelé à chaque point
+     * effacé — web (startAnnotation/continueAnnotation) comme natif
+     * (onEraserMove) — donc idempotent tant qu'on reste sur la même page.
+     */
+    _beginEraseGesture(pageId) {
+        if (this._eraseGesture && this._eraseGesture.pageId !== pageId) this._endEraseGesture();
+        if (!this._eraseGesture) this._eraseGesture = { pageId: pageId, changed: false };
+    }
+
+    /**
+     * Clôt le geste de gomme : s'il a effacé quelque chose, une entrée
+     * { action: 'erase', pageId, after } rejoint l'historique. `after` est l'état
+     * complet de la page à cet instant — c'est ce que rejoue
+     * rebuildAnnotationsFromHistory. Avant, la gomme modifiait le store sans
+     * passer par l'historique : un undo ultérieur RESSUSCITAIT les traits effacés.
+     */
+    _endEraseGesture() {
+        const g = this._eraseGesture;
+        if (!g) return;
+        this._eraseGesture = null;
+        if (!g.changed) return;
+
+        // Le store contient déjà l'effacement : ne PAS reconstruire ici (ça
+        // l'annulerait) — on tronque seulement la branche « rétablir » périmée.
+        if (this.historyIndex < this.annotationHistory.length - 1) {
+            this.annotationHistory = this.annotationHistory.slice(0, this.historyIndex + 1);
+        }
+        this.annotationHistory.push({
+            action: 'erase',
+            pageId: g.pageId,
+            after: this._snapshotPageForHistory(g.pageId)
+        });
+        this.historyIndex = this.annotationHistory.length - 1;
+        this.updateUndoRedoButtons();
+        console.log('[History] Geste de gomme consigné - page:', g.pageId, 'index:', this.historyIndex);
+    }
+
+    /**
      * Undo - Annuler la dernière action
      */
     undo() {
         console.log('[Undo] historyIndex avant:', this.historyIndex, 'historyLength:', this.annotationHistory.length);
+        this._endEraseGesture();
 
         // Vérifier qu'on peut encore annuler
         if (this.historyIndex < 0) {
             console.log('[Undo] Impossible - déjà au début');
             return;
         }
+
+        const entry = this.annotationHistory[this.historyIndex];
+        // iPad : rendre le canvas web seul maître du rendu AVANT de modifier
+        // le store, sinon l'encre native de l'annotation annulée reste affichée.
+        this._releaseNativeInkForHistory();
 
         // Décrémenter de 1 seulement
         this.historyIndex--;
@@ -9286,7 +9375,9 @@ class CleanPDFViewer {
 
         this.redrawAllPages();
         this.updateUndoRedoButtons();
-        this.isDirty = true;
+        // Sauvegarde PARTIELLE de la page touchée (isDirty = true déclenchait
+        // une sauvegarde complète du fichier — jusqu'à plusieurs Mo).
+        this.markPageDirty(entry ? entry.pageId : undefined);
     }
 
     /**
@@ -9294,6 +9385,7 @@ class CleanPDFViewer {
      */
     redo() {
         console.log('[Redo] historyIndex avant:', this.historyIndex, 'historyLength:', this.annotationHistory.length);
+        this._endEraseGesture();
 
         // Vérifier qu'on peut encore refaire
         if (this.historyIndex >= this.annotationHistory.length - 1) {
@@ -9301,8 +9393,13 @@ class CleanPDFViewer {
             return;
         }
 
+        // iPad : même précaution qu'en undo (un trait rétabli doit être
+        // dessiné par le web, il n'existe plus dans le canvas natif).
+        this._releaseNativeInkForHistory();
+
         // Incrémenter de 1 seulement
         this.historyIndex++;
+        const entry = this.annotationHistory[this.historyIndex];
 
         console.log('[Redo] historyIndex après:', this.historyIndex);
 
@@ -9311,7 +9408,7 @@ class CleanPDFViewer {
 
         this.redrawAllPages();
         this.updateUndoRedoButtons();
-        this.isDirty = true;
+        this.markPageDirty(entry ? entry.pageId : undefined);
     }
 
     /**
@@ -9688,7 +9785,7 @@ class CleanPDFViewer {
             // Fin du geste de gomme : programmer la sauvegarde (partielle, les
             // pages touchées ont été marquées par eraseAtPoint pendant le geste).
             onEraserEnd: () => {
-                try { viewer.scheduleSave(); } catch (e) {}
+                try { viewer._endEraseGesture(); viewer.scheduleSave(); } catch (e) {}
             },
 
             // Appele par Swift pour obtenir les infos de la page visible
@@ -10109,10 +10206,22 @@ class CleanPDFViewer {
                 // Équerre déjà affichée, la masquer
                 this.hideSetSquare();
                 if (btn) btn.classList.remove('active');
+                // Équerre rangée : l'encre native PencilKit peut reprendre la main.
+                if (this.isPencilKitAvailable && !this.pencilKitActive && this._toolWantsNativeInk()) {
+                    this.activatePencilKit();
+                }
             } else {
                 // Afficher l'équerre
                 this.showSetSquare();
                 if (btn) btn.classList.add('active');
+                // iPad : l'aimantation au bord de l'équerre (snapToSetSquare) est
+                // calculée par les gestionnaires de pointeur WEB. Tant que la couche
+                // native PencilKit capte le stylet, ces gestionnaires ne voient rien
+                // et le trait part en main levée. On rend donc le stylet au web le
+                // temps que l'équerre est posée (l'encre native est matérialisée).
+                if (this.isPencilKitAvailable && this.pencilKitActive) {
+                    this.deactivatePencilKit();
+                }
             }
             return; // Ne pas changer l'outil actif
         }
@@ -10176,7 +10285,8 @@ class CleanPDFViewer {
         // (le natif recevait p.ex. « eraser »), et le changement de couleur/
         // taille ne se répercutait pas sur l'encre native.
         if (this.isPencilKitAvailable) {
-            if (this.currentTool === 'pen' || this.currentTool === 'highlighter' || this.currentTool === 'eraser') {
+            // Équerre posée : jamais de natif (l'aimantation est web, voir plus haut).
+            if (this._toolWantsNativeInk() && !this.setSquareActive) {
                 // 'eraser' inclus : on GARDE l'overlay PencilKit actif et on bascule
                 // l'outil natif sur la gomme (PKEraserTool, mappé côté Swift). L'encre
                 // native reste NATIVE (fini la matérialisation perfect-freehand au
