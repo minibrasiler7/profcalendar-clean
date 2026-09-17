@@ -458,6 +458,13 @@ def delete_account():
 
     except Exception as e:
         db.session.rollback()
+        # print() en plus du logger : sur Render, seule la sortie standard
+        # remonte dans les logs. Sans ça, quatre tentatives de suppression
+        # ayant échoué en production (09.09.2026) n'avaient laissé AUCUNE
+        # trace exploitable — ni traceback, ni nom de table en cause.
+        import traceback
+        print(f"[delete_account] ÉCHEC pour user {user_id}: {type(e).__name__}: {e}", flush=True)
+        traceback.print_exc()
         logger.error(f"Erreur suppression compte {user_id}: {e}")
         return jsonify({'success': False, 'message': f'Erreur lors de la suppression: {str(e)}'}), 500
 
@@ -512,6 +519,21 @@ def _delete_all_user_data(user_id):
     from models.lesson_blank_sheet import LessonBlankSheet
     from models.seating_plan import SeatingPlan
     from models.formative import FormativeAssessment, FormativeEntry, FormativeLevel
+    from models.user import User, Holiday, Break
+    from models.student import Chapter
+    from models.user_preferences import DashboardTask, DashboardLink
+    from models.planning import EphemeralFile
+    from models.classroom_access_code import ClassroomAccessCode
+    from models.student_access_code import StudentAccessCode
+    from models.file_manager import FileShare
+    from models.file_sharing import StudentFileShare
+    from models.mixed_group import MixedGroup, MixedGroupStudent
+    from models.combat import CombatSession
+    from models.exercise_progress import ExercisePublication
+    from models.absence_justification import AbsenceJustification
+    from models.voucher import Voucher, user_voucher_redemptions
+    from models.college import College, CollegeHoliday, CollegeBreak
+    from models.parent import Parent
     from services.year_end_cleanup import _delete_classroom_dependencies
 
     classrooms = Classroom.query.filter_by(user_id=user_id).all()
@@ -647,6 +669,78 @@ def _delete_all_user_data(user_id):
         FormativeAssessment.query.filter(
             FormativeAssessment.id.in_(_fa_ids)).delete(synchronize_session='fetch')
     FormativeLevel.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+
+    # 15 ter. TABLES SANS CASCADE CÔTÉ BASE, jusqu'ici oubliées.
+    # C'est ce qui faisait échouer « Supprimer mon compte » : db.session.delete(user)
+    # levait une violation de clé étrangère, attrapée en 500. En production,
+    # `holidays` (les vacances scolaires créées à la configuration de l'année)
+    # suffisait à bloquer n'importe quel compte configuré.
+    #
+    # Règle appliquée : ce qui appartient à l'enseignant est SUPPRIMÉ ; ce qui
+    # appartient à autrui et ne garde qu'une trace de lui (colonnes « créé par »,
+    # nullables) est mis à NULL pour ne pas détruire les données d'un tiers.
+    Holiday.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    Break.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    Chapter.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    DashboardTask.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    DashboardLink.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    EphemeralFile.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    ClassroomAccessCode.query.filter_by(created_by_user_id=user_id).delete(synchronize_session='fetch')
+    StudentAccessCode.query.filter_by(created_by_user_id=user_id).delete(synchronize_session='fetch')
+    StudentFileShare.query.filter_by(shared_by_teacher_id=user_id).delete(synchronize_session='fetch')
+
+    # Partages de fichiers : ceux qu'il a émis partent, ceux qu'il a reçus
+    # perdent seulement leur destinataire (colonne nullable).
+    FileShare.query.filter_by(shared_by_id=user_id).delete(synchronize_session='fetch')
+    FileShare.query.filter_by(shared_with_id=user_id).update(
+        {'shared_with_id': None}, synchronize_session='fetch')
+
+    # Groupes mixtes : les appartenances d'abord (aucune cascade en base).
+    _mg_ids = [g.id for g in MixedGroup.query.filter_by(teacher_id=user_id).all()]
+    if _mg_ids:
+        MixedGroupStudent.query.filter(
+            MixedGroupStudent.mixed_group_id.in_(_mg_ids)).delete(synchronize_session='fetch')
+        MixedGroup.query.filter(MixedGroup.id.in_(_mg_ids)).delete(synchronize_session='fetch')
+
+    # Combats : monstres et participants partent en cascade côté base, mais la
+    # session doit disparaître AVANT les exercices (combat_sessions.exercise_id
+    # est sans cascade et bloquerait leur suppression).
+    CombatSession.query.filter_by(teacher_id=user_id).delete(synchronize_session='fetch')
+
+    # Traces d'action sur des données d'autrui : on efface le lien, pas la donnée.
+    ExercisePublication.query.filter_by(published_by=user_id).update(
+        {'published_by': None}, synchronize_session='fetch')
+    AbsenceJustification.query.filter_by(processed_by=user_id).update(
+        {'processed_by': None}, synchronize_session='fetch')
+    Parent.query.filter_by(teacher_id=user_id).update(
+        {'teacher_id': None}, synchronize_session='fetch')
+
+    # Bons : ses utilisations, puis les bons qu'il a créés (et leurs utilisations
+    # par d'autres, sans quoi la clé étrangère bloquerait).
+    # (table d'association, pas un modèle : suppression en SQL direct)
+    db.session.execute(user_voucher_redemptions.delete().where(
+        user_voucher_redemptions.c.user_id == user_id))
+    _v_ids = [v.id for v in Voucher.query.filter_by(created_by_id=user_id).all()]
+    if _v_ids:
+        db.session.execute(user_voucher_redemptions.delete().where(
+            user_voucher_redemptions.c.voucher_id.in_(_v_ids)))
+        Voucher.query.filter(Voucher.id.in_(_v_ids)).delete(synchronize_session='fetch')
+
+    # Établissements : ils SERVENT À D'AUTRES enseignants (rattachement par nom).
+    # La colonne « créé par » n'est pas nullable : on transmet donc l'établissement
+    # à un autre utilisateur qui s'y rattache, et on ne le supprime que si plus
+    # personne ne l'utilise.
+    for _college in College.query.filter_by(created_by_id=user_id).all():
+        _heir = User.query.filter(
+            User.id != user_id, User.college_name == _college.name).first()
+        if _heir:
+            _college.created_by_id = _heir.id
+        else:
+            CollegeHoliday.query.filter_by(college_id=_college.id).delete(synchronize_session='fetch')
+            CollegeBreak.query.filter_by(college_id=_college.id).delete(synchronize_session='fetch')
+            db.session.delete(_college)
+
+    db.session.flush()
 
     # 16. Préférences
     UserSanctionPreferences.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')

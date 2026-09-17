@@ -31,6 +31,23 @@ logger = logging.getLogger(__name__)
 PRICING_URL = (os.environ.get('APP_BASE_URL', 'https://profcalendar.org')
                .rstrip('/') + '/subscription/pricing')
 
+# Domaines réservés par la norme (RFC 2606 / RFC 6761) : aucun serveur de
+# messagerie ne peut les desservir, le fournisseur d'envoi les refuse toujours.
+# Sans ce filtre, chaque compte de démo en .example.com restait candidat à
+# VIE : l'envoi échouait, la transaction repartait en arrière, le stade de
+# relance ne bougeait pas, et la boucle réessayait toutes les 6 h — 120 échecs
+# par semaine dans les journaux de production pour 4 comptes de test.
+UNDELIVERABLE_DOMAINS = ('example.com', 'example.org', 'example.net')
+UNDELIVERABLE_SUFFIXES = ('.example', '.invalid', '.test', '.localhost', '.local')
+
+
+def is_undeliverable(email):
+    """L'adresse appartient-elle à un domaine qui ne peut rien recevoir ?"""
+    if not email or '@' not in email:
+        return True
+    domain = email.rsplit('@', 1)[-1].strip().lower()
+    return domain in UNDELIVERABLE_DOMAINS or domain.endswith(UNDELIVERABLE_SUFFIXES)
+
 # Ce que le prof perd quand l'essai se termine (rappel de valeur).
 LOST_FEATURES = [
     "la gestion de classe (élèves, groupes)",
@@ -120,6 +137,7 @@ def send_due_trial_reminders():
     """
     sent = {'j5': 0, 'j1': 0, 'expired': 0}
     failed = 0
+    skipped = 0
 
     # Candidats : ont eu un premium daté ET n'ont pas encore reçu les 3 relances.
     candidates = User.query.filter(
@@ -130,6 +148,12 @@ def send_due_trial_reminders():
 
     for user in candidates:
         if not user.email:
+            continue
+
+        # Adresse structurellement injoignable : on n'essaie même pas, sinon
+        # ce compte redevient candidat à chaque passage, indéfiniment.
+        if is_undeliverable(user.email):
+            skipped += 1
             continue
 
         info = user.get_trial_info()
@@ -161,11 +185,15 @@ def send_due_trial_reminders():
             failed += 1
 
     total = sent['j5'] + sent['j1'] + sent['expired']
-    logger.info(
-        "[trial_reminders] candidats=%s envoyés=%s (J-5=%s, J-1=%s, exp=%s) échecs=%s",
-        len(candidates), total, sent['j5'], sent['j1'], sent['expired'], failed,
-    )
-    return {'sent': sent, 'failed': failed, 'candidates': len(candidates)}
+    # print() en plus du logger : sur Render, seule la sortie standard remonte
+    # dans les journaux (le logger.info de ce module n'y apparaissait pas).
+    resume = ("[trial_reminders] candidats=%s envoyés=%s (J-5=%s, J-1=%s, exp=%s) "
+              "échecs=%s ignorés=%s" % (len(candidates), total, sent['j5'], sent['j1'],
+                                        sent['expired'], failed, skipped))
+    logger.info(resume)
+    print(resume, flush=True)
+    return {'sent': sent, 'failed': failed, 'skipped': skipped,
+            'candidates': len(candidates)}
 
 
 # Garde de démarrage unique (par process). Empêche de lancer la boucle deux
