@@ -10380,6 +10380,18 @@ class CleanPDFViewer {
                 const m = tab.getAttribute('onclick').match(/showTrackingTab\('([^']+)'\)/);
                 if (m) tab.setAttribute('data-tab-name', m[1]);
             });
+            // Même chose pour les boutons +/- des coches : élève, coche et sens sont
+            // mémorisés dans des data-attributes. attachSanctionEventHandlers lisait
+            // l'onclick APRÈS sa suppression ci-dessous → null → aucune coche ne
+            // réagissait (bug « rien ne se passe quand j'appuie », iPad en classe).
+            modalBody.querySelectorAll('.count-btn[onclick]').forEach(btn => {
+                const m = btn.getAttribute('onclick').match(/updateSanctionCount\((\d+),\s*(\d+),\s*(-?\d+)\)/);
+                if (m) {
+                    btn.dataset.studentId = m[1];
+                    btn.dataset.sanctionId = m[2];
+                    btn.dataset.delta = m[3];
+                }
+            });
 
             // IMPORTANT: Supprimer tous les handlers inline (onclick, onchange) du HTML copié.
             // Le HTML original utilise des fonctions globales avec document.getElementById()
@@ -10398,6 +10410,11 @@ class CleanPDFViewer {
             // Réattacher les événements pour les sanctions
             this.attachSanctionEventHandlers(modalBody);
 
+            // Remarque rapide + bouton « Annuler » du plan de classe : eux aussi
+            // perdaient leur onclick sans être reconnectés (boutons inertes).
+            this.attachQuickRemarkHandlers(modalBody);
+            this.attachSeatingWarningHandlers(modalBody);
+
             // Largeur adaptée à l'onglet actif : Coches/Plan de classe ont un contenu large.
             const activeTab = modalBody.querySelector('.tracking-tab.active');
             const activeName = activeTab ? activeTab.getAttribute('data-tab-name') : null;
@@ -10410,6 +10427,25 @@ class CleanPDFViewer {
         // Forcer un reflow pour que la transition width 0 → 360px s'applique bien.
         void panel.offsetWidth;
         panel.classList.add('open');
+
+        // iPad : l'ouverture du panneau rétrécit la zone du lecteur. Sans ce
+        // rappel, l'overlay natif PencilKit garde son ancien cadre — plus large —
+        // et recouvre le panneau : les appuis du stylet sur les boutons partaient
+        // dans le canvas de dessin au lieu d'atteindre les boutons. Envoyé aussi
+        // après l'animation (360 ms), quand la largeur finale est connue.
+        this._refreshNativeOverlayBounds();
+    }
+
+    /**
+     * Réaligner l'overlay natif PencilKit sur la zone de dessin courante, tout
+     * de suite puis à la fin de l'animation du panneau latéral.
+     */
+    _refreshNativeOverlayBounds() {
+        if (!this.isPencilKitAvailable || !this.pencilKitActive) return;
+        try { this.notifyPencilKitPageRect(); } catch (e) {}
+        setTimeout(() => {
+            try { this.notifyPencilKitPageRect(); } catch (e) {}
+        }, 400);
     }
 
     /**
@@ -10455,6 +10491,14 @@ class CleanPDFViewer {
                     trackingPanel.classList.toggle('wide', tabName === 'sanctions' || tabName === 'seating-plan');
                 }
 
+                // Vue annuelle : le contenu copié ne contient que le message
+                // « Chargement… » ; sans cet appel il ne se remplissait jamais.
+                // (loadAnnualEmbed capture son conteneur AVANT son premier await :
+                // le cadrage ne vaut que pour cette partie synchrone, ce qui suffit.)
+                if (tabName === 'annual' && typeof loadAnnualEmbed === 'function') {
+                    this._withScopedDocument(container, () => loadAnnualEmbed(true));
+                }
+
                 // Si c'est l'onglet plan de classe, charger le plan
                 if (tabName === 'seating-plan') {
                     setTimeout(() => {
@@ -10475,38 +10519,187 @@ class CleanPDFViewer {
     }
 
     /**
-     * Attacher les gestionnaires d'événements pour les sanctions dans le modal
+     * Exécute `fn` en faisant croire aux fonctions globales de la page que le
+     * document se limite au panneau. Les fonctions de lesson_view.html cherchent
+     * leurs éléments avec document.getElementById / querySelector : comme le
+     * panneau est une COPIE de .attendance-section, les ids sont en double et
+     * elles tombaient toujours sur ceux de la page (derrière le lecteur PDF).
+     * Même principe que loadSeatingPlanInModal, étendu à querySelector(All).
      */
-    attachSanctionEventHandlers(container) {
-        // Trouver tous les boutons de sanctions
-        const decreaseButtons = container.querySelectorAll('.count-btn.decrease');
-        const increaseButtons = container.querySelectorAll('.count-btn.increase');
+    _withScopedDocument(container, fn) {
+        const realGetById = document.getElementById;
+        const realQuery = document.querySelector;
+        const realQueryAll = document.querySelectorAll;
+        document.getElementById = function (id) {
+            return container.querySelector('[id="' + id + '"]') || realGetById.call(document, id);
+        };
+        document.querySelector = function (sel) {
+            return container.querySelector(sel) || realQuery.call(document, sel);
+        };
+        document.querySelectorAll = function (sel) {
+            const found = container.querySelectorAll(sel);
+            return found.length ? found : realQueryAll.call(document, sel);
+        };
+        try {
+            return fn();
+        } finally {
+            document.getElementById = realGetById;
+            document.querySelector = realQuery;
+            document.querySelectorAll = realQueryAll;
+        }
+    }
 
-        decreaseButtons.forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+    /**
+     * Remarque rapide DANS le panneau : bouton par élève, fermeture, phrases
+     * toutes faites, dictée et enregistrement. Tout est résolu dans le panneau,
+     * jamais dans la page (le panneau embarque sa propre copie de #quickRemarkPanel).
+     */
+    attachQuickRemarkHandlers(container) {
+        const panel = container.querySelector('#quickRemarkPanel');
+        if (!panel) return;
+
+        // Contexte de la leçon : lu sur la section d'ORIGINE, seule porteuse des
+        // data-attributes (la copie ne reprend que le contenu, pas la balise).
+        const section = document.querySelector('.attendance-section');
+        let currentStudentId = null;
+
+        const close = () => { panel.style.display = 'none'; currentStudentId = null; };
+
+        container.querySelectorAll('.student-remark-btn').forEach(btn => {
+            const row = btn.closest('.student-attendance');
+            btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation();
-                const onclickAttr = btn.getAttribute('onclick');
-                const match = onclickAttr?.match(/updateSanctionCount\((\d+),\s*(\d+),\s*(-?\d+)\)/);
-                if (match) {
-                    const studentId = parseInt(match[1]);
-                    const sanctionId = parseInt(match[2]);
-                    await this.updateSanctionCount(studentId, sanctionId, -1, container);
-                }
+                e.stopPropagation();   // ne pas basculer la présence de l'élève
+                if (!row) return;
+                currentStudentId = parseInt(row.dataset.studentId, 10);
+                const nameEl = row.querySelector('.student-name');
+                const nameOut = panel.querySelector('#qrStudentName');
+                if (nameOut) nameOut.textContent = nameEl ? nameEl.textContent.trim() : '';
+                const ta = panel.querySelector('#qrContent');
+                if (ta) ta.value = '';
+                const cb = panel.querySelector('#qrSendParent');
+                if (cb) cb.checked = false;
+                row.insertAdjacentElement('afterend', panel);
+                panel.style.display = 'block';
+                try { panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (err) {}
             });
         });
 
-        increaseButtons.forEach(btn => {
+        const closeBtn = panel.querySelector('.qr-close');
+        if (closeBtn) closeBtn.addEventListener('click', (e) => { e.preventDefault(); close(); });
+
+        panel.querySelectorAll('.qr-chip').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                e.preventDefault();
+                const ta = panel.querySelector('#qrContent');
+                if (!ta) return;
+                const cur = ta.value.trim();
+                const text = chip.textContent.trim();
+                ta.value = cur ? (cur + (/[.!?…]$/.test(cur) ? ' ' : '. ') + text) : text;
+                ta.focus();
+            });
+        });
+
+        // Dictée : sur iPad, donner le focus au champ DANS le geste du tap est ce
+        // qui ouvre le clavier système (et donc sa touche micro). Un focus différé
+        // ne l'ouvrirait pas.
+        const mic = panel.querySelector('#qrMic');
+        if (mic) mic.addEventListener('click', (e) => {
+            e.preventDefault();
+            const ta = panel.querySelector('#qrContent');
+            if (ta) ta.focus();
+        });
+
+        const saveBtn = panel.querySelector('#qrSaveBtn');
+        if (saveBtn) saveBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const ta = panel.querySelector('#qrContent');
+            const content = ta ? ta.value.trim() : '';
+            if (!currentStudentId || !content) {
+                if (typeof showNotification === 'function') showNotification('error', 'Écris une remarque.');
+                return;
+            }
+            const cb = panel.querySelector('#qrSendParent');
+            saveBtn.disabled = true;
+            try {
+                const resp = await fetch('/planning/create_student_remark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_id: currentStudentId,
+                        source_date: section ? section.dataset.lessonDate : null,
+                        source_period: section ? parseInt(section.dataset.periodNumber, 10) : null,
+                        content: content,
+                        send_to_parent_and_student: !!(cb && cb.checked)
+                    })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    if (typeof showNotification === 'function') showNotification('success', 'Remarque enregistrée');
+                    const row = container.querySelector('.student-attendance[data-student-id="' + currentStudentId + '"]');
+                    if (row) row.classList.add('has-remark');
+                    // Même rafraîchissement que sur la page : la remarque apparaît
+                    // tout de suite dans la colonne mémos.
+                    if (typeof lessonMemosManager !== 'undefined' && lessonMemosManager &&
+                        typeof lessonMemosManager.loadExistingMemosAndRemarks === 'function') {
+                        lessonMemosManager.loadExistingMemosAndRemarks();
+                    }
+                    close();
+                } else {
+                    if (typeof showNotification === 'function') showNotification('error', data.error || 'Erreur');
+                }
+            } catch (err) {
+                if (typeof showNotification === 'function') showNotification('error', 'Erreur réseau');
+            } finally {
+                saveBtn.disabled = false;
+            }
+        });
+    }
+
+    /**
+     * Bouton « Annuler » des avertissements du plan de classe, dans le panneau.
+     * Les places elles-mêmes sont recâblées par loadSeatingPlan(), mais ce
+     * bouton-là perdait son onclick et restait inerte.
+     */
+    attachSeatingWarningHandlers(container) {
+        const undoBtn = container.querySelector('#undo-warning-btn');
+        if (!undoBtn || typeof undoLastWarning !== 'function') return;
+        undoBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this._withScopedDocument(container, () => undoLastWarning());
+        });
+    }
+
+    /**
+     * Attacher les gestionnaires d'événements pour les sanctions dans le modal
+     */
+    attachSanctionEventHandlers(container) {
+        // Les onclick inline ont été retirés du HTML copié (ils visaient les
+        // éléments de la page, pas ceux du panneau). Élève et coche viennent des
+        // data-attributes posés par openClassManagementModal ; à défaut, du
+        // .count-display voisin, qui les porte aussi.
+        const resolve = (btn) => {
+            let studentId = parseInt(btn.dataset.studentId, 10);
+            let sanctionId = parseInt(btn.dataset.sanctionId, 10);
+            if (Number.isNaN(studentId) || Number.isNaN(sanctionId)) {
+                const display = btn.parentElement && btn.parentElement.querySelector('.count-display');
+                if (display) {
+                    studentId = parseInt(display.dataset.student, 10);
+                    sanctionId = parseInt(display.dataset.sanction, 10);
+                }
+            }
+            if (Number.isNaN(studentId) || Number.isNaN(sanctionId)) return null;
+            return { studentId, sanctionId };
+        };
+
+        container.querySelectorAll('.count-btn.decrease, .count-btn.increase').forEach(btn => {
+            const delta = btn.classList.contains('increase') ? 1 : -1;
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const onclickAttr = btn.getAttribute('onclick');
-                const match = onclickAttr?.match(/updateSanctionCount\((\d+),\s*(\d+),\s*(-?\d+)\)/);
-                if (match) {
-                    const studentId = parseInt(match[1]);
-                    const sanctionId = parseInt(match[2]);
-                    await this.updateSanctionCount(studentId, sanctionId, 1, container);
-                }
+                const ids = resolve(btn);
+                if (!ids) { console.warn('[Suivi] Bouton de coche sans élève/coche identifiables'); return; }
+                await this.updateSanctionCount(ids.studentId, ids.sanctionId, delta, container);
             });
         });
     }
@@ -11028,6 +11221,9 @@ class CleanPDFViewer {
             panel.classList.remove('open');
             const sidebar = document.querySelector('.pdf-main .pdf-sidebar');
             if (sidebar) sidebar.classList.remove('collapsed');
+
+            // Le lecteur reprend sa largeur : réaligner l'overlay natif (iPad).
+            this._refreshNativeOverlayBounds();
 
             // Vider le contenu APRÈS l'animation pour éviter les éléments dupliqués
             // (updateStats() compte tous les .student-attendance présents dans le DOM).
