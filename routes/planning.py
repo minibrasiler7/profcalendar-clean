@@ -2590,7 +2590,7 @@ def get_class_resources(classroom_id):
 
         # Récupérer fichiers (v2 + legacy) + exercices via le helper unifié
         pinned_files, files_data = list_classroom_files(
-            actual_classroom_id, include_exercises=True
+            actual_classroom_id, include_exercises=True, user_id=current_user.id
         )
 
         # Restaurer l'autoflush

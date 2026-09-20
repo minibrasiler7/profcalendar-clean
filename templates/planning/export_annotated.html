@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Préparation du téléchargement</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}?v=1">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f3f4f6;
+        color: #111827;
+    }
+    /* Le lecteur se charge derrière (il occupe l'écran en position fixe et
+       doit rendre toutes les pages pour que l'export puisse les lire) ;
+       l'écran d'état le masque, d'où le z-index plus élevé. */
+    .etat {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        text-align: center;
+        padding: 2rem;
+        background: #f3f4f6;
+    }
+    .etat i { font-size: 2.5rem; color: #4F46E5; }
+    .etat i.ok { color: #059669; }
+    .etat i.ko { color: #DC2626; }
+    .etat h1 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+    .etat p { margin: 0; color: #6b7280; font-size: 0.9rem; max-width: 34rem; }
+    .etat a, .etat button {
+        margin-top: 0.5rem;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #111827;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .etat a.discret {
+        border: none;
+        background: none;
+        color: #6b7280;
+        font-size: 0.8rem;
+        text-decoration: underline;
+        padding: 0;
+    }
+    @keyframes tourne { to { transform: rotate(360deg); } }
+    .tourne { animation: tourne 1s linear infinite; }
+</style>
+</head>
+<body>
+
+<div class="etat" id="etat">
+    <i class="fas fa-circle-notch tourne" id="etat-icone"></i>
+    <h1 id="etat-titre">Préparation du document…</h1>
+    <p id="etat-detail">{{ file_name }}</p>
+    <a class="discret" href="/api/class-files/download/{{ file_id }}">Télécharger plutôt le fichier d’origine</a>
+</div>
+
+<div id="export-viewer"></div>
+
+<script>
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+</script>
+<script src="{{ url_for('static', filename='js/clean-pdf-tools.js') }}?v=5.5.9"></script>
+<script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}?v=5.5.9"></script>
+<script>
+const FILE_ID = {{ file_id | tojson }};
+const FILE_NAME = {{ file_name | tojson }};
+
+function afficher(icone, classe, titre, detail, lienSecours) {
+    document.getElementById('etat-icone').className = 'fas ' + icone + (classe ? ' ' + classe : '');
+    document.getElementById('etat-titre').textContent = titre;
+    document.getElementById('etat-detail').textContent = detail || '';
+    if (lienSecours) {
+        const a = document.createElement('a');
+        a.href = lienSecours.href;
+        a.textContent = lienSecours.texte;
+        if (lienSecours.download) a.download = lienSecours.download;
+        document.getElementById('etat').appendChild(a);
+    }
+}
+
+(async () => {
+    let viewer = null;
+    try {
+        viewer = new CleanPDFViewer('export-viewer', {
+            fileId: FILE_ID,
+            pdfUrl: '/file_manager/serve_file/' + FILE_ID,
+            fileName: FILE_NAME,
+            showSidebar: false,
+            enableAnnotations: true
+        });
+        window.cleanPDFViewer = viewer;
+
+        // `ready` couvre le chargement du PDF, des annotations et des pages
+        // ajoutées ; le redessin final est programmé 100 ms plus tard par
+        // loadAnnotations, d'où la petite marge.
+        await viewer.ready;
+        await new Promise(r => setTimeout(r, 600));
+        viewer.stopAutoSave();
+
+        const blob = await viewer.exportAnnotatedPDF();
+        const nom = viewer.exportFileName();
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nom;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        // Le lien de secours sert si le navigateur a bloqué le téléchargement
+        // automatique (cas courant sur iPad).
+        afficher('fa-circle-check', 'ok', 'Téléchargement lancé', nom,
+                 { href: url, download: nom, texte: 'Le téléchargement n’a pas démarré ? Cliquez ici' });
+        setTimeout(() => { try { window.close(); } catch (e) {} }, 2500);
+    } catch (e) {
+        console.error('[ExportAnnoté] échec :', e);
+        afficher('fa-triangle-exclamation', 'ko',
+                 'Impossible de préparer le document annoté',
+                 (e && e.message) || 'Erreur inconnue',
+                 { href: '/api/class-files/download/' + FILE_ID,
+                   texte: 'Télécharger le fichier original' });
+    } finally {
+        // Le lecteur reste en mémoire tant que le blob n'est pas récupéré :
+        // on le laisse vivre, l'onglet se ferme juste après.
+    }
+})();
+</script>
+</body>
+</html>

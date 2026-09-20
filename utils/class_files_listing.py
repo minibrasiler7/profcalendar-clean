@@ -34,8 +34,36 @@ from typing import List, Dict, Any, Optional, Tuple
 from flask import current_app
 
 
+def _annotated_file_ids(user_id: Optional[int]) -> Dict[str, set]:
+    """Ids des fichiers de cet utilisateur portant des annotations ou des
+    pages ajoutées, par source ('v2' / 'legacy').
+
+    Le contenu annoté n'est PAS dans le fichier stocké : il vit en JSON dans
+    `file_annotations`. Sans cette information, l'interface ne peut pas savoir
+    qu'un téléchargement direct renverrait l'original amputé du travail fait
+    dans l'application.
+
+    Requête en colonnes uniquement : `annotations_data` peut peser plusieurs
+    mégaoctets par fichier (cf. le piège des blobs `user_files`).
+    """
+    vide = {'v2': set(), 'legacy': set()}
+    if not user_id:
+        return vide
+    from extensions import db
+    from models.file_manager import FileAnnotation
+    par_type = {'class_file': 'v2', 'legacy_class_file': 'legacy'}
+    rows = db.session.query(FileAnnotation.file_id, FileAnnotation.file_type).filter(
+        FileAnnotation.user_id == user_id,
+        FileAnnotation.file_type.in_(list(par_type.keys()))
+    ).all()
+    for fid, ftype in rows:
+        vide[par_type[ftype]].add(fid)
+    return vide
+
+
 def list_classroom_files(classroom_id: int,
-                          include_exercises: bool = False) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+                          include_exercises: bool = False,
+                          user_id: Optional[int] = None) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Liste TOUS les fichiers attachés à une classe (v2 + legacy + optionnellement exercices).
 
     Args:
@@ -58,6 +86,7 @@ def list_classroom_files(classroom_id: int,
 
     pinned: List[Dict[str, Any]] = []
     files: List[Dict[str, Any]] = []
+    annotes = _annotated_file_ids(user_id)
 
     # ----- V2 -----
     v2_files = ClassFile.query.filter_by(classroom_id=classroom_id).all()
@@ -108,6 +137,7 @@ def list_classroom_files(classroom_id: int,
             'is_pinned': bool(f.is_pinned),
             'pin_order': f.pin_order or 0,
             'uploaded_at': f.copied_at.isoformat() if f.copied_at else None,
+            'has_annotations': f.id in annotes['v2'],
         }
         if f.is_pinned:
             pinned.append(entry)
@@ -161,6 +191,7 @@ def list_classroom_files(classroom_id: int,
             'is_pinned': bool(f.is_pinned),
             'pin_order': f.pin_order or 0,
             'uploaded_at': f.uploaded_at.isoformat() if f.uploaded_at else None,
+            'has_annotations': f.id in annotes['legacy'],
         }
         if f.is_pinned:
             pinned.append(entry)

@@ -236,7 +236,8 @@ class CleanPDFViewer {
         this.textDragState = null;        // État du drag (déplacement/redimensionnement)
 
         // Initialiser
-        this.init();
+        // `ready` permet d'attendre la fin du chargement (page d'export).
+        this.ready = this.init();
     }
 
     /**
@@ -11905,13 +11906,16 @@ class CleanPDFViewer {
         this.showLoading(true);
 
         try {
-            const pdfBlob = await this.exportPDFWithAnnotations();
+            // exportAnnotatedPDF (et non exportPDFWithAnnotations) : celui-ci
+            // inclut les pages ajoutées dans l'application et lit les
+            // annotations dans le store, donc aussi l'encre Apple Pencil.
+            const pdfBlob = await this.exportAnnotatedPDF();
 
             // Créer le lien de téléchargement
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `document_annote_${Date.now()}.pdf`;
+            a.download = this.exportFileName();
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -12315,6 +12319,167 @@ class CleanPDFViewer {
         }
         const bytes = await out.save();
         return new Blob([bytes], { type: 'application/pdf' });
+    }
+
+    /**
+     * Export du document TEL QU'IL EST DANS L'APPLICATION : annotations ET
+     * pages ajoutées (vierge, graphique, frise chronologique, diagramme),
+     * dans l'ordre affiché.
+     *
+     * Pourquoi une troisième méthode d'export :
+     *   - exportPDFWithAnnotations() repart du PDF ORIGINAL et boucle sur SES
+     *     pages : les pages ajoutées dans l'application sont perdues, et
+     *     l'ordre se décale dès qu'on en a inséré une.
+     *   - exportFlattenedPDF() est fidèle mais rasterise TOUT : un cours de
+     *     théorie devient une pile d'images (texte flou à l'impression,
+     *     fichier lourd, plus de recherche de texte).
+     *
+     * Ici : les pages d'origine sont COPIÉES telles quelles (texte vectoriel
+     * intact) et les annotations sont posées par-dessus en PNG transparent ;
+     * seules les pages ajoutées sont rasterisées, puisqu'elles n'existent
+     * que sous forme de canvas.
+     *
+     * Les annotations sont redessinées depuis le STORE, pas lues dans les
+     * pixels affichés : sur iPad les traits de la session courante sont
+     * rendus par PencilKit (canvas web vide), et l'export ne voyait donc
+     * rien. Le marquage « encre native vivante » est neutralisé le temps de
+     * l'export, sans toucher à l'affichage.
+     */
+    async exportAnnotatedPDF() {
+        const { PDFDocument } = await import('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js');
+
+        // Document source : sert à recopier les pages d'origine en vectoriel.
+        // S'il est indisponible (image ouverte comme document, PDF protégé…)
+        // on rasterise tout : mieux vaut un export fidèle qu'un échec.
+        let src = null;
+        if (this.options && this.options.pdfUrl) {
+            try {
+                const buf = await fetch(this.options.pdfUrl).then(r => r.arrayBuffer());
+                src = await PDFDocument.load(buf, { ignoreEncryption: true });
+            } catch (e) {
+                console.warn('[Export] PDF original illisible, rasterisation complète :', e && e.message);
+                src = null;
+            }
+        }
+        // Une rotation appliquée dans le lecteur change la géométrie de la page
+        // affichée : la superposition vectorielle ne serait plus alignée. On
+        // rasterise alors, ce qui reproduit exactement l'écran.
+        const rotated = !!(this.rotation && this.rotation % 360 !== 0);
+
+        const out = await PDFDocument.create();
+        const order = (this.pageOrder && this.pageOrder.length)
+            ? this.pageOrder.slice()
+            : Array.from(this.pages ? this.pages.keys() : []);
+
+        // Neutraliser le marquage « encre native vivante » le temps de l'export.
+        const liveNative = this._liveNativeIds;
+        this._liveNativeIds = new Set();
+        let pagesDone = 0;
+        try {
+            for (const pageId of order) {
+                const pageData = this.pages ? this.pages.get(pageId) : null;
+                const wrapper = this._wrapperForPage(pageId);
+                const pdfCanvas = wrapper && wrapper.querySelector('.pdf-canvas');
+                const annCanvas = wrapper && wrapper.querySelector('.annotation-canvas');
+                const base = (pdfCanvas && pdfCanvas.width > 0) ? pdfCanvas
+                           : ((annCanvas && annCanvas.width > 0) ? annCanvas : null);
+
+                const estOrigine = pageData && pageData.type === 'pdf' && pageData.pageNum;
+
+                if (estOrigine && src && !rotated) {
+                    const [copie] = await out.copyPages(src, [pageData.pageNum - 1]);
+                    const page = out.addPage(copie);
+                    const zone = (typeof page.getCropBox === 'function') ? page.getCropBox() : null;
+                    const x = zone ? zone.x : 0;
+                    const y = zone ? zone.y : 0;
+                    const w = zone ? zone.width : page.getWidth();
+                    const h = zone ? zone.height : page.getHeight();
+
+                    const calque = this._exportAnnotationLayer(pageId, annCanvas, base);
+                    if (calque) {
+                        const png = await fetch(calque.toDataURL('image/png')).then(r => r.arrayBuffer());
+                        page.drawImage(await out.embedPng(png), { x, y, width: w, height: h });
+                    }
+                    pagesDone++;
+                    continue;
+                }
+
+                // Page ajoutée dans l'application (ou repli) : on aplatit le
+                // fond dessiné à l'écran + les annotations.
+                if (!base) continue;
+                const cw = base.width, ch = base.height;
+                const plat = document.createElement('canvas');
+                plat.width = cw; plat.height = ch;
+                const ctx = plat.getContext('2d');
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, cw, ch);
+                if (pdfCanvas && pdfCanvas.width > 0) ctx.drawImage(pdfCanvas, 0, 0, cw, ch);
+                const calque = this._exportAnnotationLayer(pageId, annCanvas, base);
+                if (calque) ctx.drawImage(calque, 0, 0, cw, ch);
+
+                // Largeur A4 : une page ajoutée s'imprime comme les autres.
+                const largeurPt = 595.28;
+                const hauteurPt = Math.round(largeurPt * ch / cw);
+                const jpeg = await fetch(plat.toDataURL('image/jpeg', 0.92)).then(r => r.arrayBuffer());
+                const page = out.addPage([largeurPt, hauteurPt]);
+                page.drawImage(await out.embedJpg(jpeg), { x: 0, y: 0, width: largeurPt, height: hauteurPt });
+                pagesDone++;
+            }
+        } finally {
+            this._liveNativeIds = liveNative;
+        }
+
+        if (pagesDone === 0) {
+            throw new Error('Aucune page à exporter (pages=' + order.length + ')');
+        }
+        const bytes = await out.save();
+        return new Blob([bytes], { type: 'application/pdf' });
+    }
+
+    /** « Théorie.pdf » → « Théorie (annoté).pdf ». */
+    exportFileName() {
+        const brut = (this.options && this.options.fileName) || '';
+        const base = brut.replace(/\.[^.]+$/, '').trim();
+        return (base ? base : 'document') + ' (annoté).pdf';
+    }
+
+    /** Retrouve le wrapper d'une page, quel que soit le type de clé (3 vs '3'). */
+    _wrapperForPage(pageId) {
+        const scopes = [this.elements && this.elements.pagesContainer, this.container, document];
+        for (const scope of scopes) {
+            if (!scope || !scope.querySelector) continue;
+            const w = scope.querySelector('.pdf-page-wrapper[data-page-id="' + pageId + '"]');
+            if (w) return w;
+        }
+        return null;
+    }
+
+    /**
+     * Calque d'annotations d'une page, aux dimensions de `gabarit`, ou null
+     * s'il n'y a rien à poser. Redessiné depuis le store ; si le store ne
+     * donne rien mais que le canvas affiché a des pixels (cas d'un état
+     * inattendu), on reprend les pixels affichés plutôt que de perdre le
+     * travail de l'enseignant.
+     */
+    _exportAnnotationLayer(pageId, annCanvas, gabarit) {
+        if (!gabarit || !gabarit.width) return null;
+        const tmp = document.createElement('canvas');
+        tmp.width = gabarit.width;
+        tmp.height = gabarit.height;
+        try {
+            const num = parseInt(pageId, 10);
+            let pid = pageId;
+            if (this.annotations && !this.annotations.has(pid)
+                && !isNaN(num) && this.annotations.has(num)) pid = num;
+            if (this.annotations && !this.annotations.has(pid)
+                && this.annotations.has(String(pageId))) pid = String(pageId);
+            this.redrawAnnotations(tmp, pid);
+        } catch (e) {
+            console.warn('[Export] Redessin impossible pour la page', pageId, e && e.message);
+        }
+        if (!this._canvasIsBlank(tmp)) return tmp;
+        if (annCanvas && annCanvas.width > 0 && !this._canvasIsBlank(annCanvas)) return annCanvas;
+        return null;
     }
 
     /**

@@ -2815,3 +2815,34 @@ def api_tree():
             for f in files
         ],
     })
+
+
+@file_manager_bp.route('/export-annotated/<int:file_id>')
+@login_required
+def export_annotated(file_id):
+    """Page intermédiaire qui produit le document TEL QU'IL EST DANS L'APPLICATION.
+
+    Les annotations et les pages ajoutées (vierge, graphique, frise, diagramme)
+    ne sont pas dans le fichier stocké : ce sont des données JSON
+    (`file_annotations`) que seul le lecteur de l'application sait dessiner.
+    Un téléchargement direct ne peut donc renvoyer que l'original.
+
+    Cette page ouvre le document dans ce même lecteur, laisse charger
+    annotations et pages ajoutées, puis assemble le PDF côté navigateur et
+    déclenche le téléchargement. On réutilise ainsi le rendu de l'application,
+    au lieu de le réimplémenter côté serveur — où il finirait forcément par
+    diverger de ce que l'enseignant voit à l'écran.
+    """
+    candidats = _find_class_file_candidates(file_id, current_user)
+    if not candidats:
+        return "Fichier introuvable", 404
+
+    nom = None
+    for _kind, obj in candidats:
+        nom = getattr(obj, 'original_filename', None)
+        if nom:
+            break
+
+    return render_template('planning/export_annotated.html',
+                           file_id=file_id,
+                           file_name=nom or f'document-{file_id}.pdf')

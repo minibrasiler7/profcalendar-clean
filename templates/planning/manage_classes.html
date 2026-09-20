@@ -9200,6 +9200,19 @@ function renderClassFiles(currentPath, classroomId = null) {
             // Les ids de class_files (legacy) et class_files_v2 peuvent entrer en
             // collision : on transmet la source pour servir le bon fichier.
             const srcParam = file.source ? `source=${file.source}` : '';
+
+            // Le fichier stocké est l'ORIGINAL : les annotations et les pages
+            // ajoutées (vierge, graphique, frise, diagramme) vivent à part, en
+            // JSON. Quand il y en a, le téléchargement passe donc par la page
+            // d'export, qui rouvre le document dans le lecteur et assemble le
+            // PDF réellement travaillé. Sinon, lien direct comme avant.
+            const lienTelechargement = file.has_annotations
+                ? `<a href="/file_manager/export-annotated/${file.id}" target="_blank" rel="noopener" class="action-btn" title="Télécharger avec vos annotations et pages ajoutées">
+                        <i class="fas fa-download"></i>
+                    </a>`
+                : `<a href="/api/class-files/download/${file.id}?${srcParam}" class="action-btn" title="Télécharger">
+                        <i class="fas fa-download"></i>
+                    </a>`;
             html += `
                 <div class="file-item file" data-id="${file.id}" data-type="file" ondblclick="previewClassFile(${file.id}, '${file.file_type}', '${file.source || ''}')">
                     <div class="item-icon">
@@ -9208,15 +9221,13 @@ function renderClassFiles(currentPath, classroomId = null) {
                             : `<i class="${icon}" style="color: ${iconColor};"></i>`
                         }
                     </div>
-                    <div class="item-name" title="${file.original_filename}">${file.is_pinned ? '<i class="fas fa-thumbtack" style="color:#F59E0B;margin-right:0.25rem;" title="Épinglé"></i>' : ''}${file.original_filename}</div>
+                    <div class="item-name" title="${file.original_filename}">${file.is_pinned ? '<i class="fas fa-thumbtack" style="color:#F59E0B;margin-right:0.25rem;" title="Épinglé"></i>' : ''}${file.has_annotations ? '<i class="fas fa-pen-nib" style="color:#4F46E5;margin-right:0.25rem;" title="Annoté dans l’application"></i>' : ''}${file.original_filename}</div>
                     <div class="item-info">${formatFileSize(file.file_size)}</div>
                     <div class="item-actions">
                         <button class="action-btn" onclick="previewClassFile(${file.id}, '${file.file_type}', '${file.source || ''}')" title="Aperçu">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <a href="/api/class-files/download/${file.id}?${srcParam}" class="action-btn" title="Télécharger">
-                            <i class="fas fa-download"></i>
-                        </a>
+                        ${lienTelechargement}
                         <button class="action-btn" onclick="shareFileWithStudents(${file.id}, '${file.original_filename}')" title="Partager avec des élèves" style="color: #10B981;">
                             <i class="fas fa-share"></i>
                         </button>
