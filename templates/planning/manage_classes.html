@@ -9059,8 +9059,15 @@ async function loadClassFiles(folderPath = '', classroomId = null) {
         console.log('Réponse API:', result);
         
         if (result.success) {
-            allClassFiles = result.files || []; // Pour compatibilité
-            allClassFilesByClass[classroomId] = result.files || []; // Spécifique à la classe
+            // L'API renvoie DEUX listes : `pinned_files` (fichiers épinglés) et
+            // `files` (les autres). Cet onglet ne lisait que `files` : un fichier
+            // épinglé depuis le calendrier ou la page leçon disparaissait donc
+            // complètement d'ici — impossible de le télécharger ou de le
+            // renommer, alors qu'il restait visible partout ailleurs.
+            // Les épinglés d'abord, comme dans les autres vues.
+            const filesFromApi = [...(result.pinned_files || []), ...(result.files || [])];
+            allClassFiles = filesFromApi; // Pour compatibilité
+            allClassFilesByClass[classroomId] = filesFromApi; // Spécifique à la classe
             renderClassFiles(folderPath, classroomId);
             updateClassBreadcrumb(folderPath, classroomId);
         } else {
@@ -9201,7 +9208,7 @@ function renderClassFiles(currentPath, classroomId = null) {
                             : `<i class="${icon}" style="color: ${iconColor};"></i>`
                         }
                     </div>
-                    <div class="item-name" title="${file.original_filename}">${file.original_filename}</div>
+                    <div class="item-name" title="${file.original_filename}">${file.is_pinned ? '<i class="fas fa-thumbtack" style="color:#F59E0B;margin-right:0.25rem;" title="Épinglé"></i>' : ''}${file.original_filename}</div>
                     <div class="item-info">${formatFileSize(file.file_size)}</div>
                     <div class="item-actions">
                         <button class="action-btn" onclick="previewClassFile(${file.id}, '${file.file_type}', '${file.source || ''}')" title="Aperçu">
