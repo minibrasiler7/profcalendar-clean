@@ -13,13 +13,27 @@
     </div>
 </div>
 <script>
+// La bannière est fixée en bas, AU-DESSUS du bouton d'aide « ? » (qui ouvre
+// les tutoriels) : tant qu'elle est affichée, on remonte ce bouton de sa
+// hauteur, sans quoi le premier clic d'un nouvel utilisateur tombe sur la
+// bannière et rien ne s'ouvre.
+function _cookieBannerLift(shown) {
+    var el = document.getElementById('cookie-banner');
+    document.documentElement.style.setProperty('--cookie-banner-h', shown ? (el.offsetHeight + 'px') : '0px');
+    document.body.classList.toggle('cookie-banner-visible', !!shown);
+}
 (function(){
     if (!localStorage.getItem('cookie-consent')) {
         document.getElementById('cookie-banner').style.display = 'block';
+        _cookieBannerLift(true);
+        window.addEventListener('resize', function () {
+            if (document.getElementById('cookie-banner').style.display !== 'none') _cookieBannerLift(true);
+        });
     }
 })();
 function acceptCookies() {
     localStorage.setItem('cookie-consent', 'accepted');
     document.getElementById('cookie-banner').style.display = 'none';
+    _cookieBannerLift(false);
 }
 </script>

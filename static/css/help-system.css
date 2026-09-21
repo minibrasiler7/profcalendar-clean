@@ -6,7 +6,9 @@
 /* === BOUTON FLOTTANT === */
 .help-fab {
     position: fixed;
-    bottom: 2rem;
+    /* Remonté de la hauteur de la bannière cookies tant qu'elle est affichée
+       (variable posée par includes/cookie_banner.html). */
+    bottom: calc(2rem + var(--cookie-banner-h, 0px));
     right: 2rem;
     width: 52px;
     height: 52px;
@@ -16,7 +18,7 @@
     border: none;
     font-size: 1.4rem;
     cursor: pointer;
-    z-index: 1080;
+    z-index: 1101; /* au-dessus de la bannière cookies (1100) */
     box-shadow: 0 4px 15px rgba(79, 70, 229, 0.35);
     transition: all 0.3s ease;
     display: flex;
@@ -701,7 +703,7 @@
 /* === RESPONSIVE === */
 @media (max-width: 768px) {
     .help-fab {
-        bottom: 1rem;
+        bottom: calc(1rem + var(--cookie-banner-h, 0px));
         right: 1rem;
         width: 46px;
         height: 46px;
