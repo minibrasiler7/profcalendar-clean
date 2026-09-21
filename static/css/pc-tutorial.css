@@ -29,6 +29,8 @@
 .pt-badge { display: inline-block; padding: 2px 7px; border-radius: 999px; font-weight: 700; font-size: .68rem; letter-spacing: .02em; }
 .pt-badge.reco { background: #4F46E5; color: #fff; }
 .pt-badge.done { background: #D1FAE5; color: #065F46; }
+.pt-badge.page { background: #FEF3C7; color: #92400E; }
+.pt-chap.suggested { border-color: #F59E0B; box-shadow: 0 0 0 3px rgba(245,158,11,.18); }
 .pt-menu-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
 .pt-menu-foot small { color: #9CA3AF; font-size: .8rem; }
 .pt-btn { display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid #E5E7EB; background: #fff; color: #374151; border-radius: 10px; padding: 9px 16px; font: inherit; font-weight: 600; font-size: .9rem; cursor: pointer; }

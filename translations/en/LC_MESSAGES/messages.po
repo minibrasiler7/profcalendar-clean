@@ -507,8 +507,8 @@ msgstr "Everything in Premium"
 msgid "Économisez 32%%"
 msgstr "Save 32%%"
 
-msgid "3 Go de stockage"
-msgstr "3 GB of storage"
+msgid "50 Go de stockage"
+msgstr "50 GB of storage"
 
 msgid "Support prioritaire"
 msgstr "Priority support"

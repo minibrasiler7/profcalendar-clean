@@ -53,6 +53,21 @@
 
         get chapters() { return window.pcTutorialChapters || []; }
 
+        // Chapitre qui correspond à la page courante (clé request.endpoint
+        // posée sur <main data-help-page>), pour le bouton « ? ».
+        chapterForPage() {
+            const page = ((document.querySelector('main') || {}).dataset || {}).helpPage || '';
+            const map = [
+                ['planning.calendar_view', 'planning'], ['planning.lesson_view', 'lesson'],
+                ['planning.manage_classes', 'classes'], ['file_manager.', 'files'],
+                ['sanctions.', 'sanctions'], ['planning.decoupage', 'decoupage'],
+                ['exercises.', 'exercise'], ['settings.class_codes', 'accounts'],
+                ['student_auth.', 'accounts'], ['parent_auth.', 'accounts']
+            ];
+            const hit = map.find(([prefix]) => page === prefix || page.startsWith(prefix));
+            return hit ? hit[1] : null;
+        }
+
         // ------------------------------------------------------------ DOM
         mount() {
             if (this.root) return;
@@ -66,9 +81,10 @@
             document.addEventListener('keydown', this._onKey);
         }
 
-        open() {
+        open(opts) {
             this.mount();
             this.stop();
+            this.suggested = (opts && opts.fromPage) ? this.chapterForPage() : null;
             this.renderMenu();
             this.root.classList.add('open');
             document.body.style.overflow = 'hidden';
@@ -113,7 +129,7 @@
                     </div>
                     <div class="pt-menu-grid">
                         ${chapters.map((c, i) => `
-                            <button type="button" class="pt-chap ${c.reco ? 'reco' : ''}" data-i="${i}">
+                            <button type="button" class="pt-chap ${c.reco ? 'reco' : ''} ${c.id === this.suggested ? 'suggested' : ''}" data-i="${i}">
                                 <span class="pt-chap-ico" style="background:${c.color}"><i class="fas ${c.icon}"></i></span>
                                 <span class="pt-chap-num">${i + 1}</span>
                                 <span style="min-width:0;">
@@ -121,6 +137,7 @@
                                     <p>${esc(c.desc)}</p>
                                     <span class="pt-chap-meta">
                                         ${c.reco ? '<span class="pt-badge reco">Recommandé</span>' : ''}
+                                        ${c.id === this.suggested ? '<span class="pt-badge page"><i class="fas fa-location-arrow"></i> Cette page</span>' : ''}
                                         ${this.done[c.id] ? '<span class="pt-badge done"><i class="fas fa-check"></i> Vu</span>' : ''}
                                         <span><i class="far fa-clock"></i> ≈ ${c.seconds} s</span>
                                     </span>
@@ -137,7 +154,10 @@
                 </div>`;
             this.dialog.querySelector('.pt-menu-close').onclick = () => this.close();
             this.dialog.querySelector('[data-act="later"]').onclick = () => this.close();
-            this.dialog.querySelector('[data-act="start"]').onclick = () => this.play(this.firstUnseen());
+            this.dialog.querySelector('[data-act="start"]').onclick = () => {
+                const si = this.chapters.findIndex(c => c.id === this.suggested);
+                this.play(si >= 0 ? si : this.firstUnseen());
+            };
             this.dialog.querySelectorAll('.pt-chap').forEach(b => {
                 b.onclick = () => this.play(parseInt(b.dataset.i, 10));
             });
@@ -472,7 +492,7 @@
 
     const tuto = new Tutorial();
     window.pcTutorial = {
-        open: () => tuto.open(),
+        open: (opts) => tuto.open(opts),
         play: (i) => { tuto.mount(); tuto.root.classList.add('open'); document.body.style.overflow = 'hidden'; return tuto.play(i); },
         close: () => tuto.close(),
         set speed(v) { tuto.speed = v; },

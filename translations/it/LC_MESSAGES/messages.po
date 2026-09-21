@@ -507,8 +507,8 @@ msgstr "Tutto il piano Premium"
 msgid "Économisez 32%%"
 msgstr "Risparmia il 32%%"
 
-msgid "3 Go de stockage"
-msgstr "3 GB di spazio di archiviazione"
+msgid "50 Go de stockage"
+msgstr "50 GB di spazio di archiviazione"
 
 msgid "Support prioritaire"
 msgstr "Assistenza prioritaria"

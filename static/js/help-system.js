@@ -1662,7 +1662,13 @@ class HelpSystem {
 
     // === EVENTS ===
     bindEvents() {
-        this.fab?.addEventListener('click', () => this.togglePanel());
+        this.fab?.addEventListener('click', () => {
+            // Le bouton « ? » ouvre le tutoriel animé, chapitre de la page en
+            // avant. L'ancien panneau d'aide contextuelle (HELP_CONTENT,
+            // PAGE_TUTORIALS) est conservé mais n'est plus proposé.
+            if (window.pcTutorial) { window.pcTutorial.open({ fromPage: true }); return; }
+            this.togglePanel();
+        });
         this.overlay.addEventListener('click', () => this.closePanel());
         this.panel?.querySelector('.help-panel-close')?.addEventListener('click', () => this.closePanel());
         this.panel?.querySelector('.help-restart-tour')?.addEventListener('click', () => {
