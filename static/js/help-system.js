@@ -1289,7 +1289,10 @@ class HelpSystem {
             setTimeout(() => this.resumeTour(), 400);
         } else if (document.body.dataset.firstVisit === 'true'
                    && this.currentPageKey() === 'planning.dashboard'
+                   && !window.pcTutorial
                    && !document.getElementById('onboarding-steps')) {
+            // (window.pcTutorial : le tutoriel animé prend le relais du tour
+            // multi-pages — voir pc-tutorial.js.)
             // Si la checklist d'onboarding « 3 étapes » est présente (compte
             // neuf), c'est la visite guidée d'onboarding du dashboard qui prend
             // le relais — on ne lance pas le tour multi-pages des fonctions.
@@ -1664,6 +1667,8 @@ class HelpSystem {
         this.panel?.querySelector('.help-panel-close')?.addEventListener('click', () => this.closePanel());
         this.panel?.querySelector('.help-restart-tour')?.addEventListener('click', () => {
             this.closePanel();
+            // Le tutoriel animé remplace le tour multi-pages quand il est chargé.
+            if (window.pcTutorial) { setTimeout(() => window.pcTutorial.open(), 200); return; }
             setTimeout(() => this.startTour(), 300);
         });
     }
@@ -2127,6 +2132,8 @@ class HelpSystem {
 
 // === FONCTION GLOBALE : relancer le tutoriel depuis le menu utilisateur ===
 window.replayTutorial = function() {
+    // Tutoriel animé : il se joue sur n'importe quelle page, sans rechargement.
+    if (window.pcTutorial) { window.pcTutorial.open(); return; }
     // Réinitialiser côté serveur, nettoyer le state local, rediriger vers
     // le dashboard (où le tour démarre).
     fetch('/api/help/tour-reset', {

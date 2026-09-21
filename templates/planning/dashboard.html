@@ -2046,6 +2046,8 @@ renderDashboardTasks();
 // dans ce cas (voir le garde-fou dans help-system.js).
 (function () {
     if (document.body.dataset.firstVisit !== 'true') return;
+    // Le tutoriel animé (pc-tutorial.js) remplace cette visite guidée.
+    if (window.pcTutorial) return;
     if (!document.getElementById('onboarding-steps')) return;
 
     var STEPS = [
