@@ -1864,6 +1864,11 @@ def create_app(config_name='development'):
         """Politique de confidentialité du jeu Quai (exigence App Store)."""
         return render_template('legal/quai_confidentialite.html')
 
+    @app.route('/friendz/confidentialite')
+    def friendz_privacy():
+        """Politique de confidentialité de l'app Friendz (exigence App Store)."""
+        return render_template('legal/friendz_confidentialite.html')
+
     @app.route('/capcotier/confidentialite')
     def capcotier_privacy():
         """Politique de confidentialité de l'app Cap Côtier (exigence App Store)."""
