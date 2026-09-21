@@ -1859,6 +1859,11 @@ def create_app(config_name='development'):
         """Politique de confidentialité de l'app Tenu (exigence App Store)."""
         return render_template('legal/tenu_confidentialite.html')
 
+    @app.route('/quai/confidentialite')
+    def quai_privacy():
+        """Politique de confidentialité du jeu Quai (exigence App Store)."""
+        return render_template('legal/quai_confidentialite.html')
+
     @app.route('/capcotier/confidentialite')
     def capcotier_privacy():
         """Politique de confidentialité de l'app Cap Côtier (exigence App Store)."""
