@@ -41,7 +41,9 @@
             this.paused = false;
             this.current = -1;
             this.scale = 1;
-            this.speed = 1;          // > 1 : accélère toutes les attentes (tests)
+            // Facteur appliqué à toutes les attentes : 1 = rythme de conception ;
+            // 0.7 = plus lent ; 1.5 = plus rapide. Choisi par l'utilisateur.
+            this.speed = (function () { try { return parseFloat(localStorage.getItem('pc_tuto_speed')) || 1; } catch (e) { return 1; } })();
             this.done = loadDone();
             this.seenSent = false;
             this._onResize = () => this.fit();
@@ -139,7 +141,7 @@
                                         ${c.reco ? '<span class="pt-badge reco">Recommandé</span>' : ''}
                                         ${c.id === this.suggested ? '<span class="pt-badge page"><i class="fas fa-location-arrow"></i> Cette page</span>' : ''}
                                         ${this.done[c.id] ? '<span class="pt-badge done"><i class="fas fa-check"></i> Vu</span>' : ''}
-                                        <span><i class="far fa-clock"></i> ≈ ${c.seconds} s</span>
+                                        <span><i class="far fa-clock"></i> ≈ ${c.seconds >= 60 ? Math.floor(c.seconds / 60) + ' min' + (c.seconds % 60 ? ' ' + (c.seconds % 60) : '') : c.seconds + ' s'}</span>
                                     </span>
                                 </span>
                             </button>`).join('')}
@@ -176,6 +178,7 @@
                     <div class="pt-topbar">
                         <div class="pt-title"><span class="n">${i + 1}/${this.chapters.length}</span> <span class="t">${esc(c.title)}</span></div>
                         <div class="pt-actions">
+                            <button type="button" class="pt-ib pt-speed" data-act="speed" title="Vitesse de lecture">×1</button>
                             <button type="button" class="pt-ib" data-act="pause" title="Pause"><i class="fas fa-pause"></i></button>
                             <button type="button" class="pt-ib" data-act="replay" title="Rejouer ce chapitre"><i class="fas fa-redo"></i></button>
                             <button type="button" class="pt-ib" data-act="next" title="Chapitre suivant"><i class="fas fa-forward"></i></button>
@@ -186,20 +189,22 @@
                     <div class="pt-frame">
                         <div class="pt-screen">
                             <div class="pt-stage"></div>
+                            <div class="pt-bubble" role="status" aria-live="polite"></div>
                             <div class="pt-cursor">${CURSOR}</div>
                         </div>
                     </div>
                     <div class="pt-progress"><div></div></div>
-                    <div class="pt-caption"></div>
                 </div>`;
             this.frame = this.dialog.querySelector('.pt-frame');
             this.screen = this.dialog.querySelector('.pt-screen');
             this.stage = this.dialog.querySelector('.pt-stage');
             this.cursor = this.dialog.querySelector('.pt-cursor');
-            this.captionEl = this.dialog.querySelector('.pt-caption');
+            this.bubble = this.dialog.querySelector('.pt-bubble');
             this.progressEl = this.dialog.querySelector('.pt-progress > div');
             const q = sel => this.dialog.querySelector(sel);
             q('[data-act="pause"]').onclick = (e) => this.togglePause(e.currentTarget);
+            this.renderSpeed(q('[data-act="speed"]'));
+            q('[data-act="speed"]').onclick = (e) => this.cycleSpeed(e.currentTarget);
             q('[data-act="replay"]').onclick = () => this.play(i);
             q('[data-act="next"]').onclick = () => this.play((i + 1) % this.chapters.length);
             q('[data-act="menu"]').onclick = () => { this.stop(); this.renderMenu(); };
@@ -214,13 +219,51 @@
             if (!this.frame || !this.screen) return;
             const pad = 32;
             const availW = Math.max(320, window.innerWidth - pad);
-            const chrome = 48 + 16 + 56 + 40;   // barre du haut, progression, légende, marges
+            const chrome = 48 + 16 + 36;        // barre du haut, progression, marges
             const availH = Math.max(240, window.innerHeight - pad - chrome);
             const s = Math.min(availW / W, availH / H, 1.1);
             this.scale = s;
             this.frame.style.width = (W * s) + 'px';
             this.frame.style.height = (H * s) + 'px';
             this.screen.style.transform = 'scale(' + s + ')';
+        }
+
+        // Trois vitesses : normale, plus lente (0.7), plus rapide (1.5).
+        renderSpeed(btn) {
+            const s = this.speed;
+            btn.textContent = s < 1 ? '×0.7' : (s > 1 ? '×1.5' : '×1');
+            btn.title = s < 1 ? 'Plus lent (cliquer pour changer)' : (s > 1 ? 'Plus rapide (cliquer pour changer)' : 'Vitesse normale (cliquer pour changer)');
+        }
+        cycleSpeed(btn) {
+            const order = [1, 0.7, 1.5];
+            const i = order.indexOf(this.speed);
+            this.speed = order[(i + 1) % order.length];
+            try { localStorage.setItem('pc_tuto_speed', String(this.speed)); } catch (e) {}
+            this.renderSpeed(btn);
+        }
+
+        // Bulle d'explication à côté du curseur. Coordonnées de conception :
+        // la bulle vit dans l'écran mis à l'échelle, donc offsetWidth/Height
+        // sont déjà dans le bon repère.
+        showBubble(text) {
+            const b = this.bubble;
+            if (!b) return;
+            b.textContent = text;
+            b.className = 'pt-bubble show';
+            const cx = parseFloat(this.cursor.style.left || '540') + 3;
+            const cy = parseFloat(this.cursor.style.top || '330') + 3;
+            const w = b.offsetWidth, h = b.offsetHeight;
+            let x = cx + 30, y = cy + 14, side = 'left';   // flèche à gauche de la bulle
+            if (x + w > W - 10) { x = cx - w - 18; side = 'right'; }
+            if (y + h > H - 10) { y = cy - h - 18; side += ' below'; }
+            x = Math.max(8, Math.min(x, W - w - 8));
+            y = Math.max(8, Math.min(y, H - h - 8));
+            b.style.left = x + 'px';
+            b.style.top = y + 'px';
+            b.dataset.side = side;
+        }
+        hideBubble() {
+            if (this.bubble) this.bubble.classList.remove('show');
         }
 
         togglePause(btn) {
@@ -333,33 +376,38 @@
                 // Nouvelle « page » de la fausse application.
                 async scene(html) {
                     check();
+                    self.hideBubble();
                     self.stage.classList.add('fade');
-                    await k.wait(230);
+                    await k.wait(260);
                     self.stage.innerHTML = html;
                     self.stage.classList.remove('fade');
-                    await k.wait(380);
+                    await k.wait(900);
                 },
 
-                // Une courte légende = une étape de la barre de progression.
-                async cap(text) {
+                // Une étape : la souris s'arrête (sur `target` si donné), une
+                // bulle apparaît à côté d'elle, et on laisse le temps de lire.
+                async cap(text, target, opts) {
                     check();
-                    self.captionEl.classList.add('fade');
-                    await k.wait(180);
-                    self.captionEl.textContent = text;
-                    self.captionEl.classList.remove('fade');
+                    const o = opts || {};
+                    self.hideBubble();
+                    if (target) await k.moveTo(target, { ms: o.ms, dx: o.dx, dy: o.dy });
+                    else await k.wait(250);
+                    self.showBubble(text);
                     self.stepIndex++;
                     const p = Math.min(96, Math.round(self.stepIndex / self.stepTotal * 100));
                     self.progressEl.style.width = p + '%';
-                    await k.wait(650);
+                    // Temps de lecture : ~55 ms par caractère, 2,4 s minimum.
+                    await k.wait(Math.max(2400, 900 + text.length * 55));
                 },
 
                 // Déplacement vers un point (coordonnées de conception), pour
                 // suivre un tracé qui n'est pas un élément.
                 async moveXY(x, y, ms) {
                     check();
+                    self.hideBubble();
                     self.cursor.style.left = (x - 3) + 'px';
                     self.cursor.style.top = (y - 3) + 'px';
-                    await k.wait(ms || 600);
+                    await k.wait(ms || 800);
                 },
 
                 async moveTo(target, opts) {
@@ -367,9 +415,12 @@
                     const el = resolve(target);
                     if (!el) return null;
                     const c = centerOf(el, o.dx, o.dy);
+                    const dx = Math.abs(parseFloat(self.cursor.style.left || '540') + 3 - c.x);
+                    const dy = Math.abs(parseFloat(self.cursor.style.top || '330') + 3 - c.y);
+                    if (dx + dy > 6) self.hideBubble();   // la bulle suit le geste, pas le sur-place
                     self.cursor.style.left = (c.x - 3) + 'px';
                     self.cursor.style.top = (c.y - 3) + 'px';
-                    await k.wait(o.ms || 640);
+                    await k.wait(o.ms || (dx + dy > 6 ? 950 : 150));
                     return el;
                 },
 
@@ -386,10 +437,10 @@
                     rip.style.top = c.y + 'px';
                     self.screen.appendChild(rip);
                     setTimeout(() => rip.remove(), 600);
-                    await k.wait(130);
+                    await k.wait(140);
                     self.cursor.classList.remove('pressed');
                     if (fn) fn(el);
-                    await k.wait(o.after == null ? 480 : o.after);
+                    await k.wait(o.after == null ? 900 : o.after);
                     return el;
                 },
 
@@ -397,12 +448,13 @@
                 // début de ligne devient « [ ] », comme dans la vraie application.
                 async type(target, text, opts) {
                     const o = opts || {};
-                    const el = await k.moveTo(target, { ms: 500 });
+                    const el = await k.moveTo(target);
                     if (!el) return;
                     el.classList.add('pt-focus');
+                    await k.wait(300);
                     const isInput = ('value' in el) && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
                     let cur = o.append ? (isInput ? el.value : el.textContent) : '';
-                    const per = o.ms || Math.max(18, Math.min(45, 2200 / Math.max(1, text.length)));
+                    const per = o.ms || Math.max(38, Math.min(75, 3400 / Math.max(1, text.length)));
                     for (const ch of text) {
                         cur += ch;
                         if (o.checkbox) cur = cur.replace(/(^|\n)([ \t]*)- $/, '$1$2[ ] ');
@@ -410,7 +462,7 @@
                         await k.wait(ch === '\n' ? per * 6 : per);
                     }
                     el.classList.remove('pt-focus');
-                    await k.wait(o.after == null ? 350 : o.after);
+                    await k.wait(o.after == null ? 700 : o.after);
                 },
 
                 // Met un élément en évidence quelques instants.
@@ -418,8 +470,8 @@
                     const el = resolve(target);
                     if (!el) return;
                     el.classList.add('pt-spot');
-                    setTimeout(() => el.classList.remove('pt-spot'), 2400);
-                    await k.wait(ms == null ? 900 : ms);
+                    setTimeout(() => el.classList.remove('pt-spot'), 2600);
+                    await k.wait(ms == null ? 1400 : ms);
                 },
 
                 // Glisser-déposer : fantôme de l'élément qui suit le curseur.
@@ -428,6 +480,7 @@
                     const b = resolve(to);
                     if (!a || !b) return;
                     self.cursor.classList.add('pressed');
+                    self.hideBubble();
                     const ca = centerOf(a), cb = centerOf(b);
                     const ghost = document.createElement('div');
                     ghost.className = 'pt-drag-ghost';
@@ -435,14 +488,14 @@
                     ghost.style.left = (ca.x + 10) + 'px';
                     ghost.style.top = (ca.y + 10) + 'px';
                     self.screen.appendChild(ghost);
-                    await k.wait(200);
+                    await k.wait(350);
                     self.cursor.style.left = (cb.x - 3) + 'px';
                     self.cursor.style.top = (cb.y - 3) + 'px';
                     ghost.style.left = (cb.x + 10) + 'px';
                     ghost.style.top = (cb.y + 10) + 'px';
-                    await k.wait(700);
+                    await k.wait(1100);
                     b.classList.add('over');
-                    await k.wait(350);
+                    await k.wait(500);
                     self.cursor.classList.remove('pressed');
                     ghost.remove();
                     b.classList.remove('over');
@@ -455,7 +508,7 @@
                     t.className = 'pt-toast';
                     t.innerHTML = '<i class="fas fa-check-circle"></i> ' + esc(text);
                     self.stage.appendChild(t);
-                    setTimeout(() => t.remove(), 2300);
+                    setTimeout(() => t.remove(), 3200);
                 },
 
                 // Modale à l'intérieur de la fausse application.
