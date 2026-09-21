@@ -1822,6 +1822,28 @@ def create_app(config_name='development'):
         """Page de présentation de l'app Cap Côtier avec quiz gratuit (SEO)."""
         return render_template('capcotier/index.html')
 
+    @app.route('/capcotier/pieges-examen')
+    def capcotier_pieges():
+        """Article SEO : les 10 pièges de l'examen du permis côtier."""
+        return render_template('capcotier/pieges.html')
+
+    @app.route('/capcotier/widget')
+    def capcotier_widget():
+        """Mini-quiz intégrable (iframe) sur le site d'un bateau-école.
+        Paramètres : ecole (nom), logo (URL http/https), couleur (hex)."""
+        import re
+        from flask import request, make_response
+        ecole = (request.args.get('ecole') or '').strip()[:60]
+        logo = (request.args.get('logo') or '').strip()
+        if not re.match(r'^https?://[^\s"\'<>]+$', logo):
+            logo = ''
+        couleur = (request.args.get('couleur') or '').strip().lstrip('#')
+        couleur = '#' + couleur if re.match(r'^[0-9a-fA-F]{6}$', couleur) else '#0E7C86'
+        resp = make_response(render_template('capcotier/widget.html', ecole=ecole, logo=logo, couleur=couleur))
+        # Autorise l'intégration en iframe sur n'importe quel site.
+        resp.headers['Content-Security-Policy'] = 'frame-ancestors *'
+        return resp
+
     @app.route('/capchasse')
     def capchasse_landing():
         """Page de présentation de l'app Cap Chasse avec quiz gratuit (SEO)."""

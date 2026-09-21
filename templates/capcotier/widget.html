@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Quiz permis côtier{% if ecole %} – {{ ecole }}{% endif %}</title>
+<style>
+  :root{--brand:{{ couleur }};--ink:#16262E;--muted:#5A6B70;--line:#D8E1E2;--good:#2F7D4F;--bad:#AF3A3A}
+  *{box-sizing:border-box}body{margin:0;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:#fff;line-height:1.5}
+  .head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .head img{height:40px;max-width:120px;object-fit:contain}
+  .head .t{font-weight:700}.head .s{font-size:.85rem;color:var(--muted)}
+  .box{padding:16px}
+  .meta{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin-bottom:10px}
+  .q{font-size:1.1rem;font-weight:700;margin:0 0 12px}
+  .opt{display:block;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0;font:inherit;font-size:1rem;cursor:pointer}
+  .opt:hover{border-color:var(--brand)}
+  .opt.good{background:#E2F0E7;border-color:var(--good)}.opt.bad{background:#F5E3E3;border-color:var(--bad)}
+  .opt[disabled]{cursor:default}
+  .exp{margin:12px 0 0;padding:12px 14px;background:#F4F7F7;border-radius:10px;font-size:.95rem;color:var(--muted)}
+  .btn{display:inline-block;background:var(--brand);color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:12px;font:inherit;border:0;cursor:pointer;margin-top:14px}
+  .score{text-align:center}.score .big{font-size:3rem;font-weight:800;color:var(--brand)}
+  .foot{padding:10px 16px;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted);text-align:center}
+  .foot a{color:var(--brand);font-weight:700;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="head">
+  {% if logo %}<img src="{{ logo }}" alt="">{% endif %}
+  <div><div class="t">{% if ecole %}{{ ecole }}{% else %}Quiz permis côtier{% endif %}</div><div class="s">10 questions d'examen, corrigé immédiat</div></div>
+</div>
+<div class="box" id="quizbox">Chargement…</div>
+<div class="foot">Quiz propulsé par <a href="https://apps.apple.com/fr/app/id6806226193" target="_blank" rel="noopener">Cap Côtier</a>, l'app pour réussir le permis côtier{% if ecole %} · recommandée par {{ ecole }}{% endif %}</div>
+<script>
+const N=10;let Q=[],i=0,score=0;const box=document.getElementById('quizbox');
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function show(){
+  if(i>=Q.length){box.innerHTML='<div class="score"><div class="big">'+score+'/'+Q.length+'</div><p>'+(score>=8?'Niveau examen ! Il reste 400 questions et les examens blancs dans l\'app.':'À l\'examen, il faut 25 bonnes réponses sur 30. Entraînez-vous avec Cap Côtier.')+'</p><a class="btn" href="https://apps.apple.com/fr/app/id6806226193" target="_blank" rel="noopener">Télécharger Cap Côtier</a> <button class="btn" style="background:#555" id="again">Rejouer</button></div>';document.getElementById('again').onclick=()=>start();return;}
+  const q=Q[i];
+  box.innerHTML='<div class="meta"><span>Question '+(i+1)+' / '+Q.length+'</span><span>Score : '+score+'</span></div><p class="q">'+esc(q.t)+'</p>'+q.o.map((o,k)=>'<button class="opt" data-k="'+k+'">'+esc(o)+'</button>').join('')+'<div id="fb"></div>';
+  box.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const k=+b.dataset.k;box.querySelectorAll('.opt').forEach(x=>{x.disabled=true;if(+x.dataset.k===q.a)x.classList.add('good')});
+    if(k===q.a)score++;else b.classList.add('bad');
+    document.getElementById('fb').innerHTML='<div class="exp">'+esc(q.e)+'</div><button class="btn" id="nx">Question suivante</button>';
+    document.getElementById('nx').onclick=()=>{i++;show();};
+  });
+}
+let ALL=[];
+function start(){Q=ALL.slice().sort(()=>Math.random()-0.5).slice(0,N);i=0;score=0;show();}
+fetch('/static/capcotier/quiz.json').then(r=>r.json()).then(d=>{ALL=d;start();}).catch(()=>{box.textContent='Quiz indisponible pour le moment.';});
+</script>
+</body>
+</html>
