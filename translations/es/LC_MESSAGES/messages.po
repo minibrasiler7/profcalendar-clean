@@ -507,6 +507,27 @@ msgstr "Todo lo del plan Premium"
 msgid "Économisez 32%%"
 msgstr "Ahorra un 32%%"
 
+msgid "Classe concernée (facultatif)"
+msgstr "Clase correspondiente (opcional)"
+
+msgid "Classe (facultatif)"
+msgstr "Clase (opcional)"
+
+msgid "Classe et couleur"
+msgstr "Clase y color"
+
+msgid "Aucune"
+msgstr "Ninguna"
+
+msgid "Couleur"
+msgstr "Color"
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Glisser pour réordonner"
+msgstr "Arrastrar para reordenar"
+
 msgid "50 Go de stockage"
 msgstr "50 GB de almacenamiento"
 

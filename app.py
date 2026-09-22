@@ -744,6 +744,13 @@ def create_app(config_name='development'):
                 "created_at TIMESTAMP, done_at TIMESTAMP)"))
             db.session.execute(db.text(
                 "CREATE INDEX IF NOT EXISTS ix_dashboard_tasks_user ON dashboard_tasks (user_id)"))
+            # Classe et couleur facultatives (22.09.2026) ; `flask db upgrade`
+            # n'étant pas fiable en prod, la colonne est ajoutée ici.
+            db.session.execute(db.text(
+                "ALTER TABLE dashboard_tasks ADD COLUMN IF NOT EXISTS classroom_id INTEGER "
+                "REFERENCES classrooms(id) ON DELETE SET NULL"))
+            db.session.execute(db.text(
+                "ALTER TABLE dashboard_tasks ADD COLUMN IF NOT EXISTS color VARCHAR(9)"))
             db.session.commit()
             print("✅ Table dashboard_tasks vérifiée")
         except Exception as _e_dt:
@@ -1507,9 +1514,66 @@ def create_app(config_name='development'):
         max_pos = db.session.query(db.func.max(DashboardTask.position))\
             .filter_by(user_id=current_user.id).scalar() or 0
         task = DashboardTask(user_id=current_user.id, title=title[:300], position=max_pos + 1)
+        err = _apply_task_meta(task, data)
+        if err:
+            return jsonify({'success': False, 'error': err}), 400
         db.session.add(task)
         db.session.commit()
         return jsonify({'success': True, 'task': task.to_dict()})
+
+    def _apply_task_meta(task, data):
+        """Classe (facultative, doit appartenir à l'enseignant) et couleur
+        (facultative, #RRGGBB). Une clé absente est laissée telle quelle ; null
+        efface. Renvoie un message d'erreur, ou None."""
+        import re as _re
+        from models.classroom import Classroom
+        if 'classroom_id' in data:
+            cid = data.get('classroom_id')
+            if cid in (None, '', 0, '0'):
+                task.classroom_id = None
+            else:
+                try:
+                    cid = int(cid)
+                except (TypeError, ValueError):
+                    return 'Classe invalide'
+                if not Classroom.query.filter_by(id=cid, user_id=current_user.id).first():
+                    return 'Classe introuvable'
+                task.classroom_id = cid
+        if 'color' in data:
+            col = data.get('color')
+            if not col:
+                task.color = None
+            elif isinstance(col, str) and _re.fullmatch(r'#[0-9A-Fa-f]{6}', col):
+                task.color = col.upper()
+            else:
+                return 'Couleur invalide'
+        return None
+
+    @app.route('/api/dashboard/tasks/reorder', methods=['POST'])
+    @login_required
+    def dashboard_tasks_reorder():
+        """POST {order: [id, id, …]} : nouvel ordre des tâches (glisser-déposer)."""
+        from flask import jsonify, request
+        from models.user import User
+        from models.user_preferences import DashboardTask
+        if not isinstance(current_user, User):
+            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+        data = request.get_json(silent=True) or {}
+        order = data.get('order') or []
+        try:
+            ids = [int(x) for x in order]
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': 'Ordre invalide'}), 400
+        tasks = {t.id: t for t in DashboardTask.query.filter_by(user_id=current_user.id).all()}
+        pos = 0
+        for tid in ids:
+            t = tasks.get(tid)
+            if t is None:
+                continue
+            pos += 1
+            t.position = pos
+        db.session.commit()
+        return jsonify({'success': True, 'count': pos})
 
     @app.route('/api/dashboard/tasks/<int:task_id>', methods=['PATCH', 'DELETE'])
     @login_required
@@ -1536,6 +1600,9 @@ def create_app(config_name='development'):
             title = (data.get('title') or '').strip()
             if title:
                 task.title = title[:300]
+        err = _apply_task_meta(task, data)
+        if err:
+            return jsonify({'success': False, 'error': err}), 400
         db.session.commit()
         return jsonify({'success': True, 'task': task.to_dict()})
 

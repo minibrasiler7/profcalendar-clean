@@ -507,6 +507,27 @@ msgstr "Everything in Premium"
 msgid "Économisez 32%%"
 msgstr "Save 32%%"
 
+msgid "Classe concernée (facultatif)"
+msgstr "Class concerned (optional)"
+
+msgid "Classe (facultatif)"
+msgstr "Class (optional)"
+
+msgid "Classe et couleur"
+msgstr "Class and colour"
+
+msgid "Aucune"
+msgstr "None"
+
+msgid "Couleur"
+msgstr "Colour"
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Glisser pour réordonner"
+msgstr "Drag to reorder"
+
 msgid "50 Go de stockage"
 msgstr "50 GB of storage"
 

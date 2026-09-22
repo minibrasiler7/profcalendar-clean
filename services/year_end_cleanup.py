@@ -92,8 +92,12 @@ def _delete_classroom_dependencies(classroom_id):
     from models.planning import Planning
     from models.file_manager import FileShare
     from models.mixed_group import MixedGroup
-    from models.user_preferences import UserSanctionPreferences
+    from models.user_preferences import UserSanctionPreferences, DashboardTask
     from models.combat import CombatSession, CombatParticipant, CombatMonster
+
+    # Tâches du tableau de bord rattachées à cette classe : on retire le lien
+    # (la tâche reste, sans classe), comme le SET NULL côté base.
+    DashboardTask.query.filter_by(classroom_id=classroom_id).update({'classroom_id': None}, synchronize_session='fetch')
     from models.exercise_progress import ExercisePublication, StudentExerciseAttempt, StudentBlockAnswer
     from models.exercise import Exercise
     from models.formative import FormativeAssessment, FormativeEntry

@@ -375,8 +375,16 @@ class DashboardTask(db.Model):
     position = db.Column(db.Integer, nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     done_at = db.Column(db.DateTime, nullable=True)
+    # Facultatifs : la classe concernée (la tâche prend alors sa couleur) et
+    # une couleur choisie à la main, qui l'emporte sur celle de la classe.
+    # SET NULL : supprimer une classe ne doit pas emporter la tâche.
+    classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id', ondelete='SET NULL'), nullable=True)
+    color = db.Column(db.String(9), nullable=True)
+
+    classroom = db.relationship('Classroom', foreign_keys=[classroom_id])
 
     def to_dict(self):
+        c = self.classroom if self.classroom_id else None
         return {
             'id': self.id,
             'title': self.title,
@@ -384,6 +392,10 @@ class DashboardTask(db.Model):
             'position': self.position,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'done_at': self.done_at.isoformat() if self.done_at else None,
+            'classroom_id': self.classroom_id,
+            'classroom_name': c.name if c else None,
+            'classroom_color': c.color if c else None,
+            'color': self.color,
         }
 
 

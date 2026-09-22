@@ -373,6 +373,27 @@
     border: none; background: transparent; color: #9CA3AF; cursor: pointer; padding: 0.25rem 0.4rem; border-radius: 0.3rem; font-size: 0.85rem;
 }
 .task-item .task-delete:hover { color: #DC2626; background: #FEE2E2; }
+/* Classe et couleur facultatives : liseré + fond teinté ; poignée de glisser-déposer */
+.task-item { border-left: 4px solid transparent; position: relative; }
+.task-item.tinted { border-left-color: var(--task-color); background: color-mix(in srgb, var(--task-color) 9%, #FFFFFF); }
+.task-item.tinted:hover { background: color-mix(in srgb, var(--task-color) 15%, #FFFFFF); }
+.task-item .task-grip { flex: 0 0 auto; color: #C4C7CE; cursor: grab; padding: 0.15rem 0.1rem; touch-action: none; font-size: 0.9rem; }
+.task-item .task-grip:hover { color: #6B7280; }
+.task-item.done .task-grip { visibility: hidden; }
+.task-item.dragging { opacity: 0.85; box-shadow: 0 8px 20px rgba(0,0,0,0.18); background: #fff; z-index: 5; cursor: grabbing; }
+.task-item .task-class { flex: 0 0 auto; font-size: 0.7rem; font-weight: 700; color: #fff; padding: 0.15rem 0.5rem; border-radius: 999px; white-space: nowrap; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; }
+.task-item.done .task-class { opacity: 0.7; }
+.task-item .task-opts { border: none; background: transparent; color: #9CA3AF; cursor: pointer; padding: 0.25rem 0.4rem; border-radius: 0.3rem; font-size: 0.85rem; }
+.task-item .task-opts:hover { color: #4F46E5; background: #EEF2FF; }
+.task-popover { position: absolute; right: 0.5rem; top: calc(100% + 4px); z-index: 20; background: #fff; border: 1px solid #E5E7EB; border-radius: 0.6rem; box-shadow: 0 12px 30px rgba(0,0,0,0.16); padding: 0.75rem 0.85rem; width: min(260px, 90vw); }
+.task-popover label { display: block; font-size: 0.72rem; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0 0.3rem; }
+.task-popover select { width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.4rem; font-size: 0.9rem; margin-bottom: 0.7rem; background: #fff; }
+.task-colors { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.task-colors button { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px #D1D5DB; cursor: pointer; padding: 0; }
+.task-colors button.on { box-shadow: 0 0 0 2px #1F2937; }
+.task-colors button.none { background: #fff; color: #9CA3AF; font-size: 0.7rem; }
+.task-add-form .task-class-select { flex: 0 0 auto; max-width: 11rem; padding: 0.55rem 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.5rem; font-size: 0.85rem; background: #fff; color: #374151; }
+@media (max-width: 480px) { .task-add-form { flex-wrap: wrap; } .task-add-form .task-class-select { max-width: none; flex: 1 1 100%; order: 3; } }
 </style>
 {% endblock %}
 
@@ -486,6 +507,14 @@
         <form class="task-add-form" onsubmit="return addDashboardTask(event)" style="display: flex; gap: 0.5rem; margin-bottom: 0.85rem;">
             <input type="text" id="newTaskInput" maxlength="300" placeholder="{{ _('Nouvelle tâche…') }}" autocomplete="off"
                    style="flex: 1; min-width: 0; padding: 0.65rem 0.8rem; border: 1px solid #D1D5DB; border-radius: 0.5rem; font-size: 16px;">
+            {% if user_classrooms %}
+            <select id="newTaskClass" class="task-class-select" title="{{ _('Classe concernée (facultatif)') }}">
+                <option value="">{{ _('Classe (facultatif)') }}</option>
+                {% for classroom in user_classrooms %}
+                <option value="{{ classroom.id }}">{{ classroom.name }} · {{ classroom.subject }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
             <button type="submit" style="padding: 0.65rem 0.9rem; border: none; border-radius: 0.5rem; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; cursor: pointer; font-weight: 600;">
                 <i class="fas fa-plus"></i>
             </button>
@@ -986,6 +1015,14 @@
         <form class="task-add-form" onsubmit="return addDashboardTask(event)" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
             <input type="text" id="newTaskInput" maxlength="300" placeholder="{{ _('Nouvelle tâche… (Entrée pour ajouter)') }}" autocomplete="off"
                    style="flex: 1; padding: 0.7rem 0.9rem; border: 1px solid #D1D5DB; border-radius: 0.5rem; font-size: 0.95rem;">
+            {% if user_classrooms %}
+            <select id="newTaskClass" class="task-class-select" title="{{ _('Classe concernée (facultatif)') }}">
+                <option value="">{{ _('Classe (facultatif)') }}</option>
+                {% for classroom in user_classrooms %}
+                <option value="{{ classroom.id }}">{{ classroom.name }} · {{ classroom.subject }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
             <button type="submit" style="padding: 0.7rem 1rem; border: none; border-radius: 0.5rem; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; cursor: pointer; font-weight: 600;">
                 <i class="fas fa-plus"></i>
             </button>
@@ -1930,6 +1967,26 @@ renderDashboardLinks();
 
 // ===================== Tâches à cocher =====================
 let dashboardTasks = {{ (dashboard_tasks or []) | tojson }};
+// Classes de l'enseignant : pour rattacher une tâche et lui donner la couleur de la classe.
+const DASHBOARD_CLASSES = [{% for c in user_classrooms %}{ id: {{ c.id }}, name: {{ c.name|tojson }}, subject: {{ c.subject|tojson }}, color: {{ c.color|tojson }} }{{ ',' if not loop.last }}{% endfor %}];
+const TASK_COLORS = ['#6366F1', '#3B82F6', '#06B6D4', '#10B981', '#F59E0B', '#F97316', '#EF4444', '#EC4899', '#8B5CF6', '#6B7280'];
+const TASK_T = {
+    todo: {{ _('Marquer comme à faire')|tojson }}, done: {{ _('Marquer comme faite')|tojson }},
+    del: {{ _('Supprimer')|tojson }}, opts: {{ _('Classe et couleur')|tojson }},
+    cls: {{ _('Classe')|tojson }}, none: {{ _('Aucune')|tojson }}, color: {{ _('Couleur')|tojson }},
+    auto: {{ _('Auto')|tojson }}, drag: {{ _('Glisser pour réordonner')|tojson }},
+    addErr: {{ _('Erreur lors de l\'ajout')|tojson }}, netErr: {{ _('Erreur de connexion')|tojson }}
+};
+
+// Couleur effective : celle choisie à la main, sinon celle de la classe.
+function taskColor(t) {
+    if (t.color) return t.color;
+    if (t.classroom_id) {
+        const c = DASHBOARD_CLASSES.find(x => x.id === t.classroom_id);
+        return (c && c.color) || t.classroom_color || null;
+    }
+    return null;
+}
 
 function renderDashboardTasks() {
     const list = document.getElementById('tasksList');
@@ -1938,29 +1995,55 @@ function renderDashboardTasks() {
     const clearBtn = document.getElementById('tasksClearDoneBtn');
     if (!list) return;
     list.innerHTML = '';
-    // Non faites d'abord (ordre de création), puis faites
+    // Non faites d'abord (ordre choisi), puis faites
     const sorted = dashboardTasks.slice().sort((a, b) => (a.is_done - b.is_done) || (a.position - b.position) || (a.id - b.id));
     sorted.forEach(t => {
         const li = document.createElement('li');
         li.className = 'task-item' + (t.is_done ? ' done' : '');
         li.dataset.taskId = t.id;
+        const col = taskColor(t);
+        if (col) { li.classList.add('tinted'); li.style.setProperty('--task-color', col); }
+
+        const grip = document.createElement('span');
+        grip.className = 'task-grip';
+        grip.title = TASK_T.drag;
+        grip.innerHTML = '<i class="fas fa-grip-vertical"></i>';
+        if (!t.is_done && typeof t.id === 'number') initTaskDrag(li, grip);
+
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.className = 'task-check';
         cb.checked = !!t.is_done;
-        cb.title = t.is_done ? {{ _('Marquer comme à faire')|tojson }} : {{ _('Marquer comme faite')|tojson }};
+        cb.title = t.is_done ? TASK_T.todo : TASK_T.done;
         cb.addEventListener('change', () => toggleDashboardTask(t.id, cb.checked));
         const span = document.createElement('span');
         span.className = 'task-title';
         span.textContent = t.title;
         span.addEventListener('click', () => { cb.checked = !cb.checked; toggleDashboardTask(t.id, cb.checked); });
+        li.appendChild(grip); li.appendChild(cb); li.appendChild(span);
+
+        if (t.classroom_id) {
+            const c = DASHBOARD_CLASSES.find(x => x.id === t.classroom_id);
+            const chip = document.createElement('span');
+            chip.className = 'task-class';
+            chip.style.background = (c && c.color) || t.classroom_color || '#6B7280';
+            chip.textContent = (c && c.name) || t.classroom_name || '';
+            chip.title = c ? (c.name + ' · ' + c.subject) : (t.classroom_name || '');
+            li.appendChild(chip);
+        }
+        const opts = document.createElement('button');
+        opts.type = 'button';
+        opts.className = 'task-opts';
+        opts.title = TASK_T.opts;
+        opts.innerHTML = '<i class="fas fa-palette"></i>';
+        opts.addEventListener('click', (e) => { e.stopPropagation(); openTaskOptions(t, li); });
         const del = document.createElement('button');
         del.type = 'button';
         del.className = 'task-delete';
-        del.title = {{ _('Supprimer')|tojson }};
+        del.title = TASK_T.del;
         del.innerHTML = '<i class="fas fa-times"></i>';
         del.addEventListener('click', () => deleteDashboardTask(t.id));
-        li.appendChild(cb); li.appendChild(span); li.appendChild(del);
+        li.appendChild(opts); li.appendChild(del);
         list.appendChild(li);
     });
     const done = dashboardTasks.filter(t => t.is_done).length;
@@ -1969,31 +2052,148 @@ function renderDashboardTasks() {
     if (clearBtn) clearBtn.style.display = done ? 'inline-flex' : 'none';
 }
 
+// ---- Classe et couleur : petit panneau sous la tâche ----
+function closeTaskOptions() {
+    document.querySelectorAll('.task-popover').forEach(p => p.remove());
+    document.removeEventListener('click', closeTaskOptions);
+}
+function openTaskOptions(t, li) {
+    const already = li.querySelector('.task-popover');
+    closeTaskOptions();
+    if (already) return;
+    const pop = document.createElement('div');
+    pop.className = 'task-popover';
+    pop.addEventListener('click', e => e.stopPropagation());
+    let html = '';
+    if (DASHBOARD_CLASSES.length) {
+        html += `<label>${TASK_T.cls}</label><select class="task-pop-class"><option value="">${TASK_T.none}</option>`
+            + DASHBOARD_CLASSES.map(c => `<option value="${c.id}" ${c.id === t.classroom_id ? 'selected' : ''}>${escapeHtmlTask(c.name)} · ${escapeHtmlTask(c.subject)}</option>`).join('')
+            + '</select>';
+    }
+    html += `<label>${TASK_T.color}</label><div class="task-colors">`
+        + `<button type="button" class="none ${t.color ? '' : 'on'}" data-color="" title="${TASK_T.auto}"><i class="fas fa-ban"></i></button>`
+        + TASK_COLORS.map(c => `<button type="button" data-color="${c}" class="${t.color === c ? 'on' : ''}" style="background:${c}" title="${c}"></button>`).join('')
+        + '</div>';
+    pop.innerHTML = html;
+    const sel = pop.querySelector('.task-pop-class');
+    if (sel) sel.addEventListener('change', () => updateTaskMeta(t.id, { classroom_id: sel.value ? parseInt(sel.value, 10) : null }));
+    pop.querySelectorAll('.task-colors button').forEach(b => {
+        b.addEventListener('click', () => {
+            pop.querySelectorAll('.task-colors button').forEach(x => x.classList.remove('on'));
+            b.classList.add('on');
+            updateTaskMeta(t.id, { color: b.dataset.color || null });
+        });
+    });
+    li.appendChild(pop);
+    setTimeout(() => document.addEventListener('click', closeTaskOptions), 0);
+}
+function escapeHtmlTask(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+async function updateTaskMeta(id, patch) {
+    const t = dashboardTasks.find(x => x.id === id);
+    if (!t) return;
+    const before = Object.assign({}, t);
+    Object.assign(t, patch);
+    if ('classroom_id' in patch) {
+        const c = DASHBOARD_CLASSES.find(x => x.id === t.classroom_id);
+        t.classroom_name = c ? c.name : null;
+        t.classroom_color = c ? c.color : null;
+    }
+    // Re-rendre sans fermer le panneau : la teinte et la puce se mettent à jour.
+    const li = document.querySelector(`.task-item[data-task-id="${id}"]`);
+    const pop = li ? li.querySelector('.task-popover') : null;
+    renderDashboardTasks();
+    if (pop) { const li2 = document.querySelector(`.task-item[data-task-id="${id}"]`); if (li2) li2.appendChild(pop); }
+    try {
+        const r = await fetch(`/api/dashboard/tasks/${id}`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(patch)
+        });
+        const d = await r.json();
+        if (!d.success) { Object.assign(t, before); renderDashboardTasks(); }
+    } catch (e) { Object.assign(t, before); renderDashboardTasks(); }
+}
+
+// ---- Glisser-déposer (Pointer Events : souris, doigt et stylet) ----
+function initTaskDrag(li, grip) {
+    grip.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        e.preventDefault();
+        closeTaskOptions();
+        const list = li.parentElement;
+        const pid = e.pointerId;
+        try { grip.setPointerCapture(pid); } catch (err) {}
+        li.classList.add('dragging');
+        const move = (ev) => {
+            const y = ev.clientY;
+            const others = Array.from(list.querySelectorAll('.task-item:not(.done):not(.dragging)'));
+            let placed = false;
+            for (const it of others) {
+                const r = it.getBoundingClientRect();
+                if (y < r.top + r.height / 2) { list.insertBefore(li, it); placed = true; break; }
+            }
+            if (!placed && others.length) others[others.length - 1].after(li);
+        };
+        const up = () => {
+            try { grip.releasePointerCapture(pid); } catch (err) {}
+            grip.removeEventListener('pointermove', move);
+            grip.removeEventListener('pointerup', up);
+            grip.removeEventListener('pointercancel', up);
+            li.classList.remove('dragging');
+            saveTaskOrder();
+        };
+        grip.addEventListener('pointermove', move);
+        grip.addEventListener('pointerup', up);
+        grip.addEventListener('pointercancel', up);
+    });
+}
+async function saveTaskOrder() {
+    const list = document.getElementById('tasksList');
+    if (!list) return;
+    const ids = Array.from(list.querySelectorAll('.task-item:not(.done)')).map(li => parseInt(li.dataset.taskId, 10)).filter(n => !isNaN(n));
+    const before = dashboardTasks.map(t => ({ id: t.id, position: t.position }));
+    ids.forEach((id, i) => { const t = dashboardTasks.find(x => x.id === id); if (t) t.position = i + 1; });
+    try {
+        const r = await fetch('/api/dashboard/tasks/reorder', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ order: ids })
+        });
+        const d = await r.json();
+        if (!d.success) throw new Error(d.error || 'reorder');
+    } catch (e) {
+        before.forEach(b => { const t = dashboardTasks.find(x => x.id === b.id); if (t) t.position = b.position; });
+        renderDashboardTasks();
+    }
+}
+
 async function addDashboardTask(ev) {
     if (ev) ev.preventDefault();
     const input = document.getElementById('newTaskInput');
+    const classSel = document.getElementById('newTaskClass');
     const title = (input.value || '').trim();
     if (!title) return false;
     input.value = '';
+    const classroom_id = classSel && classSel.value ? parseInt(classSel.value, 10) : null;
+    const c = classroom_id ? DASHBOARD_CLASSES.find(x => x.id === classroom_id) : null;
     // Optimiste
-    const temp = { id: 'tmp' + Date.now(), title, is_done: false, position: 1e9 };
+    const temp = { id: 'tmp' + Date.now(), title, is_done: false, position: 1e9, classroom_id, classroom_name: c ? c.name : null, classroom_color: c ? c.color : null, color: null };
     dashboardTasks.push(temp);
     renderDashboardTasks();
     try {
         const r = await fetch('/api/dashboard/tasks', {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({ title })
+            body: JSON.stringify({ title, classroom_id })
         });
         const d = await r.json();
         if (d.success) {
             dashboardTasks = dashboardTasks.filter(t => t !== temp).concat([d.task]);
         } else {
             dashboardTasks = dashboardTasks.filter(t => t !== temp);
-            alert(d.error || {{ _('Erreur lors de l\'ajout')|tojson }});
+            alert(d.error || TASK_T.addErr);
         }
     } catch (e) {
         dashboardTasks = dashboardTasks.filter(t => t !== temp);
-        alert({{ _('Erreur de connexion')|tojson }});
+        alert(TASK_T.netErr);
     }
     renderDashboardTasks();
     input.focus();
