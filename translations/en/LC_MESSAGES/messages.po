@@ -528,6 +528,12 @@ msgstr "Auto"
 msgid "Glisser pour réordonner"
 msgstr "Drag to reorder"
 
+msgid "Monter"
+msgstr "Move up"
+
+msgid "Descendre"
+msgstr "Move down"
+
 msgid "50 Go de stockage"
 msgstr "50 GB of storage"
 

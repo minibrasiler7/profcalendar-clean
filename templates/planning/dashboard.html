@@ -377,10 +377,18 @@
 .task-item { border-left: 4px solid transparent; position: relative; }
 .task-item.tinted { border-left-color: var(--task-color); background: color-mix(in srgb, var(--task-color) 9%, #FFFFFF); }
 .task-item.tinted:hover { background: color-mix(in srgb, var(--task-color) 15%, #FFFFFF); }
-.task-item .task-grip { flex: 0 0 auto; color: #C4C7CE; cursor: grab; padding: 0.15rem 0.1rem; touch-action: none; font-size: 0.9rem; }
+.task-item { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.task-item .task-grip { flex: 0 0 auto; color: #C4C7CE; cursor: grab; padding: 0.5rem 0.35rem; margin: -0.5rem 0 -0.5rem -0.35rem; touch-action: none; font-size: 0.95rem; }
 .task-item .task-grip:hover { color: #6B7280; }
 .task-item.done .task-grip { visibility: hidden; }
-.task-item.dragging { opacity: 0.85; box-shadow: 0 8px 20px rgba(0,0,0,0.18); background: #fff; z-index: 5; cursor: grabbing; }
+.task-item.shifting { transition: transform 0.15s ease; }
+.task-item.dragging { opacity: 0.92; box-shadow: 0 8px 20px rgba(0,0,0,0.18); background: #fff; z-index: 5; cursor: grabbing; transition: none; }
+/* Flèches : monter / descendre, pour ceux qui préfèrent au glisser-déposer (et sur iOS) */
+.task-item .task-arrows { flex: 0 0 auto; display: flex; flex-direction: column; gap: 1px; }
+.task-item .task-move { border: 1px solid #E5E7EB; background: #fff; color: #6B7280; cursor: pointer; width: 26px; height: 19px; border-radius: 0.3rem; font-size: 0.65rem; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; }
+.task-item .task-move:hover:not(:disabled) { color: #4F46E5; border-color: #C7D2FE; background: #EEF2FF; }
+.task-item .task-move:disabled { opacity: 0.3; cursor: default; }
+.task-item.done .task-arrows { visibility: hidden; }
 .task-item .task-class { flex: 0 0 auto; font-size: 0.7rem; font-weight: 700; color: #fff; padding: 0.15rem 0.5rem; border-radius: 999px; white-space: nowrap; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; }
 .task-item.done .task-class { opacity: 0.7; }
 .task-item .task-opts { border: none; background: transparent; color: #9CA3AF; cursor: pointer; padding: 0.25rem 0.4rem; border-radius: 0.3rem; font-size: 0.85rem; }
@@ -1975,6 +1983,7 @@ const TASK_T = {
     del: {{ _('Supprimer')|tojson }}, opts: {{ _('Classe et couleur')|tojson }},
     cls: {{ _('Classe')|tojson }}, none: {{ _('Aucune')|tojson }}, color: {{ _('Couleur')|tojson }},
     auto: {{ _('Auto')|tojson }}, drag: {{ _('Glisser pour réordonner')|tojson }},
+    up: {{ _('Monter')|tojson }}, down: {{ _('Descendre')|tojson }},
     addErr: {{ _('Erreur lors de l\'ajout')|tojson }}, netErr: {{ _('Erreur de connexion')|tojson }}
 };
 
@@ -1997,7 +2006,9 @@ function renderDashboardTasks() {
     list.innerHTML = '';
     // Non faites d'abord (ordre choisi), puis faites
     const sorted = dashboardTasks.slice().sort((a, b) => (a.is_done - b.is_done) || (a.position - b.position) || (a.id - b.id));
+    const undone = sorted.filter(t => !t.is_done);
     sorted.forEach(t => {
+        const idx = undone.indexOf(t);
         const li = document.createElement('li');
         li.className = 'task-item' + (t.is_done ? ' done' : '');
         li.dataset.taskId = t.id;
@@ -2031,6 +2042,20 @@ function renderDashboardTasks() {
             chip.title = c ? (c.name + ' · ' + c.subject) : (t.classroom_name || '');
             li.appendChild(chip);
         }
+        // Monter / descendre : même résultat que le glisser-déposer, au clic.
+        const arrows = document.createElement('span');
+        arrows.className = 'task-arrows';
+        [[-1, 'fa-chevron-up', TASK_T.up, idx <= 0], [1, 'fa-chevron-down', TASK_T.down, idx < 0 || idx >= undone.length - 1]].forEach(([dir, ico, title, off]) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'task-move';
+            b.title = title;
+            b.disabled = !!off || typeof t.id !== 'number';
+            b.innerHTML = '<i class="fas ' + ico + '"></i>';
+            b.addEventListener('click', (e) => { e.stopPropagation(); moveTask(t.id, dir); });
+            arrows.appendChild(b);
+        });
+        li.appendChild(arrows);
         const opts = document.createElement('button');
         opts.type = 'button';
         opts.className = 'task-opts';
@@ -2115,37 +2140,81 @@ async function updateTaskMeta(id, patch) {
 }
 
 // ---- Glisser-déposer (Pointer Events : souris, doigt et stylet) ----
+// La tâche saisie SUIT le pointeur (transform), les autres s'écartent, et le
+// DOM n'est réordonné qu'au relâchement. La version précédente réinsérait la
+// tâche dans le DOM à chaque mouvement : la mise en page bougeait sous le
+// pointeur et la tâche sautait d'une place à l'autre. Les positions de
+// référence sont figées au début du geste, donc pas d'oscillation.
 function initTaskDrag(li, grip) {
+    // iOS : sans ces écouteurs NON passifs, le défilement de la page prend le
+    // geste avant que les Pointer Events n'aient pu agir.
+    ['touchstart', 'touchmove'].forEach(type => grip.addEventListener(type, (e) => e.preventDefault(), { passive: false }));
+    grip.addEventListener('contextmenu', (e) => e.preventDefault());
     grip.addEventListener('pointerdown', (e) => {
         if (e.button !== undefined && e.button !== 0) return;
         e.preventDefault();
         closeTaskOptions();
         const list = li.parentElement;
+        const items = Array.from(list.querySelectorAll('.task-item:not(.done)'));
+        const from = items.indexOf(li);
+        if (from < 0) return;
+        const rects = items.map(it => it.getBoundingClientRect());
+        const gap = items.length > 1 ? Math.max(0, rects[1].top - rects[0].bottom) : 6;
+        const step = rects[from].height + gap;
+        const startY = e.clientY;
         const pid = e.pointerId;
+        let to = from;
         try { grip.setPointerCapture(pid); } catch (err) {}
         li.classList.add('dragging');
+        items.forEach(it => { if (it !== li) it.classList.add('shifting'); });
+
         const move = (ev) => {
-            const y = ev.clientY;
-            const others = Array.from(list.querySelectorAll('.task-item:not(.done):not(.dragging)'));
-            let placed = false;
-            for (const it of others) {
-                const r = it.getBoundingClientRect();
-                if (y < r.top + r.height / 2) { list.insertBefore(li, it); placed = true; break; }
-            }
-            if (!placed && others.length) others[others.length - 1].after(li);
+            const dy = ev.clientY - startY;
+            li.style.transform = 'translateY(' + dy + 'px)';
+            const center = rects[from].top + rects[from].height / 2 + dy;
+            // Place cible : nombre d'autres tâches dont le centre (d'origine) est au-dessus.
+            let idx = 0;
+            rects.forEach((r, i) => { if (i !== from && center > r.top + r.height / 2) idx++; });
+            if (idx === to) return;
+            to = idx;
+            items.forEach((it, i) => {
+                if (it === li) return;
+                let shift = 0;
+                if (i > from && i <= to) shift = -step;
+                else if (i < from && i >= to) shift = step;
+                it.style.transform = shift ? 'translateY(' + shift + 'px)' : '';
+            });
         };
         const up = () => {
             try { grip.releasePointerCapture(pid); } catch (err) {}
             grip.removeEventListener('pointermove', move);
             grip.removeEventListener('pointerup', up);
             grip.removeEventListener('pointercancel', up);
+            items.forEach(it => { it.style.transform = ''; it.classList.remove('shifting'); });
+            li.style.transform = '';
             li.classList.remove('dragging');
-            saveTaskOrder();
+            if (to !== from) {
+                const ref = items[to];
+                if (to > from) ref.after(li); else list.insertBefore(li, ref);
+                saveTaskOrder();
+            }
         };
         grip.addEventListener('pointermove', move);
         grip.addEventListener('pointerup', up);
         grip.addEventListener('pointercancel', up);
     });
+}
+
+// Monter (dir = -1) ou descendre (dir = +1) d'une place parmi les tâches à faire.
+async function moveTask(id, dir) {
+    const undone = dashboardTasks.filter(t => !t.is_done).sort((a, b) => (a.position - b.position) || (a.id - b.id));
+    const i = undone.findIndex(t => t.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= undone.length) return;
+    [undone[i], undone[j]] = [undone[j], undone[i]];
+    undone.forEach((t, k) => { t.position = k + 1; });
+    renderDashboardTasks();
+    saveTaskOrder();
 }
 async function saveTaskOrder() {
     const list = document.getElementById('tasksList');
