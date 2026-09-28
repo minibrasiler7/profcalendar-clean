@@ -1376,17 +1376,19 @@ input, textarea, select {
                             <h4 style="margin:0 0 1rem 0;font-size:0.95rem;color:#374151;"><i class="fas fa-file-alt" style="margin-right:0.5rem;color:#10b981;"></i> Ressources du cours</h4>
                             <div id="planning-resources-list" style="display:flex;flex-direction:column;gap:0.5rem;">
                                 {% for resource in planning.resources.all() %}
+                                {# Le nom du fichier passe par des attributs data-*, PAS par un
+                                   onclick="f(1, '{{ nom }}')" : l'échappement HTML transforme
+                                   l'apostrophe en &#39;, que le navigateur redécode en ' avant
+                                   d'exécuter le JS → chaîne coupée, erreur de syntaxe, et le clic
+                                   ne faisait RIEN pour tout fichier dont le nom contient une
+                                   apostrophe (« mesure d'angles… »). Le gestionnaire est délégué
+                                   plus bas (openPlanningResourceItem). #}
                                 <div class="planning-resource-item"
                                      data-resource-id="{{ resource.id }}"
                                      data-resource-type="{{ resource.resource_type }}"
-                                     style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:0.6rem;"
-                                     {% if resource.resource_type == 'file' %}
-                                     onclick="openResourceFile({{ resource.resource_id }}, '{{ resource.display_name|e }}')"
-                                     {% elif resource.resource_type == 'ephemeral' %}
-                                     onclick="openEphemeralResource({{ resource.resource_id }}, '{{ resource.display_name|e }}')"
-                                     {% elif resource.resource_type == 'exercise' %}
-                                     onclick="showModeModal({{ resource.resource_id }}, '{{ resource.display_name|e }}', 'publish', {{ resource.id }})"
-                                     {% endif %}>
+                                     data-target-id="{{ resource.resource_id }}"
+                                     data-display-name="{{ resource.display_name }}"
+                                     style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:0.6rem;">
 
                                     {% if resource.resource_type == 'file' %}
                                         <i class="fas fa-{{ resource.display_icon or 'file' }}" style="color:{{ '#dc2626' if resource.display_icon == 'file-pdf' else '#3b82f6' if resource.display_icon == 'file-image' else '#6b7280' }};font-size:1.1rem;"></i>
@@ -11654,6 +11656,25 @@ async function deleteResource(resourceId, btn) {
         alert('Erreur de connexion');
     }
 }
+
+// Ouverture d'une ressource de la planification (clic délégué sur la liste :
+// fonctionne aussi pour les éléments ajoutés après coup). Le nom vient de
+// data-display-name, donc n'importe quel caractère passe (apostrophes, guillemets…).
+function openPlanningResourceItem(item) {
+    const type = item.dataset.resourceType;
+    const targetId = parseInt(item.dataset.targetId, 10);
+    const name = item.dataset.displayName || '';
+    if (!targetId) return;
+    if (type === 'file') openResourceFile(targetId, name);
+    else if (type === 'ephemeral') openEphemeralResource(targetId, name);
+    else if (type === 'exercise') showModeModal(targetId, name, 'publish', parseInt(item.dataset.resourceId, 10));
+}
+document.addEventListener('click', function (e) {
+    const item = e.target.closest && e.target.closest('.planning-resource-item[data-target-id]');
+    if (!item) return;
+    if (e.target.closest('.btn-delete-resource')) return;   // la corbeille a son propre gestionnaire
+    openPlanningResourceItem(item);
+});
 
 // Attachez les event listeners aux boutons de suppression
 document.addEventListener('DOMContentLoaded', function() {
