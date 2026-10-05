@@ -1370,6 +1370,15 @@ input, textarea, select {
                             {% endif %}
                         </div>
 
+                    </div>
+                </div>
+
+                {# Ressources du cours (fichiers, éphémères, exercices) : HORS de
+                   #planningView. Avant le début du cours, la page ouvre la
+                   planification en mode ÉDITION, qui masque #planningView — et avec
+                   lui les ressources : un fichier éphémère envoyé dix minutes avant
+                   le cours « n'apparaissait pas », même après rechargement. Ici, le
+                   bloc est visible dans les deux modes, comme les mémos et devoirs. #}
                         <!-- Section des ressources de planification -->
                         {% if planning and planning.resources.count() > 0 %}
                         <div id="planning-resources-section" style="margin-top:1.5rem;padding-top:1.5rem;border-top:2px solid #e5e7eb;">
@@ -1428,9 +1437,6 @@ input, textarea, select {
                             </div>
                         </div>
                         {% endif %}
-                    </div>
-                </div>
-
                 <!-- Mémos et remarques en mode lecture seule - TOUJOURS VISIBLE -->
                 <div id="memosViewContainer" class="memos-view-container" style="margin-top: 2rem;">
                     <!-- Les mémos/remarques seront affichés ici par JavaScript -->
