@@ -11,6 +11,21 @@
  * Gestionnaire d'outils d'annotation
  */
 class AnnotationTools {
+    /**
+     * Pixels (du canvas) par centimètre RÉEL de la page portée par ce canvas.
+     * Le lecteur pose la valeur au rendu (canvas.dataset.pxPerCm) à partir de
+     * la taille physique de la page PDF. Avant, une constante 37,8 (96 DPI)
+     * servait partout : juste seulement si la page était affichée à 100 %, ce
+     * qui n'arrive jamais (la page est ajustée à la largeur de l'écran) — une
+     * A4 de 21 cm « mesurait » 34,7 cm. Repli : largeur A4 si l'info manque.
+     */
+    static pxPerCm(ctx) {
+        const c = ctx && ctx.canvas;
+        const v = c && c.dataset ? parseFloat(c.dataset.pxPerCm) : NaN;
+        if (v > 0) return v;
+        return (c && c.width) ? c.width / 21 : 37.8;
+    }
+
     constructor(viewer) {
         this.viewer = viewer;
     }
@@ -100,8 +115,8 @@ class AnnotationTools {
             (end.x - start.x) ** 2 + (end.y - start.y) ** 2
         );
 
-        // Convertir en centimètres (1 cm = 37.8 pixels à 96 DPI)
-        const distanceCm = distancePixels / 37.8;
+        // Convertir en centimètres réels (échelle de la page, voir pxPerCm)
+        const distanceCm = distancePixels / AnnotationTools.pxPerCm(ctx);
 
         // Afficher la mesure au milieu du segment
         const midX = (start.x + end.x) / 2;
@@ -205,8 +220,8 @@ class AnnotationTools {
         const midX = (center.x + currentPoint.x) / 2;
         const midY = (center.y + currentPoint.y) / 2;
 
-        // Convertir le rayon en centimètres (1 cm = 37.8 pixels à 96 DPI)
-        const radiusCm = radius / 37.8;
+        // Convertir le rayon en centimètres réels (échelle de la page)
+        const radiusCm = radius / AnnotationTools.pxPerCm(ctx);
 
         // Fond blanc pour le texte
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
@@ -417,8 +432,8 @@ class AnnotationTools {
      * Dessiner une grille 1cm × 1cm avec 50% d'opacité
      */
     drawGrid(ctx, width, height) {
-        // 1cm réel = 37.8 pixels à 96 DPI
-        const gridSize = 37.8;
+        // 1 cm réel, à l'échelle de la page
+        const gridSize = AnnotationTools.pxPerCm(ctx);
 
         ctx.save();
         ctx.strokeStyle = '#666666';

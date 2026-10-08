@@ -2898,6 +2898,11 @@ class CleanPDFViewer {
         pdfCanvas.height = viewport.height;
         annotationCanvas.width = viewport.width;
         annotationCanvas.height = viewport.height;
+        // Échelle réelle : pixels par centimètre de la page (1 pt PDF = 1/72 pouce).
+        // Lue par la règle, le compas, la grille et l'équerre.
+        const pxPerCm = viewport.width / (baseViewport.width / 72 * 2.54);
+        pdfCanvas.dataset.pxPerCm = String(pxPerCm);
+        annotationCanvas.dataset.pxPerCm = String(pxPerCm);
 
         const ctx = pdfCanvas.getContext('2d');
         await page.render({
@@ -2943,6 +2948,7 @@ class CleanPDFViewer {
         pdfCanvas.width = width;
         pdfCanvas.height = height;
         annotationCanvas.width = width;
+        { const _ppc = await this._pxPerCmFor(width); pdfCanvas.dataset.pxPerCm = String(_ppc); annotationCanvas.dataset.pxPerCm = String(_ppc); }
         annotationCanvas.height = height;
 
         const ctx = pdfCanvas.getContext('2d');
@@ -2985,6 +2991,7 @@ class CleanPDFViewer {
         pdfCanvas.width = width;
         pdfCanvas.height = height;
         annotationCanvas.width = width;
+        { const _ppc = await this._pxPerCmFor(width); pdfCanvas.dataset.pxPerCm = String(_ppc); annotationCanvas.dataset.pxPerCm = String(_ppc); }
         annotationCanvas.height = height;
 
         const ctx = pdfCanvas.getContext('2d');
@@ -3238,6 +3245,7 @@ class CleanPDFViewer {
         pdfCanvas.width = width;
         pdfCanvas.height = height;
         annotationCanvas.width = width;
+        { const _ppc = await this._pxPerCmFor(width); pdfCanvas.dataset.pxPerCm = String(_ppc); annotationCanvas.dataset.pxPerCm = String(_ppc); }
         annotationCanvas.height = height;
 
         const ctx = pdfCanvas.getContext('2d');
@@ -3321,6 +3329,7 @@ class CleanPDFViewer {
         pdfCanvas.width = width;
         pdfCanvas.height = height;
         annotationCanvas.width = width;
+        { const _ppc = await this._pxPerCmFor(width); pdfCanvas.dataset.pxPerCm = String(_ppc); annotationCanvas.dataset.pxPerCm = String(_ppc); }
         annotationCanvas.height = height;
 
         const ctx = pdfCanvas.getContext('2d');
@@ -7065,7 +7074,7 @@ class CleanPDFViewer {
                 (currentPoint.x - startPoint.x) ** 2 +
                 (currentPoint.y - startPoint.y) ** 2
             );
-            const radiusCm = radius / 37.8; // 1 cm = 37.8 pixels à 96 DPI
+            const radiusCm = radius / this.pxPerCm(ctx.canvas); // centimètres réels (échelle de la page)
 
             const midX = (startPoint.x + currentPoint.x) / 2;
             const midY = (startPoint.y + currentPoint.y) / 2;
@@ -13636,7 +13645,10 @@ class CleanPDFViewer {
         const pdfCanvas = this.container.querySelector('.pdf-canvas');
         if (!pdfCanvas) { console.error('[SetSquare] Canvas PDF non trouvé'); return false; }
 
-        const H = Math.max(240, Math.round(pdfCanvas.offsetWidth * 2 / 3));   // hypoténuse à l'écran
+        // Hypoténuse de 14 cm RÉELS à l'écran (comme un Geodreieck) : la graduation
+        // de l'équerre correspond alors aux centimètres mesurés par la règle.
+        const cmCss = this.pxPerCm(pdfCanvas) * (pdfCanvas.offsetWidth / (pdfCanvas.width || 1));
+        const H = Math.max(240, Math.round(14 * cmCss));
         const S = Math.ceil(H * 1.5);                                         // SVG carré : toute rotation y tient
         const svg = document.createElementNS(NS, 'svg');
         svg.classList.add('set-square-overlay');
@@ -13669,6 +13681,24 @@ class CleanPDFViewer {
         this._setSquarePointers = new Map();
         this._attachSetSquareGestures();
         return true;
+    }
+
+    /** Pixels (canvas) par centimètre réel pour un canvas de page. */
+    pxPerCm(canvas) {
+        const v = canvas && canvas.dataset ? parseFloat(canvas.dataset.pxPerCm) : NaN;
+        return v > 0 ? v : ((canvas && canvas.width) ? canvas.width / 21 : 37.8);
+    }
+
+    /** Idem pour une page ajoutée (vierge, graphique…) de largeur `width`, alignée sur la page 1 du PDF. */
+    async _pxPerCmFor(width) {
+        try {
+            if (this.pdf && this.pdf.numPages > 0) {
+                const p = await this.pdf.getPage(1);
+                const w = p.getViewport({ scale: 1, rotation: this.rotation || 0 }).width;
+                if (w > 0) return width / (w / 72 * 2.54);
+            }
+        } catch (e) { /* repli A4 */ }
+        return width / 21;
     }
 
     /** Dessin de l'équerre en coordonnées locales (hypoténuse de longueur H). */
