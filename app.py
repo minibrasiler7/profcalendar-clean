@@ -239,13 +239,6 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ push blueprint non trouvé")
 
-    # Debug blueprint
-    try:
-        from routes.debug_constraint import debug_bp
-        app.register_blueprint(debug_bp)
-        print("✅ debug blueprint ajouté")
-    except ImportError:
-        print("❌ debug blueprint non trouvé")
 
     # Blueprint diagnostic (réception des erreurs/freeze client → logs Render)
     try:

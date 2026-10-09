@@ -384,11 +384,6 @@ def index():
                          total_size=total_size,
                          max_storage=MAX_TOTAL_STORAGE)
 
-@file_manager_bp.route('/test-classes')
-def test_classes():
-    """Page de test pour diagnostiquer le problème des classes"""
-    return render_template('file_manager/test_classes.html')
-
 @file_manager_bp.route('/api/storage-diagnostic')
 @login_required
 def api_storage_diagnostic():
@@ -1835,12 +1830,6 @@ def upload_file():
                 pass
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@file_manager_bp.route('/test_serve/<int:file_id>')
-def test_serve(file_id):
-    """Route de test simple"""
-    print(f"[TEST] Route de test appelée avec file_id={file_id}")
-    return f"Test OK - file_id={file_id}"
-
 @file_manager_bp.route('/serve_file/<int:file_id>')
 @login_required
 def serve_file(file_id):
@@ -2627,97 +2616,6 @@ def load_annotations(file_id):
     except Exception as e:
         print(f"Erreur lors du chargement des annotations: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
-
-@file_manager_bp.route('/cleanup-all-files', methods=['POST'])
-@login_required
-def cleanup_all_files():
-    """ROUTE TEMPORAIRE - Supprime tous les fichiers de la base de données et du système"""
-    
-    # Sécurité : vérifier que c'est bien l'administrateur
-    if not current_user.is_authenticated:
-        return "Non autorisé", 403
-    
-    try:
-        from models.file_manager import FileFolder, UserFile
-        from models.class_file import ClassFile
-        import shutil
-        
-        print("=== DEBUT DU NETTOYAGE ===")
-        
-        # 1. Compter les éléments avant suppression
-        class_files_count = ClassFile.query.count()
-        user_files_count = UserFile.query.count() 
-        folders_count = FileFolder.query.count()
-        
-        print(f"Éléments à supprimer:")
-        print(f"  - {class_files_count} fichiers de classe")
-        print(f"  - {user_files_count} fichiers utilisateur")
-        print(f"  - {folders_count} dossiers")
-        
-        # 2. Supprimer tous les ClassFile (fichiers de classe)
-        print(f"Suppression de {class_files_count} fichiers de classe...")
-        ClassFile.query.delete()
-        
-        # 3. Supprimer tous les UserFile (fichiers utilisateur)
-        print(f"Suppression de {user_files_count} fichiers utilisateur...")
-        UserFile.query.delete()
-        
-        # 4. Supprimer tous les FileFolder (dossiers)
-        print(f"Suppression de {folders_count} dossiers...")
-        FileFolder.query.delete()
-        
-        # 5. Commit les changements en base
-        db.session.commit()
-        print("✅ Suppression en base de données terminée")
-        
-        # 6. Supprimer les dossiers physiques
-        upload_dirs = [
-            'uploads/class_files',
-            'uploads/student_shared', 
-            'uploads/files',
-            'uploads/thumbnails'
-        ]
-        
-        removed_dirs = []
-        for upload_dir in upload_dirs:
-            full_path = os.path.join(current_app.root_path, upload_dir)
-            if os.path.exists(full_path):
-                print(f"Suppression du dossier physique: {full_path}")
-                try:
-                    shutil.rmtree(full_path)
-                    removed_dirs.append(upload_dir)
-                    print(f"✅ Dossier {upload_dir} supprimé")
-                except Exception as e:
-                    print(f"⚠️ Erreur lors de la suppression de {upload_dir}: {e}")
-            else:
-                print(f"ℹ️ Dossier {upload_dir} n'existe pas")
-        
-        # 7. Recréer les dossiers de base
-        base_upload_dir = current_app.config['UPLOAD_FOLDER']
-        if not os.path.exists(base_upload_dir):
-            os.makedirs(base_upload_dir)
-            print(f"✅ Dossier de base uploads recréé")
-        
-        print("=== NETTOYAGE TERMINE ===")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Nettoyage terminé avec succès',
-            'details': {
-                'class_files_deleted': class_files_count,
-                'user_files_deleted': user_files_count,
-                'folders_deleted': folders_count,
-                'physical_dirs_removed': removed_dirs
-            }
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"❌ Erreur lors du nettoyage: {e}")
-        import traceback
-        print(f"❌ Traceback: {traceback.format_exc()}")
-        return jsonify({'success': False, 'message': f'Erreur lors du nettoyage: {str(e)}'}), 500
-
 
 @file_manager_bp.route('/api/list-folders')
 @login_required
