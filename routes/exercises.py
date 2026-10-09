@@ -820,14 +820,6 @@ def exercise_block_image(file_id):
 # EXERCISE MANAGER - Gestionnaire d'exercices séparé
 # ============================================================
 
-@exercises_bp.route('/manager')
-@login_required
-@teacher_required
-def manager():
-    """Page principale du gestionnaire d'exercices"""
-    return render_template('exercises/manager.html')
-
-
 @exercises_bp.route('/manager/folders', methods=['GET'])
 @login_required
 @teacher_required

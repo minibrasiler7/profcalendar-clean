@@ -125,18 +125,6 @@ def update_formative():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@settings_bp.route('/class-codes')
-@login_required
-def class_codes():
-    """Gestion des codes de classe pour les parents"""
-    # Récupérer tous les codes de classe de l'utilisateur
-    codes = ClassCode.query.filter_by(user_id=current_user.id).all()
-    
-    # Récupérer toutes les classes de l'utilisateur
-    classrooms = current_user.classrooms.all()
-    
-    return render_template('settings/class_codes.html', codes=codes, classrooms=classrooms)
-
 @settings_bp.route('/generate-class-code', methods=['POST'])
 @login_required
 def generate_class_code():
@@ -495,7 +483,7 @@ def _generate_backup_pdfs_before_deletion(user_id):
 def _delete_all_user_data(user_id):
     """Supprime toutes les données liées à un utilisateur (respecte l'ordre des FK)."""
     from models.classroom import Classroom
-    from models.student import Student, Grade, StudentFile
+    from models.student import Student, StudentFile
     from models.evaluation import Evaluation, EvaluationGrade
     from models.planning import Planning
     from models.schedule import Schedule
@@ -520,11 +508,9 @@ def _delete_all_user_data(user_id):
     from models.seating_plan import SeatingPlan
     from models.formative import FormativeAssessment, FormativeEntry, FormativeLevel
     from models.user import User, Holiday, Break
-    from models.student import Chapter
     from models.user_preferences import DashboardTask, DashboardLink
     from models.planning import EphemeralFile
     from models.classroom_access_code import ClassroomAccessCode
-    from models.student_access_code import StudentAccessCode
     from models.file_manager import FileShare
     from models.file_sharing import StudentFileShare
     from models.mixed_group import MixedGroup, MixedGroupStudent
@@ -578,12 +564,6 @@ def _delete_all_user_data(user_id):
     # 5. Remarques et mémos
     StudentRemark.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     LessonMemo.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
-
-    # 6. Notes (Grade n'a pas de user_id, on supprime via student_ids)
-    if student_ids:
-        Grade.query.filter(
-            Grade.student_id.in_(student_ids)
-        ).delete(synchronize_session='fetch')
 
     # 7. Évaluations
     if classroom_ids:
@@ -681,12 +661,10 @@ def _delete_all_user_data(user_id):
     # nullables) est mis à NULL pour ne pas détruire les données d'un tiers.
     Holiday.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     Break.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
-    Chapter.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     DashboardTask.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     DashboardLink.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     EphemeralFile.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     ClassroomAccessCode.query.filter_by(created_by_user_id=user_id).delete(synchronize_session='fetch')
-    StudentAccessCode.query.filter_by(created_by_user_id=user_id).delete(synchronize_session='fetch')
     StudentFileShare.query.filter_by(shared_by_teacher_id=user_id).delete(synchronize_session='fetch')
 
     # Partages de fichiers : ceux qu'il a émis partent, ceux qu'il a reçus

@@ -48,7 +48,7 @@ def _get_students_data_for_archive(original_classroom_id, master_teacher_id,
         derived_classroom_id: ID de la classe dérivée (optionnel, pour les évals de l'enseignant spécialisé)
         specialized_teacher_id: ID de l'enseignant spécialisé (optionnel, pour absences/remarques)
     """
-    from models.student import Student, Grade
+    from models.student import Student
     from models.attendance import Attendance
     from models.evaluation import Evaluation, EvaluationGrade
     from models.student_sanctions import StudentSanctionCount
@@ -94,22 +94,6 @@ def _get_students_data_for_archive(original_classroom_id, master_teacher_id,
                 })
                 total_points += eg.points
                 total_max += (ev.max_points or 0)
-                grade_count += 1
-
-        # Notes legacy
-        legacy_grades = Grade.query.filter_by(
-            student_id=student.id, classroom_id=eval_classroom_id
-        ).all()
-        for lg in legacy_grades:
-            grades_list.append({
-                'title': lg.title,
-                'points': lg.grade,
-                'max': lg.max_grade,
-                'date': lg.date,
-            })
-            if lg.grade is not None and lg.max_grade:
-                total_points += lg.grade
-                total_max += lg.max_grade
                 grade_count += 1
 
         average = None

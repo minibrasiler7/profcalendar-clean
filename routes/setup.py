@@ -2598,8 +2598,8 @@ def _purge_classroom_and_children(classroom_id):
     ex = lambda sql: db.session.execute(db.text(sql), p)
     # a) enfants des élèves de la classe
     for t in ("absence_justifications", "attendance", "combat_participants",
-              "evaluation_grades", "grades", "mixed_group_students", "parent_children",
-              "student_access_codes", "student_accommodations", "student_badges",
+              "evaluation_grades", "mixed_group_students", "parent_children",
+              "student_accommodations", "student_badges",
               "student_classroom_links", "student_exercise_attempts", "student_files",
               "student_file_shares", "student_group_memberships", "student_info_history",
               "student_items", "student_remarks", "student_rpg_profiles",
@@ -3190,26 +3190,6 @@ def import_holidays():
 
     return redirect(url_for('setup.manage_holidays'))
 
-@setup_bp.route('/validate_setup', methods=['GET', 'POST'])
-@login_required
-def validate_setup():
-    """Valide que la configuration de base est complète"""
-    # Vérifier que toutes les informations de base sont présentes
-    if not current_user.school_year_start or not current_user.day_start_time:
-        flash('Veuillez compléter la configuration initiale.', 'warning')
-        return redirect(url_for('setup.initial_setup'))
-
-    if current_user.classrooms.count() == 0:
-        flash('Veuillez ajouter au moins une classe.', 'warning')
-        return redirect(url_for('setup.manage_classrooms'))
-
-    # Marquer la configuration de base comme complète
-    current_user.setup_completed = True
-    db.session.commit()
-
-    flash('Configuration de base validée ! Créez maintenant votre horaire type.', 'success')
-    return redirect(url_for('schedule.weekly_schedule'))
-
 @setup_bp.route('/breaks/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_break(id):
@@ -3218,19 +3198,3 @@ def delete_break(id):
     db.session.commit()
     flash(f'Pause "{break_obj.name}" supprimée avec succès.', 'info')
     return redirect(url_for('setup.manage_breaks'))
-
-@setup_bp.route('/holidays/next')
-@login_required 
-def holidays_next():
-    """Navigation vers l'étape suivante après les vacances"""
-    return redirect(url_for('setup.manage_breaks'))
-
-@setup_bp.route('/breaks/next')
-@login_required
-def breaks_next():
-    """Navigation vers l'étape suivante après les pauses"""
-    # Lors de la configuration initiale, utiliser manage_classrooms
-    if not current_user.setup_completed:
-        return redirect(url_for('setup.manage_classrooms'))
-    else:
-        return redirect(url_for('setup.manage_classrooms'))

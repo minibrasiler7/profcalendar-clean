@@ -35,7 +35,6 @@ class Student(UserMixin, db.Model):
     # Relations
     classroom = db.relationship('Classroom', backref=db.backref('students', lazy='dynamic'))
     user = db.relationship('User', backref=db.backref('students', lazy='dynamic'))
-    grades = db.relationship('Grade', backref='student', lazy='dynamic', cascade='all, delete-orphan')
 
     @property
     def full_name(self):
@@ -68,35 +67,6 @@ def student_before_update(mapper, connection, target):
         target.email_hash = encryption_engine.hash_email(target.email)
 
 
-class Grade(db.Model):
-    """Modèle pour les notes des élèves"""
-    __tablename__ = 'grades'
-
-    id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
-    classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
-    title = db.Column(EncryptedString(), nullable=False)
-    grade = db.Column(db.Float, nullable=False)  # NON chiffré: calculs de moyennes
-    max_grade = db.Column(db.Float, default=20.0)  # NON chiffré: calculs
-    coefficient = db.Column(db.Float, default=1.0)  # NON chiffré: calculs
-    date = db.Column(db.Date, nullable=False)  # NON chiffré: tri/filtrage
-    comment = db.Column(EncryptedText())
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relations
-    classroom = db.relationship('Classroom', backref=db.backref('grades', lazy='dynamic'))
-
-    @property
-    def percentage(self):
-        """Retourne la note en pourcentage"""
-        if self.max_grade > 0:
-            return (self.grade / self.max_grade) * 100
-        return 0
-
-    def __repr__(self):
-        return f'<Grade {self.title} - {self.grade}/{self.max_grade}>'
-
-
 class LegacyClassFile(db.Model):
     """Modèle pour les fichiers de classe (version legacy)"""
     __tablename__ = 'class_files'
@@ -120,47 +90,6 @@ class LegacyClassFile(db.Model):
 
     def __repr__(self):
         return f'<ClassFile {self.original_filename}>'
-
-
-class Chapter(db.Model):
-    """Modèle pour les chapitres"""
-    __tablename__ = 'chapters'
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    name = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    order_index = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relations
-    user = db.relationship('User', backref=db.backref('chapters', lazy='dynamic'))
-    classroom_chapters = db.relationship('ClassroomChapter', backref='chapter', lazy='dynamic', cascade='all, delete-orphan')
-
-    def __repr__(self):
-        return f'<Chapter {self.name}>'
-
-
-class ClassroomChapter(db.Model):
-    """Table de liaison entre Classroom et Chapter"""
-    __tablename__ = 'classroom_chapters'
-
-    id = db.Column(db.Integer, primary_key=True)
-    classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
-    chapter_id = db.Column(db.Integer, db.ForeignKey('chapters.id'), nullable=False)
-    is_current = db.Column(db.Boolean, default=True)  # Indique si c'est un chapitre en cours
-    start_date = db.Column(db.Date)
-    end_date = db.Column(db.Date)
-
-    # Relations
-    classroom = db.relationship('Classroom', backref=db.backref('classroom_chapters', lazy='dynamic'))
-
-    __table_args__ = (
-        db.UniqueConstraint('classroom_id', 'chapter_id', name='_classroom_chapter_uc'),
-    )
-
-    def __repr__(self):
-        return f'<ClassroomChapter {self.classroom_id}-{self.chapter_id}>'
 
 
 class StudentFile(db.Model):

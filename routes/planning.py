@@ -2650,7 +2650,8 @@ def toggle_pin_resource():
 @login_required
 def manage_classes():
     """Gestion des classes - élèves, notes, fichiers et sanctions"""
-    from models.student import Student, Grade
+    from models.student import Student
+    from models.evaluation import Evaluation
     from models.sanctions import SanctionTemplate, ClassroomSanctionImport
     from models.student_sanctions import StudentSanctionCount
     from models.user_preferences import UserSanctionPreferences
@@ -2866,45 +2867,9 @@ def manage_classes():
                                     classroom_ids.append(derived_classroom.id)
                                     break
     
-    recent_grades = Grade.query.filter(Grade.classroom_id.in_(classroom_ids)).order_by(Grade.date.desc()).limit(10).all()
-    
-    # Grouper les notes par discipline pour l'affichage
-    grades_by_subject = {}
-    for classroom in all_relevant_classrooms:
-        subject = classroom.subject
-        grades_for_classroom = Grade.query.filter(Grade.classroom_id == classroom.id).order_by(Grade.date.desc()).all()
-        
-        # Déterminer si cette classe appartient à un enseignant spécialisé
-        is_from_specialized_teacher = classroom not in selected_group['classrooms']
-        
-        # Marquer chaque note avec des métadonnées
-        enriched_grades = []
-        for grade in grades_for_classroom:
-            enriched_grades.append({
-                'grade': grade,
-                'is_from_specialized_teacher': is_from_specialized_teacher,
-                'teacher_name': classroom.user.username if classroom.user else 'Inconnu',
-                'classroom_id': classroom.id
-            })
-        
-        if subject in grades_by_subject:
-            # Si la matière existe déjà, ajouter les notes à la liste existante
-            grades_by_subject[subject]['enriched_grades'].extend(enriched_grades)
-            # Marquer qu'il y a des notes d'enseignants spécialisés
-            if is_from_specialized_teacher:
-                grades_by_subject[subject]['has_specialized_grades'] = True
-            # Maintenir la classroom principale (celle du maître de classe)
-            if not is_from_specialized_teacher:
-                grades_by_subject[subject]['classroom'] = classroom
-        else:
-            grades_by_subject[subject] = {
-                'classroom': classroom,
-                'enriched_grades': enriched_grades,
-                'has_specialized_grades': is_from_specialized_teacher,
-                'is_editable': not is_from_specialized_teacher,
-                # Garder l'ancien format pour la compatibilité
-                'grades': [item['grade'] for item in enriched_grades]
-            }
+    # Nombre d'évaluations du groupe (statistique de l'onglet Notes)
+    recent_grades = Evaluation.query.filter(Evaluation.classroom_id.in_(classroom_ids)).all() if classroom_ids else []
+    grades_by_subject = {}  # ancien système de notes, plus utilisé par le gabarit
 
     # Convertir les classes en dictionnaires pour le JSON (utilisé en JavaScript)
     # Inclure toutes les classes pertinentes (y compris celles des enseignants spécialisés)

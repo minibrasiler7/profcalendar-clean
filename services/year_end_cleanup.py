@@ -17,7 +17,7 @@ def _delete_student_dependencies(student_ids):
     from models.attendance import Attendance
     from models.absence_justification import AbsenceJustification
     from models.evaluation import EvaluationGrade
-    from models.student import Grade, StudentFile
+    from models.student import StudentFile
     from models.lesson_memo import StudentRemark
     from models.sanctions import StudentSanctionRecord
     from models.student_sanctions import StudentSanctionCount
@@ -28,7 +28,6 @@ def _delete_student_dependencies(student_ids):
     from models.file_sharing import StudentFileShare
     from models.class_collaboration import StudentClassroomLink
     from models.parent import ParentChild
-    from models.student_access_code import StudentAccessCode
     from models.rpg import StudentRPGProfile, StudentBadge, StudentItem
     from models.combat import CombatParticipant
     from models.exercise_progress import StudentExerciseAttempt, StudentBlockAnswer
@@ -38,7 +37,6 @@ def _delete_student_dependencies(student_ids):
     Attendance.query.filter(Attendance.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     AbsenceJustification.query.filter(AbsenceJustification.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     EvaluationGrade.query.filter(EvaluationGrade.student_id.in_(student_ids)).delete(synchronize_session='fetch')
-    Grade.query.filter(Grade.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     StudentRemark.query.filter(StudentRemark.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     StudentSanctionRecord.query.filter(StudentSanctionRecord.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     StudentSanctionCount.query.filter(StudentSanctionCount.student_id.in_(student_ids)).delete(synchronize_session='fetch')
@@ -49,7 +47,6 @@ def _delete_student_dependencies(student_ids):
     StudentFileShare.query.filter(StudentFileShare.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     StudentClassroomLink.query.filter(StudentClassroomLink.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     ParentChild.query.filter(ParentChild.student_id.in_(student_ids)).delete(synchronize_session='fetch')
-    StudentAccessCode.query.filter(StudentAccessCode.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     StudentFile.query.filter(StudentFile.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     FormativeEntry.query.filter(FormativeEntry.student_id.in_(student_ids)).delete(synchronize_session='fetch')
 
@@ -79,7 +76,7 @@ def _delete_classroom_dependencies(classroom_id):
     from models.classroom_access_code import ClassroomAccessCode
     from models.sanctions import ClassroomSanctionImport
     from models.parent import ClassCode
-    from models.student import Grade, Student, ClassroomChapter, LegacyClassFile
+    from models.student import Student, LegacyClassFile
     from models.invitation_classroom import InvitationClassroom
     from models.evaluation import Evaluation, EvaluationGrade
     from models.attendance import Attendance
@@ -148,17 +145,11 @@ def _delete_classroom_dependencies(classroom_id):
     # Fichiers legacy
     LegacyClassFile.query.filter_by(classroom_id=classroom_id).delete(synchronize_session='fetch')
 
-    # Chapitres de classe
-    ClassroomChapter.query.filter_by(classroom_id=classroom_id).delete(synchronize_session='fetch')
-
     # Évaluations (supprimer d'abord les notes des évals)
     eval_ids = [e.id for e in Evaluation.query.filter_by(classroom_id=classroom_id).all()]
     if eval_ids:
         EvaluationGrade.query.filter(EvaluationGrade.evaluation_id.in_(eval_ids)).delete(synchronize_session='fetch')
     Evaluation.query.filter_by(classroom_id=classroom_id).delete(synchronize_session='fetch')
-
-    # Notes legacy
-    Grade.query.filter_by(classroom_id=classroom_id).delete(synchronize_session='fetch')
 
     # Présences
     Attendance.query.filter_by(classroom_id=classroom_id).delete(synchronize_session='fetch')
@@ -320,7 +311,7 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
     from models.attendance import Attendance
     from models.absence_justification import AbsenceJustification
     from models.evaluation import Evaluation, EvaluationGrade
-    from models.student import Grade, Student
+    from models.student import Student
     from models.lesson_memo import LessonMemo, StudentRemark
     from models.sanctions import StudentSanctionRecord
     from models.student_sanctions import StudentSanctionCount
@@ -393,13 +384,6 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
                 Evaluation.classroom_id.in_(classroom_ids)
             ).delete(synchronize_session='fetch')
             summary['evaluations_deleted'] = count
-
-        # Anciennes notes (legacy Grade model)
-        if classroom_ids:
-            count = Grade.query.filter(
-                Grade.classroom_id.in_(classroom_ids)
-            ).delete(synchronize_session='fetch')
-            summary['grades_deleted'] += count
 
         # Mémos de cours
         count = LessonMemo.query.filter_by(user_id=user.id).delete()

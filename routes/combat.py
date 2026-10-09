@@ -26,24 +26,6 @@ combat_bp = Blueprint('combat', __name__, url_prefix='/combat')
 #  REST ENDPOINTS (pour le prof)
 # ═══════════════════════════════════════════════════════════════════
 
-@combat_bp.route('/launch')
-@login_required
-def launch_page():
-    """Page de lancement de combat (interface prof)."""
-    from models.classroom import Classroom
-    from models.exercise import Exercise
-    classrooms = Classroom.query.filter_by(user_id=current_user.id).all()
-    exercises = Exercise.query.filter_by(user_id=current_user.id, is_draft=False).all()
-    active_sessions = CombatSession.query.filter(
-        CombatSession.teacher_id == current_user.id,
-        CombatSession.status.in_(['waiting', 'active'])
-    ).all()
-    return render_template('combat/launch.html',
-                           classrooms=classrooms,
-                           exercises=exercises,
-                           active_sessions=active_sessions)
-
-
 @combat_bp.route('/create', methods=['POST'])
 @login_required
 def create_combat():
