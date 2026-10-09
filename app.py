@@ -75,14 +75,6 @@ def create_app(config_name='development'):
             'current_locale': str(_babel_get_locale() or 'fr'),
         }
 
-    @app.before_request
-    def _capture_referral_code():
-        """Parrainage : mémorise un code (?ref=CODE) en session pour l'appliquer
-        à l'inscription. Ignoré si l'utilisateur est déjà connecté."""
-        code = request.args.get('ref')
-        if code and not current_user.is_authenticated:
-            session['ref_code'] = code.strip()[:12]
-
     @app.route('/set-language/<lang>')
     def set_language(lang):
         """Sélecteur de langue manuel : mémorise le choix en session
@@ -1985,19 +1977,9 @@ def create_app(config_name='development'):
         """Politique de confidentialité de l'app Cap Côtier (exigence App Store)."""
         return render_template('legal/capcotier_confidentialite.html')
 
-    @app.route('/parrainage')
-    @login_required
-    def referral():
-        """Page de parrainage « invite un collègue » : lien de partage + suivi.
-        Réservée aux enseignants."""
-        from models.user import User
-        if not isinstance(current_user, User):
-            return redirect(url_for('index'))
-        code = current_user.ensure_referral_code()
-        referral_url = request.url_root.rstrip('/') + '/?ref=' + code
-        return render_template('referral.html',
-                               referral_url=referral_url,
-                               referral_count=current_user.referral_count())
+    # Le parrainage « invite un collègue » a été retiré (2026-10-09) : plus de
+    # page /parrainage ni de lien ?ref=. Les colonnes referral_code et
+    # referred_by_id restent en base (lues par le modèle User).
 
     # --- Filet de sécurité schéma (parrainage) ---
     # L'historique de ce repo a connu des `flask db upgrade` silencieusement

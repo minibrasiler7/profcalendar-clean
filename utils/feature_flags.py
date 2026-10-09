@@ -25,6 +25,9 @@ TEACHER_COLLABORATION = _on('FEATURE_TEACHER_COLLABORATION')
 RPG_COMBAT = _on('FEATURE_RPG_COMBAT')
 # Barre des dispositions du tableau de bord (7 modes).
 DASHBOARD_LAYOUTS = _on('FEATURE_DASHBOARD_LAYOUTS')
+# Exercices interactifs (atelier, publication, lancement en classe, QR).
+# Masqués partout, même avec l'espace élèves et parents activé.
+EXERCISES = _on('FEATURE_EXERCISES')
 
 
 # --- Module « Espace élèves et parents » (par enseignant) -------------------
@@ -108,6 +111,7 @@ def feature_context():
         'FEATURE_COLLAB': TEACHER_COLLABORATION,
         'FEATURE_RPG': RPG_COMBAT,
         'FEATURE_LAYOUTS': DASHBOARD_LAYOUTS,
+        'FEATURE_EXERCISES': EXERCISES,
         'students_space': students_space_enabled(),
     }
 
@@ -155,6 +159,11 @@ def register_feature_gate(app):
                 abort(404)
 
         if not DASHBOARD_LAYOUTS and path.startswith('/api/dashboard/layout'):
+            abort(404)
+
+        # Exercices interactifs masqués : tout l'atelier disparaît, sauf les
+        # images de blocs encore servies aux élèves d'exercices déjà publiés.
+        if not EXERCISES and endpoint.startswith('exercises.') and endpoint != 'exercises.block_image':
             abort(404)
 
         if not TEACHER_COLLABORATION and endpoint in COLLAB_ENDPOINTS:

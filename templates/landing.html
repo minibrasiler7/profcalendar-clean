@@ -408,7 +408,7 @@
     <div class="container">
         <div class="hero-badge"><i class="fas fa-graduation-cap"></i> {{ _('La plateforme qui simplifie le quotidien des enseignants') }}</div>
         <h1>{{ _('Planifiez, enseignez et suivez vos classes en un seul endroit') }}</h1>
-        <p>{{ _('ProfCalendar combine planification de cours, exercices interactifs, suivi des présences et gestion des notes dans une plateforme intuitive et moderne.') }}</p>
+        <p>{{ _('ProfCalendar réunit la planification des cours, le suivi des présences, les notes et vos documents annotés au stylet dans une plateforme intuitive et moderne.') }}</p>
         <div class="hero-buttons">
             <a href="{{ url_for('auth.register') }}" class="btn-hero-primary"><i class="fas fa-rocket"></i> {{ _('Créer un compte') }}</a>
             <a href="{{ url_for('auth.login') }}" class="btn-hero-secondary"><i class="fas fa-sign-in-alt"></i> {{ _('Se connecter') }}</a>
@@ -427,15 +427,22 @@
                 <h3>{{ _('Planification intelligente') }}</h3>
                 <p>{{ _('Calendrier hebdomadaire et annuel avec planification par période. Créez vos leçons, ajoutez des ressources et suivez votre programme.') }}</p>
             </div>
+            {% if FEATURE_EXERCISES %}
             <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #06B6D4, #0891B2);"><i class="fas fa-puzzle-piece"></i></div>
                 <h3>{{ _('Exercices interactifs') }}</h3>
                 <p>{{ _('Créez des QCM, textes à trous, correspondances, classements et plus encore. Les élèves résolvent sur leur appareil avec feedback instantané.') }}</p>
             </div>
+            {% endif %}
+            <div class="feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #06B6D4, #0891B2);"><i class="fas fa-pen-nib"></i></div>
+                <h3>{{ _('Documents annotés au stylet') }}</h3>
+                <p>{{ _('Ouvrez vos PDF pendant le cours, écrivez au stylet, tracez à la règle ou au compas, puis exportez le document annoté.') }}</p>
+            </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #10B981, #059669);"><i class="fas fa-chart-line"></i></div>
                 <h3>{{ _('Notes & évaluations') }}</h3>
-                <p>{{ _('Saisissez les notes par évaluation, calculez les moyennes automatiquement. Parents et élèves consultent leurs résultats en temps réel.') }}</p>
+                <p>{{ _('Saisissez les notes par évaluation, calculez les moyennes automatiquement et exportez-les en PDF ou en tableur.') }}</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);"><i class="fas fa-clipboard-check"></i></div>
@@ -450,9 +457,14 @@
             </div>
             {% endif %}
             <div class="feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #EF4444, #DC2626);"><i class="fas fa-chair"></i></div>
+                <h3>{{ _('Plan de classe et coches') }}</h3>
+                <p>{{ _("Placez vos élèves, notez les coches en un clic et laissez vos seuils déclencher les sanctions que vous avez définies.") }}</p>
+            </div>
+            <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #8B5CF6, #7C3AED);"><i class="fas fa-folder-open"></i></div>
                 <h3>{{ _('Gestionnaire de fichiers') }}</h3>
-                <p>{{ _('Uploadez, organisez et partagez vos documents. Annotations PDF intégrées avec support du stylet.') }}</p>
+                <p>{{ _('Classez vos documents d’une année à l’autre, copiez-les dans vos classes et retrouvez-les sur la page du cours.') }}</p>
             </div>
         </div>
     </div>
@@ -480,18 +492,16 @@
             </div>
             <div class="showcase-item">
                 <div class="showcase-mockup">
-                    <div class="mockup-header" style="background: var(--success);"><i class="fas fa-puzzle-piece"></i> {{ _('Exercice : Quiz Fractions') }}</div>
+                    <div class="mockup-header" style="background: var(--success);"><i class="fas fa-file-pdf"></i> {{ _('Figures géométriques — Théorie.pdf') }}</div>
                     <div class="mockup-body">
-                        <div class="mockup-row"><strong>{{ _('Question 3/10') }}</strong></div>
-                        <div class="mockup-row">{{ _('Combien font 1/4 + 1/2 ?') }}</div>
-                        <div class="mockup-row" style="background: #F0FDF4; border-radius: 0.25rem;">
-                            <div class="dot green"></div> 3/4 <span style="margin-left:auto; color: var(--success);">{{ _('Correct !') }}</span>
-                        </div>
-                        <div class="mockup-row"><div class="dot red"></div> 2/6</div>
+                        <div class="mockup-row"><i class="fas fa-pen" style="color: var(--primary);"></i> {{ _('Stylet, surligneur, gomme') }}</div>
+                        <div class="mockup-row"><i class="fas fa-ruler" style="color: var(--warning);"></i> {{ _('Règle, compas et équerre en vrais centimètres') }}</div>
+                        <div class="mockup-row"><i class="fas fa-eye-slash" style="color: var(--secondary);"></i> {{ _('Masque pour dévoiler la correction pas à pas') }}</div>
+                        <div class="mockup-row" style="background: #F0FDF4; border-radius: 0.25rem;"><div class="dot green"></div> {{ _('Export du PDF annoté') }}</div>
                     </div>
                 </div>
-                <h3>{{ _('Exercices interactifs') }}</h3>
-                <p>{{ _('QCM, textes à trous, correspondances et bien plus. Les élèves résolvent les exercices sur leur appareil avec un retour instantané.') }}</p>
+                <h3>{{ _('Lecteur PDF avec Apple Pencil') }}</h3>
+                <p>{{ _("Projetez votre document, annotez-le pendant le cours et retrouvez vos annotations d'une leçon à l'autre.") }}</p>
             </div>
             <div class="showcase-item">
                 <div class="showcase-mockup">
@@ -518,7 +528,7 @@
         <div class="testimonials-grid">
             <div class="testimonial-card">
                 <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-                <blockquote>"{{ _('ProfCalendar a complètement transformé ma façon de préparer mes cours. Le calendrier est intuitif et les exercices interactifs motivent énormément mes élèves.') }}"</blockquote>
+                <blockquote>"{{ _("ProfCalendar a complètement transformé ma façon de préparer mes cours. Le calendrier est intuitif et j'annote mes documents directement sur l'iPad.") }}"</blockquote>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar" style="background: var(--primary);">M</div>
                     <div><div class="testimonial-name">Marie</div><div class="testimonial-role">{{ _('Enseignante de mathématiques') }}</div></div>
@@ -526,7 +536,7 @@
             </div>
             <div class="testimonial-card">
                 <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-                <blockquote>"{{ _('Les exercices interactifs sont un vrai plus. Je prépare mes QCM et mes textes à trous en quelques minutes, et mes élèves reçoivent un retour immédiat sur leurs réponses.') }}"</blockquote>
+                <blockquote>"{{ _('Présences, coches et plan de classe au même endroit : je gagne un temps fou pendant le cours, et tout est prêt pour les entretiens.') }}"</blockquote>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar" style="background: var(--success);">P</div>
                     <div><div class="testimonial-name">Pierre</div><div class="testimonial-role">{{ _('Enseignant de sciences') }}</div></div>

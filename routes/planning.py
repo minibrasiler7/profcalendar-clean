@@ -2528,9 +2528,10 @@ def get_class_resources(classroom_id):
         if not class_name:
             class_name = classroom.name
 
-        # Récupérer fichiers (v2 + legacy) + exercices via le helper unifié
+        # Récupérer fichiers (v2 + legacy) + exercices (si non masqués) via le helper unifié
+        from utils.feature_flags import EXERCISES as _FEATURE_EXERCISES
         pinned_files, files_data = list_classroom_files(
-            actual_classroom_id, include_exercises=True, user_id=current_user.id
+            actual_classroom_id, include_exercises=_FEATURE_EXERCISES, user_id=current_user.id
         )
 
         # Restaurer l'autoflush

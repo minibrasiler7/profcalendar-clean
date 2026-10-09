@@ -2937,6 +2937,51 @@ msgstr "4.2 Funktionen"
 msgid "L'abonnement donne accès à l'ensemble des fonctionnalités : gestion de classe, notes et évaluations, suivi des présences, gestionnaire de fichiers, annotation de PDF et plan de classe."
 msgstr "Das Abonnement bietet Zugriff auf alle Funktionen: Klassenverwaltung, Noten und Beurteilungen, Anwesenheit, Dateimanager, PDF-Annotation und Sitzplan."
 
+msgid "ProfCalendar réunit la planification des cours, le suivi des présences, les notes et vos documents annotés au stylet dans une plateforme intuitive et moderne."
+msgstr "ProfCalendar vereint Unterrichtsplanung, Anwesenheit, Noten und Ihre mit dem Stift annotierten Dokumente in einer intuitiven, modernen Plattform."
+
+msgid "Documents annotés au stylet"
+msgstr "Mit dem Stift annotierte Dokumente"
+
+msgid "Ouvrez vos PDF pendant le cours, écrivez au stylet, tracez à la règle ou au compas, puis exportez le document annoté."
+msgstr "Öffnen Sie Ihre PDFs im Unterricht, schreiben Sie mit dem Stift, zeichnen Sie mit Lineal oder Zirkel und exportieren Sie das annotierte Dokument."
+
+msgid "Saisissez les notes par évaluation, calculez les moyennes automatiquement et exportez-les en PDF ou en tableur."
+msgstr "Erfassen Sie Noten pro Beurteilung, berechnen Sie Durchschnitte automatisch und exportieren Sie sie als PDF oder Tabelle."
+
+msgid "Placez vos élèves, notez les coches en un clic et laissez vos seuils déclencher les sanctions que vous avez définies."
+msgstr "Platzieren Sie Ihre Schüler, setzen Sie Striche mit einem Klick und lassen Sie Ihre Schwellen die festgelegten Sanktionen auslösen."
+
+msgid "Classez vos documents d’une année à l’autre, copiez-les dans vos classes et retrouvez-les sur la page du cours."
+msgstr "Ordnen Sie Ihre Dokumente über die Jahre hinweg, kopieren Sie sie in Ihre Klassen und finden Sie sie auf der Lektionsseite."
+
+msgid "Figures géométriques — Théorie.pdf"
+msgstr "Geometrische Figuren — Theorie.pdf"
+
+msgid "Stylet, surligneur, gomme"
+msgstr "Stift, Marker, Radierer"
+
+msgid "Règle, compas et équerre en vrais centimètres"
+msgstr "Lineal, Zirkel und Geodreieck in echten Zentimetern"
+
+msgid "Masque pour dévoiler la correction pas à pas"
+msgstr "Abdeckung, um die Lösung Schritt für Schritt aufzudecken"
+
+msgid "Export du PDF annoté"
+msgstr "Export des annotierten PDFs"
+
+msgid "Lecteur PDF avec Apple Pencil"
+msgstr "PDF-Reader mit Apple Pencil"
+
+msgid "Projetez votre document, annotez-le pendant le cours et retrouvez vos annotations d'une leçon à l'autre."
+msgstr "Projizieren Sie Ihr Dokument, annotieren Sie es im Unterricht und finden Sie Ihre Anmerkungen von Lektion zu Lektion wieder."
+
+msgid "ProfCalendar a complètement transformé ma façon de préparer mes cours. Le calendrier est intuitif et j'annote mes documents directement sur l'iPad."
+msgstr "ProfCalendar hat meine Unterrichtsvorbereitung komplett verändert. Der Kalender ist intuitiv und ich annotiere meine Dokumente direkt auf dem iPad."
+
+msgid "Présences, coches et plan de classe au même endroit : je gagne un temps fou pendant le cours, et tout est prêt pour les entretiens."
+msgstr "Anwesenheit, Striche und Sitzplan an einem Ort: Ich spare im Unterricht enorm Zeit, und alles ist für die Gespräche bereit."
+
 msgid "Crée tes classes"
 msgstr "Erstellen Sie Ihre Klassen"
 

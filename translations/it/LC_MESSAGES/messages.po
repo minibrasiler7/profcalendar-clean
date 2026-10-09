@@ -2937,6 +2937,51 @@ msgstr "4.2 Funzionalità"
 msgid "L'abonnement donne accès à l'ensemble des fonctionnalités : gestion de classe, notes et évaluations, suivi des présences, gestionnaire de fichiers, annotation de PDF et plan de classe."
 msgstr "L'abbonamento dà accesso a tutte le funzionalità: gestione della classe, voti e valutazioni, presenze, gestore dei file, annotazione PDF e piano della classe."
 
+msgid "ProfCalendar réunit la planification des cours, le suivi des présences, les notes et vos documents annotés au stylet dans une plateforme intuitive et moderne."
+msgstr "ProfCalendar riunisce la pianificazione delle lezioni, le presenze, i voti e i tuoi documenti annotati con la penna in una piattaforma intuitiva e moderna."
+
+msgid "Documents annotés au stylet"
+msgstr "Documenti annotati con la penna"
+
+msgid "Ouvrez vos PDF pendant le cours, écrivez au stylet, tracez à la règle ou au compas, puis exportez le document annoté."
+msgstr "Apri i tuoi PDF durante la lezione, scrivi con la penna, traccia con righello o compasso, poi esporta il documento annotato."
+
+msgid "Saisissez les notes par évaluation, calculez les moyennes automatiquement et exportez-les en PDF ou en tableur."
+msgstr "Inserisci i voti per valutazione, calcola le medie automaticamente ed esportale in PDF o foglio di calcolo."
+
+msgid "Placez vos élèves, notez les coches en un clic et laissez vos seuils déclencher les sanctions que vous avez définies."
+msgstr "Disponi i tuoi allievi, segna i richiami con un clic e lascia che le tue soglie attivino le sanzioni che hai definito."
+
+msgid "Classez vos documents d’une année à l’autre, copiez-les dans vos classes et retrouvez-les sur la page du cours."
+msgstr "Ordina i tuoi documenti da un anno all'altro, copiali nelle tue classi e ritrovali sulla pagina della lezione."
+
+msgid "Figures géométriques — Théorie.pdf"
+msgstr "Figure geometriche — Teoria.pdf"
+
+msgid "Stylet, surligneur, gomme"
+msgstr "Penna, evidenziatore, gomma"
+
+msgid "Règle, compas et équerre en vrais centimètres"
+msgstr "Righello, compasso e squadra in centimetri reali"
+
+msgid "Masque pour dévoiler la correction pas à pas"
+msgstr "Maschera per svelare la correzione passo dopo passo"
+
+msgid "Export du PDF annoté"
+msgstr "Esportazione del PDF annotato"
+
+msgid "Lecteur PDF avec Apple Pencil"
+msgstr "Lettore PDF con Apple Pencil"
+
+msgid "Projetez votre document, annotez-le pendant le cours et retrouvez vos annotations d'une leçon à l'autre."
+msgstr "Proietta il tuo documento, annotalo durante la lezione e ritrova le tue annotazioni da una lezione all'altra."
+
+msgid "ProfCalendar a complètement transformé ma façon de préparer mes cours. Le calendrier est intuitif et j'annote mes documents directement sur l'iPad."
+msgstr "ProfCalendar ha trasformato completamente il mio modo di preparare le lezioni. Il calendario è intuitivo e annoto i miei documenti direttamente sull'iPad."
+
+msgid "Présences, coches et plan de classe au même endroit : je gagne un temps fou pendant le cours, et tout est prêt pour les entretiens."
+msgstr "Presenze, richiami e piano della classe nello stesso posto: risparmio un sacco di tempo durante la lezione e tutto è pronto per i colloqui."
+
 msgid "Crée tes classes"
 msgstr "Crea le tue classi"
 

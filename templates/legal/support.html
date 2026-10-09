@@ -33,8 +33,10 @@
     <h3>{{ _("Comment utiliser l'Apple Pencil pour annoter les PDF ?") }}</h3>
     <p>{{ _("Sur l'application iPad Enseignant, ouvrez un document PDF. Le support natif Apple Pencil vous permet d'annoter directement avec votre stylet. Seul le stylet dessine, votre doigt continue de naviguer normalement.") }}</p>
 
+    {% if FEATURE_EXERCISES %}
     <h3>{{ _('Comment fonctionnent les exercices et la gamification ?') }}</h3>
     <p>{{ _("Depuis l'Atelier, créez des exercices (QCM, réponses courtes) et publiez-les à vos classes. Le système RPG intégré permet de motiver vos élèves avec des points d'expérience, des niveaux et des combats de groupe en classe.") }}</p>
+    {% endif %}
 
     {% if not is_ios_native_app %}
     <h3>{{ _("Comment fonctionne l'abonnement ?") }}</h3>

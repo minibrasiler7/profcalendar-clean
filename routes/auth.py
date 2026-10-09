@@ -179,13 +179,7 @@ def register():
         db.session.commit()
 
         # Plus d'essai gratuit : l'abonnement est choisi juste après la
-        # vérification de l'email. Un lien de parrainage relie seulement le
-        # filleul au parrain ; le parrain est récompensé (+30 j) à la
-        # vérification email du filleul (voir verify_email).
-        ref_code = session.pop('ref_code', None)
-        referrer = User.query.filter_by(referral_code=ref_code).first() if ref_code else None
-        if referrer and referrer.id != user.id:
-            user.referred_by_id = referrer.id
+        # vérification de l'email. (Le parrainage a été retiré.)
 
         # Générer et envoyer le code de vérification email
         verification = EmailVerification.create_verification(user.email, 'teacher')
@@ -254,17 +248,6 @@ def verify_email():
                 send_welcome_email(user.email, user.username)
             except Exception:
                 pass
-
-            # Parrainage : récompenser le parrain (+30 j de Premium) maintenant
-            # que le filleul a confirmé son email. Une seule fois (verify-success
-            # ne se produit qu'une fois par compte).
-            if user.referred_by_id:
-                try:
-                    referrer = User.query.get(user.referred_by_id)
-                    if referrer:
-                        referrer.add_premium_days(30)
-                except Exception:
-                    pass
 
             # Email confirmé → choix de l'abonnement (page web Stripe, ou
             # paywall StoreKit natif dans l'app iOS via pricing_ios.html). Un

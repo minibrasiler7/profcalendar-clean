@@ -922,4 +922,8 @@
     if (!window.PC_STUDENTS_SPACE) {
         window.pcTutorialChapters = window.pcTutorialChapters.filter(c => c.id !== 'accounts' && c.id !== 'exercise');
     }
+    // Exercices interactifs masqués partout (window.PC_EXERCISES).
+    if (!window.PC_EXERCISES) {
+        window.pcTutorialChapters = window.pcTutorialChapters.filter(c => c.id !== 'exercise');
+    }
 })();

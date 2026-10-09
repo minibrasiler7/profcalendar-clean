@@ -2937,6 +2937,51 @@ msgstr "4.2 Features"
 msgid "L'abonnement donne accès à l'ensemble des fonctionnalités : gestion de classe, notes et évaluations, suivi des présences, gestionnaire de fichiers, annotation de PDF et plan de classe."
 msgstr "The subscription gives access to every feature: class management, grades and assessments, attendance tracking, file manager, PDF annotation and seating plan."
 
+msgid "ProfCalendar réunit la planification des cours, le suivi des présences, les notes et vos documents annotés au stylet dans une plateforme intuitive et moderne."
+msgstr "ProfCalendar brings lesson planning, attendance tracking, grades and your pen-annotated documents together in one intuitive, modern platform."
+
+msgid "Documents annotés au stylet"
+msgstr "Pen-annotated documents"
+
+msgid "Ouvrez vos PDF pendant le cours, écrivez au stylet, tracez à la règle ou au compas, puis exportez le document annoté."
+msgstr "Open your PDFs during the lesson, write with the pen, draw with the ruler or compass, then export the annotated document."
+
+msgid "Saisissez les notes par évaluation, calculez les moyennes automatiquement et exportez-les en PDF ou en tableur."
+msgstr "Enter grades per assessment, compute averages automatically and export them as PDF or spreadsheet."
+
+msgid "Placez vos élèves, notez les coches en un clic et laissez vos seuils déclencher les sanctions que vous avez définies."
+msgstr "Seat your students, record checks in one click and let your thresholds trigger the sanctions you defined."
+
+msgid "Classez vos documents d’une année à l’autre, copiez-les dans vos classes et retrouvez-les sur la page du cours."
+msgstr "File your documents from one year to the next, copy them into your classes and find them on the lesson page."
+
+msgid "Figures géométriques — Théorie.pdf"
+msgstr "Geometric figures — Theory.pdf"
+
+msgid "Stylet, surligneur, gomme"
+msgstr "Pen, highlighter, eraser"
+
+msgid "Règle, compas et équerre en vrais centimètres"
+msgstr "Ruler, compass and set square in real centimetres"
+
+msgid "Masque pour dévoiler la correction pas à pas"
+msgstr "Mask to reveal the correction step by step"
+
+msgid "Export du PDF annoté"
+msgstr "Export of the annotated PDF"
+
+msgid "Lecteur PDF avec Apple Pencil"
+msgstr "PDF reader with Apple Pencil"
+
+msgid "Projetez votre document, annotez-le pendant le cours et retrouvez vos annotations d'une leçon à l'autre."
+msgstr "Project your document, annotate it during the lesson and find your annotations again from one lesson to the next."
+
+msgid "ProfCalendar a complètement transformé ma façon de préparer mes cours. Le calendrier est intuitif et j'annote mes documents directement sur l'iPad."
+msgstr "ProfCalendar has completely changed the way I prepare my lessons. The calendar is intuitive and I annotate my documents right on the iPad."
+
+msgid "Présences, coches et plan de classe au même endroit : je gagne un temps fou pendant le cours, et tout est prêt pour les entretiens."
+msgstr "Attendance, checks and seating plan in one place: I save a huge amount of time during the lesson, and everything is ready for parent meetings."
+
 msgid "Crée tes classes"
 msgstr "Create your classes"
 

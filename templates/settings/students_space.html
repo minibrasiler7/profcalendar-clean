@@ -15,7 +15,7 @@
         <div class="card-body">
             <p class="text-muted" style="line-height: 1.55;">
                 Module optionnel. Il regroupe tout ce qui demande un compte côté élève ou parent :
-                codes d'accès par classe et application « Parents &amp; Élèves », exercices interactifs,
+                codes d'accès par classe et application « Parents &amp; Élèves »,
                 devoirs à rendre en ligne, partage de fichiers aux élèves, remarques envoyées aux parents.
                 Désactivé, ProfCalendar reste un cahier de l'enseignant, plus simple à prendre en main.
             </p>
@@ -31,9 +31,11 @@
                 <a href="{{ url_for('collaboration.index') }}" class="btn btn-primary">
                     <i class="fas fa-key"></i> Codes d'accès élèves et parents
                 </a>
+                {% if FEATURE_EXERCISES %}
                 <a href="{{ url_for('exercises.index') }}" class="btn btn-secondary">
                     <i class="fas fa-gamepad"></i> Exercices interactifs
                 </a>
+                {% endif %}
             </div>
 
             <div id="students-space-alert" class="alert mt-3" style="display: none;"></div>
