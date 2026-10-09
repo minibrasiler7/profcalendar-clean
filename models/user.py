@@ -3,6 +3,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from extensions import db, login_manager
 from datetime import datetime
 
+# Passage au modèle payant dès l'inscription (plus d'essai gratuit). Les comptes
+# créés avant cet instant qui étaient Premium (essai compris) ou avaient utilisé
+# un bon reçoivent l'accès à vie (voir le filet de sécurité dans app.py).
+PAID_MODEL_SINCE = datetime(2026, 10, 9, 14, 0, 0)
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
 
@@ -23,6 +29,9 @@ class User(UserMixin, db.Model):
     stripe_customer_id = db.Column(db.String(255), nullable=True)
     stripe_subscription_id = db.Column(db.String(255), nullable=True)
     premium_until = db.Column(db.DateTime, nullable=True)  # Date d'expiration premium
+    # Accès à vie offert aux comptes antérieurs au modèle payant : prime sur
+    # tout le reste (jamais écrasé par Stripe, Apple ou un bon).
+    lifetime_premium = db.Column(db.Boolean, default=False)
     # Suivi des relances d'essai par email : 0=aucune, 1=J-5 envoyée,
     # 2=J-1 envoyée, 3=email d'expiration envoyé. Évite les doublons.
     trial_reminder_stage = db.Column(db.Integer, default=0)
@@ -67,6 +76,10 @@ class User(UserMixin, db.Model):
 
         On retourne True si AU MOINS UNE source donne un accès valide.
         """
+        # Source 0 : accès à vie (comptes d'avant le modèle payant)
+        if self.lifetime_premium:
+            return True
+
         # Source 1+2 : champ classique
         if self.subscription_tier == 'premium':
             if self.premium_until is None:
@@ -110,12 +123,15 @@ class User(UserMixin, db.Model):
         self.subscription_tier = 'freemium'
         self.premium_until = None
         self.stripe_subscription_id = None
+        self.lifetime_premium = False
         db.session.commit()
 
     def add_premium_days(self, days):
         """Ajoute N jours de Premium à partir de max(maintenant, premium_until).
         Utilisé pour la récompense de parrainage (+30 j au parrain)."""
         from datetime import timedelta
+        if self.lifetime_premium:
+            return  # rien à ajouter à un accès à vie
         now = datetime.utcnow()
         base = self.premium_until if (self.premium_until and self.premium_until > now) else now
         self.subscription_tier = 'premium'
@@ -199,6 +215,10 @@ class User(UserMixin, db.Model):
         from datetime import datetime
         import math
         now = datetime.utcnow()
+
+        # Accès à vie → aucune bannière.
+        if self.lifetime_premium:
+            return {'state': 'unlimited', 'days_remaining': None}
 
         # Abonné payant → aucune bannière d'essai.
         if self.stripe_subscription_id:

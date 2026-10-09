@@ -249,8 +249,8 @@ def app_store_notifications():
                 AppleSubscription.id != sub.id,
                 AppleSubscription.status.in_(['active', 'in_grace_period'])
             ).first()
-            if not other_active and not user.stripe_subscription_id:
-                # Seulement si pas d'abonnement Stripe en parallèle
+            if not other_active and not user.stripe_subscription_id and not user.lifetime_premium:
+                # Seulement si pas d'abonnement Stripe en parallèle ni d'accès à vie
                 user.subscription_tier = 'freemium'
                 user.premium_until = None
 

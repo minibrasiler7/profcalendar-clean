@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session, abort
 from flask_login import login_required, current_user
 from extensions import db
 from models.user import User, Holiday, Break
@@ -521,7 +521,7 @@ def initial_setup():
                 try:
                     db.session.commit()
                     flash(f'Configuration copiée depuis le collège "{college_name}" avec succès !', 'success')
-                    return redirect(url_for('setup.manage_holidays'))
+                    return redirect(url_for('settings.index'))
                 except Exception as e:
                     db.session.rollback()
                     flash(f'Erreur lors de la copie : {str(e)}', 'error')
@@ -567,8 +567,8 @@ def initial_setup():
 
         try:
             db.session.commit()
-            flash('Configuration initiale enregistrée avec succès !', 'success')
-            return redirect(url_for('setup.manage_holidays'))
+            flash('Année scolaire et horaires enregistrés.', 'success')
+            return redirect(url_for('settings.index'))
         except Exception as e:
             db.session.rollback()
             flash(f'Erreur lors de la sauvegarde : {str(e)}', 'error')
@@ -890,13 +890,24 @@ def manage_classrooms():
     if request.args.get('from_dashboard', '0') == '1':
         session['setup_from_dashboard'] = True
     from_dashboard = bool(session.get('setup_from_dashboard'))
-    
+
+    # Sans la collaboration entre enseignants (masquée), cette page n'a plus
+    # de raison d'être : les classes se créent depuis le tableau de bord et
+    # depuis Gestion de classe, qui reçoit aussi la suppression et la corbeille.
+    from utils.feature_flags import TEACHER_COLLABORATION
+    if request.method == 'GET' and not TEACHER_COLLABORATION:
+        if current_user.classrooms.filter_by(is_temporary=False).count():
+            return redirect(url_for('planning.manage_classes'))
+        return redirect(url_for('planning.dashboard'))
+
     # Utiliser un formulaire simple pour l'ajout de classes individuelles
     form = ClassroomForm()
-    
+
     if request.method == 'POST':
         action_type = request.form.get('action_type')
-        
+        if action_type != 'create' and not TEACHER_COLLABORATION:
+            abort(404)
+
         if action_type == 'create':
             # Création d'une nouvelle classe
             if form.validate_on_submit():
@@ -993,6 +1004,9 @@ def manage_classrooms():
                     # Sinon, ne pas marquer automatiquement comme maître - laisser le bouton "Devenir maître" disponible
                     
                     flash(f'Classe "{classroom.name}" créée avec succès !', 'success')
+                    if not TEACHER_COLLABORATION or request.form.get('next') == 'manage_classes':
+                        return redirect(url_for('planning.manage_classes',
+                                                classroom=classroom.class_group or classroom.name))
                     return redirect(url_for('setup.manage_classrooms'))
                 except Exception as e:
                     db.session.rollback()
@@ -1871,7 +1885,47 @@ def manage_classrooms():
                          received_invitations=received_invitations,
                          sent_invitations=sent_invitations,
                          from_dashboard=from_dashboard,
-                         my_access_code=_get_or_create_teacher_access_code())
+                         my_access_code=_get_or_create_teacher_access_code() if TEACHER_COLLABORATION else None)
+
+@setup_bp.route('/api/classrooms/bulk-create', methods=['POST'])
+@login_required
+def api_bulk_create_classrooms():
+    """Démarrage guidé du tableau de bord : plusieurs classes d'un coup
+    (nom, matière, couleur). Même règle de groupe que la création classique :
+    le nom avant le tiret devient le class_group."""
+    import re as _re
+    data = request.get_json(silent=True) or {}
+    items = data.get('classrooms') or []
+    created = []
+    for it in items[:30]:
+        if not isinstance(it, dict):
+            continue
+        name = (it.get('name') or '').strip()[:100]
+        subject = (it.get('subject') or '').strip()[:100]
+        color = (it.get('color') or '#4F46E5').strip()
+        if not name or not subject:
+            continue
+        if not _re.fullmatch(r'#[0-9A-Fa-f]{6}', color):
+            color = '#4F46E5'
+        if Classroom.query.filter_by(user_id=current_user.id, name=name, subject=subject).first():
+            continue
+        match = _re.match(r'^([^-]+?)(?:\s*-\s*.*)?$', name)
+        class_group = match.group(1).strip() if match else name
+        classroom = Classroom(user_id=current_user.id, name=name, subject=subject,
+                              color=color, class_group=class_group)
+        db.session.add(classroom)
+        created.append(classroom)
+    if not created:
+        return jsonify({'success': False,
+                        'message': 'Indique au moins un nom de classe et une matière.'}), 400
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    return jsonify({'success': True,
+                    'created': [{'id': c.id, 'name': c.name, 'subject': c.subject} for c in created]})
+
 
 @setup_bp.route('/api/own-classes', methods=['GET'])
 @login_required
@@ -2673,7 +2727,7 @@ def restore_from_corbeille(entry_id):
     except Exception as e:
         db.session.rollback()
         flash(f"Échec de la restauration : {e}", 'error')
-    return redirect(url_for('setup.manage_classrooms'))
+    return redirect(url_for('planning.manage_classes'))
 
 
 @setup_bp.route('/corbeille/<int:entry_id>/delete', methods=['POST'])
@@ -2893,9 +2947,11 @@ def delete_classroom(id):
     
     # Nettoyer automatiquement les plannings orphelins après suppression
     _cleanup_orphaned_schedules()
-    
+
     db.session.commit()
-    return redirect(url_for('setup.manage_classrooms'))
+    if current_user.classrooms.filter_by(is_temporary=False).count():
+        return redirect(url_for('planning.manage_classes'))
+    return redirect(url_for('planning.dashboard'))
 
 @setup_bp.route('/sync-class-masters')
 @login_required
@@ -3141,15 +3197,18 @@ def import_holidays():
     canton = request.form.get('canton', 'vaud')
     school_year = request.form.get('school_year', '')
     include_feries = request.form.get('include_feries') == 'true'
+    # Lancé depuis le démarrage guidé du tableau de bord → on y revient.
+    back = (url_for('planning.dashboard') if request.form.get('next') == 'dashboard'
+            else url_for('setup.manage_holidays'))
 
     if canton not in VACATIONS or school_year not in VACATIONS.get(canton, {}):
         flash('Sélection de canton ou d\'année scolaire invalide.', 'warning')
-        return redirect(url_for('setup.manage_holidays'))
+        return redirect(back)
 
     periods = get_import_periods(canton, school_year, include_feries)
     if not periods:
         flash('Aucune donnée de vacances disponible pour cette sélection.', 'warning')
-        return redirect(url_for('setup.manage_holidays'))
+        return redirect(back)
 
     if request.form.get('replace_existing') == 'true':
         Holiday.query.filter_by(user_id=current_user.id).delete()
@@ -3188,7 +3247,7 @@ def import_holidays():
         db.session.rollback()
         flash(f'Erreur lors de l\'import : {str(e)}', 'error')
 
-    return redirect(url_for('setup.manage_holidays'))
+    return redirect(back)
 
 @setup_bp.route('/breaks/<int:id>/delete', methods=['POST'])
 @login_required

@@ -12,110 +12,31 @@ from utils.platform_detection import is_ios_native_app
 subscription_bp = Blueprint('subscription', __name__, url_prefix='/subscription')
 
 
-@subscription_bp.route('/choose-plan', methods=['GET', 'POST'])
-@login_required
-def choose_plan():
-    """Page de choix d'abonnement juste après l'inscription.
-
-    L'utilisateur vient d'avoir 30 jours d'essai Premium offerts par
-    ``routes.auth.register`` (auth.py grant_premium_access(30)). Il peut :
-      - garder le compte gratuit avec ces 30 jours d'essai → on continue
-        directement vers le setup initial (aucun moyen de paiement
-        demandé, l'accès retombe sur Free à expiration du trial)
-      - s'abonner Premium mensuel ou annuel → Stripe Checkout (web) ou
-        paywall natif StoreKit (iPad app native). Dans les deux cas un
-        essai gratuit de 30 jours est offert avant la première facture.
-
-    Sur iOS l'écran reste accessible (avec les bons CTA déclenchant le
-    paywall natif) maintenant que l'app supporte l'In-App Purchase via
-    StoreKit 2. Apple guideline 3.1.1 reste respectée car la page n'envoie
-    PAS vers Stripe sur l'app native — les boutons appellent le bridge
-    `window.webkit.messageHandlers.iap.postMessage({...})` géré côté
-    Swift par PaywallViewController.
-    """
-    # POST = choix soumis par le formulaire web (Stripe). L'iPad ne POSTe
-    # jamais ici : ses boutons « S'abonner » déclenchent le paywall natif
-    # via JavaScript bridge — voir templates/subscription/choose_plan.html.
-    if request.method == 'POST':
-        choice = request.form.get('choice', 'trial')
-        if choice == 'trial':
-            # Le trial 30 jours est déjà actif depuis l'inscription :
-            # rien à faire, on file au setup.
-            return redirect(url_for('setup.initial_setup'))
-
-        # Sur iOS, on ne devrait jamais arriver ici (paywall natif appelé
-        # côté Swift via le bridge JS — le formulaire n'est pas soumis).
-        # Filet de sécurité : si quelqu'un POSTe quand même depuis iOS, on
-        # le ramène à la page choose_plan plutôt que d'ouvrir Stripe.
-        if is_ios_native_app():
-            return redirect(url_for('subscription.choose_plan'))
-
-        # Web : on déclenche Stripe Checkout avec un trial de 30 jours.
-        billing_cycle = 'annual' if choice == 'annual' else 'monthly'
-        try:
-            stripe.api_key = current_app.config.get('STRIPE_SECRET_KEY')
-            price_id = (current_app.config.get('STRIPE_PRICE_ANNUAL')
-                        if billing_cycle == 'annual'
-                        else current_app.config.get('STRIPE_PRICE_MONTHLY'))
-            if not price_id:
-                flash(_('Configuration de prix manquante côté serveur.'), 'error')
-                return redirect(url_for('subscription.choose_plan'))
-
-            if not current_user.stripe_customer_id:
-                customer = stripe.Customer.create(
-                    email=current_user.email,
-                    name=current_user.username,
-                    metadata={'user_id': str(current_user.id)}
-                )
-                current_user.stripe_customer_id = customer.id
-                db.session.commit()
-
-            checkout_session = stripe.checkout.Session.create(
-                customer=current_user.stripe_customer_id,
-                payment_method_types=['card'],
-                line_items=[{'price': price_id, 'quantity': 1}],
-                mode='subscription',
-                # Période d'essai gratuite de 30 jours. Stripe ne facture
-                # qu'à la fin de cette période — l'utilisateur peut annuler
-                # à tout moment sans être débité.
-                subscription_data={'trial_period_days': 30},
-                # Retour : on passe par /subscription/success qui activera
-                # l'abonnement puis redirigera vers le setup.
-                success_url=url_for('subscription.success', _external=True)
-                            + '?session_id={CHECKOUT_SESSION_ID}&from_signup=1',
-                cancel_url=url_for('subscription.choose_plan', _external=True),
-                client_reference_id=str(current_user.id),
-                locale=str(get_locale() or 'fr'),
-            )
-            return redirect(checkout_session.url)
-        except stripe.error.StripeError as e:
-            current_app.logger.error(f"Erreur Stripe choose_plan: {e}")
-            flash(_('Erreur de paiement : %(err)s', err=str(e)), 'error')
-            return redirect(url_for('subscription.choose_plan'))
-
-    # GET : afficher la page de choix sur web ET iOS.
-    return render_template('subscription/choose_plan.html',
-                           premium_until=current_user.premium_until)
-
-
 @subscription_bp.route('/pricing')
 def pricing():
     """Page de tarification avec les différentes offres.
 
+    C'est aussi la page d'arrivée d'un nouveau compte : l'outil est payant
+    dès l'inscription, le prof choisit ici sa formule (Stripe sur le web).
     Sur les apps iOS natives, Apple impose que les abonnements digitaux
-    passent obligatoirement par In-App Purchase. On affiche donc un template
-    dédié qui invite l'utilisateur à souscrire depuis le site web.
+    passent par In-App Purchase : template dédié qui ouvre le paywall
+    StoreKit natif.
     """
     is_premium = False
-    if current_user.is_authenticated and hasattr(current_user, 'has_premium_access'):
+    is_teacher = current_user.is_authenticated and hasattr(current_user, 'has_premium_access')
+    if is_teacher:
         is_premium = current_user.has_premium_access()
+    # Enseignant connecté sans abonnement : l'accès à l'outil attend ce choix.
+    needs_subscription = bool(is_teacher and not is_premium)
 
     if is_ios_native_app():
-        return render_template('subscription/pricing_ios.html', is_premium=is_premium)
+        return render_template('subscription/pricing_ios.html', is_premium=is_premium,
+                               needs_subscription=needs_subscription)
 
     return render_template('subscription/pricing.html',
                            stripe_public_key=current_app.config.get('STRIPE_PUBLIC_KEY'),
-                           is_premium=is_premium)
+                           is_premium=is_premium,
+                           needs_subscription=needs_subscription)
 
 
 @subscription_bp.route('/checkout', methods=['POST'])
@@ -228,12 +149,6 @@ def success():
                     current_app.logger.info(f"Subscription activated for user {current_user.id} via success page")
         except Exception as e:
             current_app.logger.error(f"Error verifying checkout session: {e}")
-
-    # Si on vient juste de l'inscription, on enchaîne avec le setup initial
-    # au lieu d'afficher la page « merci » habituelle.
-    if request.args.get('from_signup') == '1':
-        flash(_('Bienvenue dans Premium ! On va maintenant configurer votre compte.'), 'success')
-        return redirect(url_for('setup.initial_setup'))
 
     return render_template('subscription/success.html')
 
@@ -488,8 +403,9 @@ def _handle_subscription_deleted(sub_data):
     if not user:
         return
 
-    user.subscription_tier = 'freemium'
-    user.premium_until = None
+    if not user.lifetime_premium:  # un accès à vie n'est jamais retiré
+        user.subscription_tier = 'freemium'
+        user.premium_until = None
     user.stripe_subscription_id = None
 
     sub = Subscription.query.filter_by(stripe_subscription_id=sub_data['id']).first()

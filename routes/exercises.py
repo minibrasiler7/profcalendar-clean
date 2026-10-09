@@ -523,6 +523,9 @@ def launch_exercise():
     exercise_id = data.get('exercise_id')
     classroom_id = data.get('classroom_id')
     mode = data.get('mode', 'classique')  # 'classique' ou 'combat'
+    from utils.feature_flags import RPG_COMBAT
+    if not RPG_COMBAT:
+        mode = 'classique'  # le combat RPG est masqué
 
     if not exercise_id or not classroom_id:
         return jsonify({'success': False, 'error': 'exercise_id et classroom_id requis'}), 400

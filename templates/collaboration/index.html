@@ -238,7 +238,8 @@
         </div>
     </div>
 
-    <!-- Section 3: Code d'accès enseignant -->
+    <!-- Section 3: Code d'accès enseignant (collaboration entre enseignants, masquée) -->
+    {% if FEATURE_COLLAB %}
     <div class="section-card">
         <div class="section-header">
             <h2 class="section-title">
@@ -275,6 +276,7 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
 </div>
 
 

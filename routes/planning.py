@@ -642,26 +642,27 @@ def dashboard():
     # le dashboard" (le drapeau est posé en session par setup.manage_classrooms).
     session.pop('setup_from_dashboard', None)
 
-    # Vérifier que la configuration de base est complète
-    if not current_user.setup_completed:
-        if not current_user.school_year_start:
-            flash('Veuillez d\'abord compléter la configuration initiale.', 'warning')
-            return redirect(url_for('setup.initial_setup'))
-        elif current_user.classrooms.filter_by(is_temporary=False).count() == 0:
-            flash('Veuillez d\'abord ajouter au moins une classe.', 'warning')
-            return redirect(url_for('setup.manage_classrooms'))
-        else:
-            flash('Veuillez terminer la configuration de base.', 'warning')
-            return redirect(url_for('setup.manage_holidays'))
-
-    # Vérifier que l'horaire type est complété
-    if not current_user.schedule_completed:
-        flash('Veuillez d\'abord créer votre horaire type.', 'warning')
-        return redirect(url_for('schedule.weekly_schedule'))
+    # Un seul chemin : le tableau de bord accueille tout le monde. Les réglages
+    # de base manquants (anciens comptes) reçoivent les valeurs par défaut, et
+    # le démarrage guidé ci-dessous couvre classes, horaire et vacances.
+    if not current_user.school_year_start or not current_user.day_start_time:
+        current_user.apply_smart_defaults()
+        db.session.commit()
+    elif not current_user.setup_completed or not current_user.schedule_completed:
+        current_user.setup_completed = True
+        current_user.schedule_completed = True
+        db.session.commit()
 
     # Statistiques pour le tableau de bord (uniquement classes non temporaires)
     classrooms_count = current_user.classrooms.filter_by(is_temporary=False).count()
     schedules_count = current_user.schedules.count()
+    holidays_count = current_user.holidays.count()
+
+    # Démarrage guidé, étape « vacances » : import par canton depuis le tableau de bord
+    from data.cantonal_holidays import available_cantons, years_by_canton, default_school_year
+    import_cantons = available_cantons()
+    import_years_by_canton = years_by_canton()
+    import_default_year = default_school_year(current_user.school_year_start)
 
     # Progression d'onboarding (checklist « 3 étapes » du dashboard)
     from models.student import Student as _OnbStudent
@@ -784,6 +785,11 @@ def dashboard():
         db.session.rollback()
         current_app.logger.warning(f"Dashboard tasks/layout indisponibles: {_e_dash}")
 
+    from utils.feature_flags import DASHBOARD_LAYOUTS
+    if not DASHBOARD_LAYOUTS:
+        dashboard_layout = None
+        dashboard_layout_custom = None
+
     return render_template('planning/dashboard.html',
                          dashboard_tasks=dashboard_tasks,
                          dashboard_links=dashboard_links,
@@ -791,6 +797,10 @@ def dashboard():
                          dashboard_layout_custom=dashboard_layout_custom,
                          classrooms_count=classrooms_count,
                          schedules_count=schedules_count,
+                         holidays_count=holidays_count,
+                         import_cantons=import_cantons,
+                         import_years_by_canton=import_years_by_canton,
+                         import_default_year=import_default_year,
                          students_count=students_count,
                          has_any_planning=has_any_planning,
                          onboarding_dismissed=getattr(current_user, 'onboarding_dismissed', False),
@@ -2677,8 +2687,8 @@ def manage_classes():
         if temp_classrooms:
             flash('Vos classes sont en attente d\'approbation par le maître de classe. Vous ne pouvez pas encore accéder à la gestion.', 'warning')
         else:
-            flash('Veuillez d\'abord créer au moins une classe.', 'warning')
-        return redirect(url_for('setup.manage_classrooms'))
+            flash('Crée d\'abord une classe : c\'est la première étape du tableau de bord.', 'warning')
+        return redirect(url_for('planning.dashboard'))
     
     # Regrouper les classes par class_group
     from collections import defaultdict

@@ -135,22 +135,11 @@ def login():
             login_user(user, remember=True)
             next_page = request.args.get('next')
             if not next_page or urlparse(next_page).netloc != '':
-                # Déterminer où rediriger en fonction de l'état de configuration.
-                # Les nouveaux comptes ont setup_completed/schedule_completed=True
-                # (apply_smart_defaults) → ils vont droit au tableau de bord.
-                # On ne garde le guidage pas-à-pas que pour d'éventuels comptes
-                # "legacy" restés en cours de configuration. On ne force PLUS la
-                # création d'une classe avant d'entrer (c'était un mur) : le
-                # dashboard affiche un appel à l'action pour créer la 1re classe.
-                if not user.setup_completed:
-                    if not user.school_year_start or not user.day_start_time:
-                        next_page = url_for('setup.initial_setup')
-                    else:
-                        next_page = url_for('setup.manage_classrooms')
-                elif not user.schedule_completed:
-                    next_page = url_for('schedule.weekly_schedule')
-                else:
-                    next_page = url_for('planning.dashboard')
+                # Un seul chemin : le tableau de bord. Il complète lui-même les
+                # réglages manquants (apply_smart_defaults) et guide les
+                # premiers pas (classes, horaire, vacances). Le contrôle
+                # d'abonnement se fait dans le middleware (app.py).
+                next_page = url_for('planning.dashboard')
             return redirect(next_page)
         else:
             # Incrémenter les tentatives échouées
@@ -189,27 +178,14 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        # Essai gratuit : 30 jours de Premium offerts à l'inscription — ou 60
-        # si le prof vient d'un lien de parrainage. On relie alors le filleul au
-        # parrain ; le parrain est récompensé (+30 j) à la vérification email du
-        # filleul (voir verify_email), pas avant, pour éviter les faux comptes.
+        # Plus d'essai gratuit : l'abonnement est choisi juste après la
+        # vérification de l'email. Un lien de parrainage relie seulement le
+        # filleul au parrain ; le parrain est récompensé (+30 j) à la
+        # vérification email du filleul (voir verify_email).
         ref_code = session.pop('ref_code', None)
         referrer = User.query.filter_by(referral_code=ref_code).first() if ref_code else None
         if referrer and referrer.id != user.id:
             user.referred_by_id = referrer.id
-            user.grant_premium_access(days=60)
-        else:
-            user.grant_premium_access(days=30)
-
-        # Créer automatiquement un code d'accès par défaut pour les enseignants spécialisés
-        from models.class_collaboration import TeacherAccessCode
-        default_access_code = TeacherAccessCode(
-            master_teacher_id=user.id,
-            code=TeacherAccessCode.generate_code(6),
-            max_uses=None,
-            expires_at=None
-        )
-        db.session.add(default_access_code)
 
         # Générer et envoyer le code de vérification email
         verification = EmailVerification.create_verification(user.email, 'teacher')
@@ -290,14 +266,14 @@ def verify_email():
                 except Exception:
                     pass
 
-            flash(_('Bienvenue sur ProfCalendar ! 🎉 Tu profites de 30 jours de Premium offerts — toutes les fonctionnalités débloquées.'),
-                  'success')
-            # On entre DIRECTEMENT dans l'app : la config est déjà pré-remplie
-            # (apply_smart_defaults à l'inscription) et l'essai Premium 30 j est
-            # déjà actif. Le choix d'abonnement est proposé plus tard, une fois
-            # le prof actif — avant, l'écran de plan ici faisait fuir tout le
-            # monde alors qu'ils avaient déjà 30 j gratuits.
-            return redirect(url_for('planning.dashboard'))
+            # Email confirmé → choix de l'abonnement (page web Stripe, ou
+            # paywall StoreKit natif dans l'app iOS via pricing_ios.html). Un
+            # compte déjà Premium (bon, accès à vie) file au tableau de bord.
+            if user.has_premium_access():
+                flash(_('Bienvenue sur ProfCalendar ! 🎉'), 'success')
+                return redirect(url_for('planning.dashboard'))
+            flash(_('Bienvenue sur ProfCalendar ! 🎉 Choisis ton abonnement pour commencer.'), 'success')
+            return redirect(url_for('subscription.pricing'))
         else:
             flash(_('Code invalide ou expiré.'), 'error')
 
@@ -363,16 +339,7 @@ def verify_totp():
             login_user(user, remember=True)
 
             if not next_page or urlparse(next_page).netloc != '':
-                if not user.school_year_start or not user.day_start_time:
-                    next_page = url_for('setup.initial_setup')
-                elif user.classrooms.count() == 0:
-                    next_page = url_for('setup.manage_classrooms')
-                elif not user.setup_completed:
-                    next_page = url_for('setup.manage_holidays')
-                elif not user.schedule_completed:
-                    next_page = url_for('schedule.weekly_schedule')
-                else:
-                    next_page = url_for('planning.dashboard')
+                next_page = url_for('planning.dashboard')
             return redirect(next_page)
         else:
             flash(_('Code invalide. Veuillez réessayer.'), 'error')

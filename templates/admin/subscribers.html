@@ -74,12 +74,14 @@
                     <td>{{ user.username }}</td>
                     <td>{{ user.email }}</td>
                     <td>
-                        {% if user.has_premium_access() %}
+                        {% if user.lifetime_premium %}
+                        <span class="badge-active" style="background:#DBEAFE;color:#1E40AF;">À vie</span>
+                        {% elif user.has_premium_access() %}
                         <span class="badge-active">Premium</span>
                         {% elif user.subscription_tier == 'premium' %}
-                        <span class="badge-free" style="background:#FEF3C7;color:#92400E;">Essai expiré</span>
+                        <span class="badge-free" style="background:#FEF3C7;color:#92400E;">Accès expiré</span>
                         {% else %}
-                        <span class="badge-free">Gratuit</span>
+                        <span class="badge-free">Sans abonnement</span>
                         {% endif %}
                     </td>
                     <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>

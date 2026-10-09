@@ -9,8 +9,14 @@
 {% block content %}
 <div class="pricing-page">
     <div class="pricing-hero">
+        {% if needs_subscription %}
+        <h1><i class="fas fa-crown"></i> {{ _('Choisis ton abonnement pour commencer') }}</h1>
+        <p>{{ _('ProfCalendar est un outil payant, sans engagement : choisis la formule qui te convient. Tu peux résilier à tout moment.') }}</p>
+        <p style="margin-top:0.5rem; font-size:0.9rem; opacity:0.85;"><a href="{{ url_for('auth.logout') }}" style="color:inherit;">{{ _('Déconnexion') }}</a></p>
+        {% else %}
         <h1><i class="fas fa-crown"></i> {{ _('Passez à Premium') }}</h1>
         <p>{{ _('Débloquez toutes les fonctionnalités de ProfCalendar pour gérer vos classes efficacement') }}</p>
+        {% endif %}
     </div>
 
     {% if is_premium %}
@@ -21,33 +27,6 @@
     {% endif %}
 
     <div class="pricing-cards">
-        <!-- Carte Freemium -->
-        <div class="pricing-card">
-            <div class="card-header">
-                <h2>{{ _('Gratuit') }}</h2>
-                <div class="price">
-                    <span class="amount">CHF 0</span>
-                </div>
-                <p class="price-sub">{{ _('Pour toujours') }}</p>
-            </div>
-            <ul class="features">
-                <li class="included"><i class="fas fa-check"></i> {{ _('Tableau de bord') }}</li>
-                <li class="included"><i class="fas fa-check"></i> {{ _('Planification des cours') }}</li>
-                <li class="included"><i class="fas fa-check"></i> {{ _('Calendrier scolaire') }}</li>
-                <li class="included"><i class="fas fa-check"></i> {{ _('Configuration de base') }}</li>
-                <li class="included"><i class="fas fa-check"></i> {{ _("Fin d'année scolaire") }}</li>
-                <li class="excluded"><i class="fas fa-lock"></i> {{ _('Gestion de classe') }}</li>
-                <li class="excluded"><i class="fas fa-lock"></i> {{ _('Notes et évaluations') }}</li>
-                <li class="excluded"><i class="fas fa-lock"></i> {{ _('Suivi des absences') }}</li>
-                <li class="excluded"><i class="fas fa-lock"></i> {{ _('Sanctions') }}</li>
-                <li class="excluded"><i class="fas fa-lock"></i> {{ _('Collaboration enseignants') }}</li>
-                <li class="excluded"><i class="fas fa-lock"></i> {{ _('Gestionnaire de fichiers') }}</li>
-            </ul>
-            <div class="card-footer">
-                <span class="btn-current">{{ _('Plan actuel') }}</span>
-            </div>
-        </div>
-
         <!-- Carte Premium Mensuel -->
         <div class="pricing-card featured">
             <div class="card-badge">{{ _('Le plus populaire') }}</div>
@@ -61,12 +40,12 @@
                 <p class="price-sub">{{ _('Facturé mensuellement') }}</p>
             </div>
             <ul class="features">
-                <li class="included"><i class="fas fa-check"></i> {{ _('Tout du plan gratuit') }}</li>
+                <li class="included"><i class="fas fa-check"></i> {{ _('Toutes les fonctionnalités') }}</li>
+                <li class="included highlight"><i class="fas fa-star"></i> {{ _('Planification des cours') }}</li>
                 <li class="included highlight"><i class="fas fa-star"></i> {{ _('Gestion de classe') }}</li>
                 <li class="included highlight"><i class="fas fa-star"></i> {{ _('Notes et évaluations') }}</li>
                 <li class="included highlight"><i class="fas fa-star"></i> {{ _('Suivi des absences') }}</li>
                 <li class="included highlight"><i class="fas fa-star"></i> {{ _('Sanctions') }}</li>
-                <li class="included highlight"><i class="fas fa-star"></i> {{ _('Collaboration enseignants') }}</li>
                 <li class="included highlight"><i class="fas fa-star"></i> {{ _('Gestionnaire de fichiers') }}</li>
                 <li class="included highlight"><i class="fas fa-star"></i> {{ _('Plan de classe & impression') }}</li>
                 <li class="included"><i class="fas fa-check"></i> {{ _('50 Go de stockage') }}</li>
@@ -119,7 +98,7 @@
     <!-- Section Bon -->
     <div class="voucher-section">
         <h3><i class="fas fa-ticket-alt"></i> {{ _('Vous avez un bon ?') }}</h3>
-        <p>{{ _("Entrez votre code pour activer l'accès premium gratuitement") }}</p>
+        <p>{{ _('Entrez votre code pour activer votre accès') }}</p>
         {% if current_user.is_authenticated %}
         <div class="voucher-form">
             <input type="text" id="voucherCode" placeholder="{{ _('Code du bon (ex: ABCD1234)') }}" maxlength="50" autocomplete="off">

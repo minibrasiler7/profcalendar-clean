@@ -452,14 +452,9 @@
             </div>
             {% endif %}
 
-            <a href="{{ url_for('setup.initial_setup') }}" class="action-button" style="background: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%); border-color: var(--gray-color);">
+            <a href="{{ url_for('settings.index') }}" class="action-button" style="background: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%); border-color: var(--gray-color);">
                 <i class="fas fa-cog" style="color: var(--gray-color);"></i>
                 <span>{{ _('Paramètres') }}</span>
-            </a>
-
-            <a href="{{ url_for('setup.manage_classrooms') }}?from_dashboard=1" class="action-button" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-color: var(--success-color);">
-                <i class="fas fa-chalkboard-teacher" style="color: var(--success-color);"></i>
-                <span>{{ _('Configuration des classes') }}</span>
             </a>
 
             <a href="{{ url_for('schedule.view_schedule') }}" class="action-button" style="background: linear-gradient(135deg, #F0F9FF 0%, #DBEAFE 100%); border-color: var(--secondary-color);">
@@ -566,7 +561,8 @@
         </div>
     </div>
 
-    <!-- Barre de disposition du tableau de bord (comme sur la page lesson) -->
+    <!-- Barre de disposition du tableau de bord (masquée : FEATURE_DASHBOARD_LAYOUTS) -->
+    {% if FEATURE_LAYOUTS %}
     <div class="dashboard-layout-bar">
         <span class="dashboard-layout-label"><i class="fas fa-th-large"></i> {{ _('Disposition') }} :</span>
         <div class="dashboard-layout-buttons" role="group" aria-label="{{ _('Disposition du tableau de bord') }}">
@@ -595,18 +591,30 @@
                 {{ _('Glissez un widget par sa poignée ; tirez le séparateur entre les colonnes pour ajuster les largeurs.') }}</span>
         </span>
     </div>
+    {% endif %}
 
-    {# --- Onboarding : appel à l'action affiché tant que le prof n'a pas créé
-       de classe. C'est le SEUL geste d'activation demandé : tout le reste
-       (horaire, année scolaire…) est déjà pré-rempli par apply_smart_defaults.
-       Avant, ce geste était un mur de 6 écrans qui faisait fuir 100% des
-       inscrits ; ici c'est une invitation, pas une obligation. --#}
+    {# --- Démarrage guidé : trois étapes, directement ici. 1) les classes
+       (plusieurs d'un coup), 2) l'horaire type (la grille), 3) les vacances
+       (import par canton en un clic). Les élèves viennent après, et restent
+       facultatifs. Fermable ; disparaît une fois les trois étapes faites. --#}
     {% set onb_step1 = classrooms_count > 0 %}
-    {% set onb_step2 = students_count > 0 %}
-    {% set onb_step3 = has_any_planning %}
+    {% set onb_step2 = schedules_count > 0 %}
+    {% set onb_step3 = holidays_count > 0 %}
     {% set onb_done = (1 if onb_step1 else 0) + (1 if onb_step2 else 0) + (1 if onb_step3 else 0) %}
     {% if onb_done < 3 and not onboarding_dismissed %}
     {% set onb_current = 1 if not onb_step1 else (2 if not onb_step2 else 3) %}
+    <style>
+        .onb-form { margin-top: 0.6rem; }
+        .onb-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.45rem; }
+        .onb-row input[type="text"], .onb-row select { flex: 1; min-width: 140px; padding: 0.55rem 0.7rem; border: 1px solid #C7D2FE; border-radius: 0.5rem; font-size: 0.95rem; background: #fff; }
+        .onb-row input[type="color"] { width: 44px; height: 38px; padding: 2px; border: 1px solid #C7D2FE; border-radius: 0.5rem; background: #fff; cursor: pointer; }
+        .onb-form-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-top: 0.4rem; }
+        .onb-link { background: none; border: none; color: #4F46E5; font-weight: 600; cursor: pointer; padding: 0.4rem 0; font-size: 0.9rem; }
+        .onb-link:hover { text-decoration: underline; }
+        .onb-cta[disabled] { opacity: 0.6; cursor: wait; }
+        .onb-small { font-size: 0.8rem; color: #6B7280; margin-top: 0.4rem; }
+        .onb-small a { color: #4F46E5; }
+    </style>
     <style>
         .onb-card { background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border: 1px solid var(--primary-color, #6366F1); border-radius: var(--border-radius, 0.75rem); padding: 1.5rem 1.75rem; margin-bottom: 2rem; }
         .onb-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
@@ -641,12 +649,27 @@
                 {% if onb_step1 %}<i class="fas fa-check"></i>{% else %}1{% endif %}
             </div>
             <div class="onb-body">
-                <h3 class="{{ 'is-done' if onb_step1 else '' }}">{{ _('Créer ta première classe') }}</h3>
-                <p>{{ _('Donne-lui un nom et une discipline. Ça prend 30 secondes.') }}</p>
+                <h3 class="{{ 'is-done' if onb_step1 else '' }}">{{ _('Crée tes classes') }}</h3>
+                <p>{{ _("Un nom, une matière, une couleur. Ajoute-les toutes d'un coup.") }}</p>
                 {% if onb_current == 1 %}
-                <a class="onb-cta" id="onboarding-primary-cta" href="{{ url_for('setup.manage_classrooms') }}?from_dashboard=1">
-                    <i class="fas fa-plus"></i> {{ _('Créer ma classe') }}
-                </a>
+                <form id="onbClassesForm" class="onb-form" onsubmit="return onbCreateClasses(event)">
+                    <div id="onbClassRows">
+                        <div class="onb-row">
+                            <input type="text" name="name" placeholder="{{ _('Nom (ex. 9VP2)') }}" required maxlength="100" autocomplete="off">
+                            <input type="text" name="subject" placeholder="{{ _('Matière (ex. Maths)') }}" required maxlength="100" autocomplete="off">
+                            <input type="color" name="color" value="#4F46E5" title="{{ _('Couleur') }}">
+                        </div>
+                    </div>
+                    <div class="onb-form-actions">
+                        <button type="submit" class="onb-cta" id="onboarding-primary-cta" style="margin-top:0;">
+                            <i class="fas fa-check"></i> {{ _('Créer mes classes') }}
+                        </button>
+                        <button type="button" class="onb-link" onclick="onbAddClassRow()">
+                            <i class="fas fa-plus"></i> {{ _('Une autre classe') }}
+                        </button>
+                    </div>
+                    <p id="onbClassesError" style="display:none; margin-top:0.5rem; color:#B91C1C; font-size:0.85rem;"></p>
+                </form>
                 {% endif %}
             </div>
         </div>
@@ -656,11 +679,11 @@
                 {% if onb_step2 %}<i class="fas fa-check"></i>{% else %}2{% endif %}
             </div>
             <div class="onb-body">
-                <h3 class="{{ 'is-done' if onb_step2 else '' }}">{{ _('Ajouter tes élèves') }}</h3>
-                <p>{{ _('Un par un, ou en collant ta liste depuis Excel (import CSV).') }}</p>
+                <h3 class="{{ 'is-done' if onb_step2 else '' }}">{{ _('Compose ton horaire') }}</h3>
+                <p>{{ _('Clique sur les périodes de ta semaine et choisis la classe. Valide : tu reviens ici.') }}</p>
                 {% if onb_current == 2 %}
-                <a class="onb-cta" id="onboarding-primary-cta" href="{{ url_for('planning.manage_classes') }}">
-                    <i class="fas fa-user-plus"></i> {{ _('Ajouter des élèves') }}
+                <a class="onb-cta" id="onboarding-primary-cta" href="{{ url_for('schedule.weekly_schedule') }}">
+                    <i class="fas fa-calendar-week"></i> {{ _("Ouvrir l'horaire") }}
                 </a>
                 {% endif %}
             </div>
@@ -671,16 +694,82 @@
                 {% if onb_step3 %}<i class="fas fa-check"></i>{% else %}3{% endif %}
             </div>
             <div class="onb-body">
-                <h3 class="{{ 'is-done' if onb_step3 else '' }}">{{ _('Planifier ton premier cours') }}</h3>
-                <p>{{ _('Ouvre le calendrier et clique sur une période pour la préparer.') }}</p>
+                <h3 class="{{ 'is-done' if onb_step3 else '' }}">{{ _('Importe tes vacances') }}</h3>
+                <p>{{ _('Choisis ton canton : vacances et jours fériés se placent tout seuls dans le calendrier.') }}</p>
                 {% if onb_current == 3 %}
-                <a class="onb-cta" id="onboarding-primary-cta" href="{{ url_for('planning.calendar_view') }}">
-                    <i class="fas fa-calendar-plus"></i> {{ _('Planifier un cours') }}
-                </a>
+                <form method="POST" action="{{ url_for('setup.import_holidays') }}" class="onb-form">
+                    <input type="hidden" name="next" value="dashboard">
+                    <input type="hidden" name="include_feries" value="true">
+                    <div class="onb-row">
+                        <select name="canton" id="onbCanton" aria-label="{{ _('Canton') }}">
+                            {% for c in import_cantons %}
+                            <option value="{{ c.slug }}">{{ c.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="school_year" id="onbYear" aria-label="{{ _('Année scolaire') }}"></select>
+                        <button type="submit" class="onb-cta" id="onboarding-primary-cta" style="margin-top:0;">
+                            <i class="fas fa-download"></i> {{ _('Importer') }}
+                        </button>
+                    </div>
+                    <p class="onb-small"><a href="{{ url_for('setup.manage_holidays') }}">{{ _('Pas en Suisse romande ? Saisir les vacances à la main') }}</a></p>
+                </form>
                 {% endif %}
             </div>
         </div>
     </div>
+    <script>
+    // Étape 1 : plusieurs classes d'un coup (POST JSON, puis rechargement).
+    function onbAddClassRow() {
+        var rows = document.getElementById('onbClassRows');
+        if (!rows || !rows.firstElementChild) return;
+        var clone = rows.firstElementChild.cloneNode(true);
+        clone.querySelectorAll('input').forEach(function (i) { if (i.type !== 'color') i.value = ''; });
+        rows.appendChild(clone);
+        var first = clone.querySelector('input'); if (first) first.focus();
+    }
+    async function onbCreateClasses(e) {
+        e.preventDefault();
+        var err = document.getElementById('onbClassesError');
+        var classrooms = Array.from(document.querySelectorAll('#onbClassRows .onb-row')).map(function (r) {
+            return { name: r.querySelector('[name=name]').value.trim(),
+                     subject: r.querySelector('[name=subject]').value.trim(),
+                     color: r.querySelector('[name=color]').value };
+        }).filter(function (c) { return c.name && c.subject; });
+        if (!classrooms.length) {
+            err.textContent = {{ _('Indique au moins un nom de classe et une matière.')|tojson }};
+            err.style.display = 'block'; return false;
+        }
+        var btn = document.getElementById('onboarding-primary-cta');
+        if (btn) btn.disabled = true;
+        try {
+            var r = await fetch('/setup/api/classrooms/bulk-create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify({ classrooms: classrooms })
+            });
+            var j = await r.json();
+            if (j.success) { window.location.reload(); return false; }
+            err.textContent = j.message || {{ _('Erreur lors de la création des classes.')|tojson }};
+        } catch (ex) {
+            err.textContent = {{ _('Erreur lors de la création des classes.')|tojson }};
+        }
+        err.style.display = 'block';
+        if (btn) btn.disabled = false;
+        return false;
+    }
+    // Étape 3 : années disponibles selon le canton choisi.
+    (function () {
+        var YBC = {{ import_years_by_canton|tojson }};
+        var def = {{ (import_default_year or '')|tojson }};
+        var c = document.getElementById('onbCanton'), y = document.getElementById('onbYear');
+        if (!c || !y) return;
+        function fill() {
+            var ys = YBC[c.value] || [];
+            y.innerHTML = ys.map(function (v) { return '<option value="' + v + '"' + (v === def ? ' selected' : '') + '>' + v + '</option>'; }).join('');
+        }
+        c.addEventListener('change', fill); fill();
+    })();
+    </script>
     {% endif %}
 
 
@@ -731,160 +820,21 @@
             <span>{{ _("Modifier l'horaire type") }}</span>
         </a>
 
-        {% set is_premium = current_user.has_premium_access() if current_user.has_premium_access is defined else false %}
+        {# Six tuiles : le reste (sanctions, absences, découpage, fin d'année,
+           parrainage, exercices) vit dans le menu utilisateur en haut à droite. #}
+        <a href="{{ url_for('planning.manage_classes') }}" class="action-button" style="background: linear-gradient(135deg, #F0F9FF 0%, #DBEAFE 100%); border-color: var(--secondary-color);">
+            <i class="fas fa-users" style="color: var(--secondary-color);"></i>
+            <span>{{ _('Gestion de classe') }}</span>
+        </a>
 
-        {% if is_premium %}
         <a href="{{ url_for('file_manager.index') }}" class="action-button" style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border-color: var(--primary-color);">
             <i class="fas fa-folder-open" style="color: var(--primary-color);"></i>
             <span>{{ _('Gestionnaire de fichiers') }}</span>
         </a>
-        {% elif is_ios_native_app %}
-        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
-            <i class="fas fa-folder-open" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Gestionnaire de fichiers') }}</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
-        </div>
-        {% else %}
-        <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
-            <i class="fas fa-folder-open" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Gestionnaire de fichiers') }}</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
-        </a>
-        {% endif %}
 
-        {% if is_premium %}
-        <a href="{{ url_for('exercises.index') }}" class="action-button" style="background: linear-gradient(135deg, #FDF4FF 0%, #F3E8FF 100%); border-color: #A855F7;">
-            <i class="fas fa-flask" style="color: #A855F7;"></i>
-            <span>{{ _('Exercices interactifs') }}</span>
-        </a>
-        {% elif is_ios_native_app %}
-        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
-            <i class="fas fa-flask" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Exercices interactifs') }}</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
-        </div>
-        {% else %}
-        <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
-            <i class="fas fa-flask" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Exercices interactifs') }}</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
-        </a>
-        {% endif %}
-
-        {% if is_premium %}
-        <a href="{{ url_for('sanctions.index') }}" class="action-button" style="background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%); border-color: var(--danger-color);">
-            <i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i>
-            <span>{{ _('Gestion des sanctions') }}</span>
-        </a>
-        {% elif is_ios_native_app %}
-        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
-            <i class="fas fa-exclamation-triangle" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Gestion des sanctions') }}</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
-        </div>
-        {% else %}
-        <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
-            <i class="fas fa-exclamation-triangle" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Gestion des sanctions') }}</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
-        </a>
-        {% endif %}
-
-        {% if is_premium %}
-        <a href="{{ url_for('attendance.index') }}" class="action-button" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-color: var(--success-color);">
-            <i class="fas fa-calendar-check" style="color: var(--success-color);"></i>
-            <span>{{ _('Suivi des absences') }}</span>
-        </a>
-        {% elif is_ios_native_app %}
-        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
-            <i class="fas fa-calendar-check" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Suivi des absences') }}</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
-        </div>
-        {% else %}
-        <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
-            <i class="fas fa-calendar-check" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Suivi des absences') }}</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
-        </a>
-        {% endif %}
-
-        <a href="{{ url_for('setup.initial_setup') }}" class="action-button" style="background: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%); border-color: var(--gray-color);">
+        <a href="{{ url_for('settings.index') }}" class="action-button" style="background: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%); border-color: var(--gray-color);">
             <i class="fas fa-cog" style="color: var(--gray-color);"></i>
             <span>{{ _('Paramètres') }}</span>
-        </a>
-
-        {% if is_premium %}
-        <a href="{{ url_for('planning.manage_classes') }}" class="action-button" style="background: linear-gradient(135deg, #F0F9FF 0%, #DBEAFE 100%); border-color: var(--secondary-color);">
-            <i class="fas fa-users" style="color: var(--secondary-color);"></i>
-            <span>{{ _('Gérer les classes') }}</span>
-        </a>
-        {% elif is_ios_native_app %}
-        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
-            <i class="fas fa-users" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Gérer les classes') }}</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
-        </div>
-        {% else %}
-        <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
-            <i class="fas fa-users" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Gérer les classes') }}</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
-        </a>
-        {% endif %}
-
-        <a href="{{ url_for('setup.manage_classrooms') }}?from_dashboard=1" class="action-button" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-color: var(--success-color);">
-            <i class="fas fa-chalkboard-teacher" style="color: var(--success-color);"></i>
-            <span>{{ _('Configuration des classes') }}</span>
-        </a>
-
-        {% if is_premium %}
-        <a href="{{ url_for('collaboration.index') }}" class="action-button" style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border-color: var(--primary-color);">
-            <i class="fas fa-handshake" style="color: var(--primary-color);"></i>
-            <span>{{ _('Collaboration') }}</span>
-        </a>
-        {% elif is_ios_native_app %}
-        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
-            <i class="fas fa-handshake" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Collaboration') }}</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
-        </div>
-        {% else %}
-        <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
-            <i class="fas fa-handshake" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Collaboration') }}</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
-        </a>
-        {% endif %}
-
-        {% if is_premium %}
-        <a href="{{ url_for('planning.decoupage') }}" class="action-button" style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border-color: var(--primary-color);">
-            <i class="fas fa-cut" style="color: var(--primary-color);"></i>
-            <span>{{ _('Création de découpage') }}</span>
-        </a>
-        {% elif is_ios_native_app %}
-        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
-            <i class="fas fa-cut" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Création de découpage') }}</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
-        </div>
-        {% else %}
-        <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
-            <i class="fas fa-cut" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">{{ _('Création de découpage') }}</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
-        </a>
-        {% endif %}
-
-        <a href="{{ url_for('year_end.step1') }}" class="action-button" style="background: linear-gradient(135deg, #FDF4FF 0%, #FAE8FF 100%); border-color: #A855F7;">
-            <i class="fas fa-graduation-cap" style="color: #A855F7;"></i>
-            <span>{{ _("Terminer et archiver l'année") }}</span>
-        </a>
-
-        <a href="{{ url_for('referral') }}" class="action-button" style="background: linear-gradient(135deg, #EEF2FF 0%, #DDD6FE 100%); border-color: #6366F1;">
-            <i class="fas fa-gift" style="color: #6366F1;"></i>
-            <span>{{ _('Inviter un collègue') }}</span>
-            <small style="font-size: 0.7rem; color: #6366F1; font-weight: 600;">{{ _('1 mois offert') }}</small>
         </a>
 
     </div>
@@ -1369,8 +1319,8 @@
     }
     </script>
 
-    <!-- Section des invitations reçues -->
-    {% if received_invitations %}
+    <!-- Section des invitations reçues (collaboration entre enseignants, masquée) -->
+    {% if FEATURE_COLLAB and received_invitations %}
     <div class="recent-activity" style="margin-bottom: 2rem;">
         <h2><i class="fas fa-envelope-open" style="color: #10B981;"></i> {{ _("Demandes d'invitation") }} ({{ received_invitations|length }})</h2>
         <p style="color: var(--gray-color); margin-bottom: 1.5rem; font-size: 0.9rem;">
@@ -1565,6 +1515,12 @@ let dashOriginalOrder = [];   // ordre initial des widgets (pour revenir aux pr�
     const main = document.getElementById('dashboardMain');
     if (!main) return;
     dashOriginalOrder = Array.from(main.querySelectorAll('.dashboard-card'));
+    // Dispositions masquées (FEATURE_DASHBOARD_LAYOUTS) : disposition par
+    // défaut, sans lire ce que le navigateur avait pu mémoriser.
+    if (!{{ 'true' if FEATURE_LAYOUTS else 'false' }}) {
+        applyDashLayout('default', false);
+        return;
+    }
 
     const serverLayout = {{ (dashboard_layout or '') | tojson }};
     const serverCustom = {{ (dashboard_layout_custom or '') | tojson }};

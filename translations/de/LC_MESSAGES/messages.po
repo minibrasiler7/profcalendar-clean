@@ -2865,6 +2865,132 @@ msgstr "Noch keine Links."
 msgid "Erreur lors de l'ajout"
 msgstr "Fehler beim Hinzufügen"
 
+msgid "Choisis ton abonnement pour accéder à ProfCalendar."
+msgstr "Wählen Sie Ihr Abonnement, um auf ProfCalendar zuzugreifen."
+
+msgid "Bienvenue sur ProfCalendar ! 🎉"
+msgstr "Willkommen bei ProfCalendar! 🎉"
+
+msgid "Bienvenue sur ProfCalendar ! 🎉 Choisis ton abonnement pour commencer."
+msgstr "Willkommen bei ProfCalendar! 🎉 Wählen Sie Ihr Abonnement, um loszulegen."
+
+msgid "Choisis ton abonnement pour commencer"
+msgstr "Wählen Sie Ihr Abonnement, um loszulegen"
+
+msgid "ProfCalendar est un outil payant, sans engagement : choisis la formule qui te convient. Tu peux résilier à tout moment."
+msgstr "ProfCalendar ist ein kostenpflichtiges Tool ohne Bindung: Wählen Sie das passende Modell. Sie können jederzeit kündigen."
+
+msgid "Entrez votre code pour activer votre accès"
+msgstr "Geben Sie Ihren Code ein, um Ihren Zugang zu aktivieren"
+
+msgid "Aucun abonnement actif"
+msgstr "Kein aktives Abonnement"
+
+msgid "Aucun abonnement actif sur ce compte."
+msgstr "Kein aktives Abonnement für dieses Konto."
+
+msgid "Choisir un abonnement"
+msgstr "Abonnement wählen"
+
+msgid "Créez votre compte"
+msgstr "Erstellen Sie Ihr Konto"
+
+msgid "Abonnement dès CHF 4.90 par mois, sans engagement."
+msgstr "Abonnement ab CHF 4.90 pro Monat, ohne Bindung."
+
+msgid "Pour utiliser ProfCalendar, choisis un abonnement. Tu peux aussi restaurer un achat existant."
+msgstr "Um ProfCalendar zu nutzen, wählen Sie ein Abonnement. Sie können auch einen bestehenden Kauf wiederherstellen."
+
+msgid "Débloquez toutes les fonctionnalités pour gérer vos classes : notes, présences, plan de classe, fichiers annotés et bien plus."
+msgstr "Schalten Sie alle Funktionen zur Klassenverwaltung frei: Noten, Anwesenheit, Sitzplan, annotierte Dateien und mehr."
+
+msgid "ProfCalendar simplifie la vie des enseignants : planification, suivi des présences, notes et fichiers annotés au stylet. Dès CHF 4.90 par mois, sans engagement."
+msgstr "ProfCalendar erleichtert Lehrpersonen den Alltag: Planung, Anwesenheit, Noten und mit dem Stift annotierte Dateien. Ab CHF 4.90 pro Monat, ohne Bindung."
+
+msgid "Planifiez vos cours, suivez les présences et les notes, annotez vos PDF au stylet. Dès CHF 4.90 par mois."
+msgstr "Planen Sie Ihren Unterricht, verfolgen Sie Anwesenheit und Noten, annotieren Sie PDFs mit dem Stift. Ab CHF 4.90 pro Monat."
+
+msgid "Un seul abonnement, toutes les fonctionnalités. Sans engagement."
+msgstr "Ein Abonnement, alle Funktionen. Ohne Bindung."
+
+msgid "Fichiers et annotation PDF (Apple Pencil)"
+msgstr "Dateien und PDF-Annotation (Apple Pencil)"
+
+msgid "Plan de classe et coches"
+msgstr "Sitzplan und Striche"
+
+msgid "Rejoignez les enseignants qui utilisent déjà ProfCalendar. Sans engagement, résiliable à tout moment."
+msgstr "Schließen Sie sich den Lehrpersonen an, die ProfCalendar bereits nutzen. Ohne Bindung, jederzeit kündbar."
+
+msgid "accès complet aux fonctionnalités de gestion (sur abonnement)"
+msgstr "voller Zugriff auf die Verwaltungsfunktionen (im Abonnement)"
+
+msgid "4.1 Abonnement"
+msgstr "4.1 Abonnement"
+
+msgid "L'accès enseignant à ProfCalendar est soumis à un abonnement mensuel ou annuel, sans engagement. Les comptes créés avant le 9 octobre 2026 conservent un accès complet sans abonnement."
+msgstr "Der Lehrpersonen-Zugang zu ProfCalendar setzt ein monatliches oder jährliches Abonnement ohne Bindung voraus. Vor dem 9. Oktober 2026 erstellte Konten behalten den vollen Zugang ohne Abonnement."
+
+msgid "4.2 Fonctionnalités"
+msgstr "4.2 Funktionen"
+
+msgid "L'abonnement donne accès à l'ensemble des fonctionnalités : gestion de classe, notes et évaluations, suivi des présences, gestionnaire de fichiers, annotation de PDF et plan de classe."
+msgstr "Das Abonnement bietet Zugriff auf alle Funktionen: Klassenverwaltung, Noten und Beurteilungen, Anwesenheit, Dateimanager, PDF-Annotation und Sitzplan."
+
+msgid "Crée tes classes"
+msgstr "Erstellen Sie Ihre Klassen"
+
+msgid "Un nom, une matière, une couleur. Ajoute-les toutes d'un coup."
+msgstr "Ein Name, ein Fach, eine Farbe. Fügen Sie alle auf einmal hinzu."
+
+msgid "Nom (ex. 9VP2)"
+msgstr "Name (z. B. 9VP2)"
+
+msgid "Matière (ex. Maths)"
+msgstr "Fach (z. B. Mathe)"
+
+msgid "Créer mes classes"
+msgstr "Meine Klassen erstellen"
+
+msgid "Une autre classe"
+msgstr "Eine weitere Klasse"
+
+msgid "Indique au moins un nom de classe et une matière."
+msgstr "Geben Sie mindestens einen Klassennamen und ein Fach an."
+
+msgid "Erreur lors de la création des classes."
+msgstr "Fehler beim Erstellen der Klassen."
+
+msgid "Compose ton horaire"
+msgstr "Stellen Sie Ihren Stundenplan zusammen"
+
+msgid "Clique sur les périodes de ta semaine et choisis la classe. Valide : tu reviens ici."
+msgstr "Klicken Sie auf die Lektionen Ihrer Woche und wählen Sie die Klasse. Bestätigen, und Sie kommen hierher zurück."
+
+msgid "Ouvrir l'horaire"
+msgstr "Stundenplan öffnen"
+
+msgid "Importe tes vacances"
+msgstr "Importieren Sie Ihre Ferien"
+
+msgid "Choisis ton canton : vacances et jours fériés se placent tout seuls dans le calendrier."
+msgstr "Wählen Sie Ihren Kanton: Ferien und Feiertage landen von selbst im Kalender."
+
+msgid "Canton"
+msgstr "Kanton"
+
+msgid "Année scolaire"
+msgstr "Schuljahr"
+
+msgid "Importer"
+msgstr "Importieren"
+
+msgid "Pas en Suisse romande ? Saisir les vacances à la main"
+msgstr "Nicht in der Romandie? Ferien von Hand eingeben"
+
+msgid "ProfCalendar fonctionne sur abonnement mensuel ou annuel, sans engagement. Consultez notre <a href=\"/subscription/pricing\">page tarifs</a> pour plus de détails."
+msgstr "ProfCalendar funktioniert mit einem monatlichen oder jährlichen Abonnement ohne Bindung. Details finden Sie auf unserer <a href=\"/subscription/pricing\">Preisseite</a>."
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Deine Premium-Testphase endet in %(num)d Tag."

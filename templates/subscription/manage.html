@@ -24,12 +24,12 @@
         </div>
         {% else %}
         <div class="status-badge status-free">
-            <i class="fas fa-user"></i> {{ _('Plan gratuit') }}
+            <i class="fas fa-user"></i> {{ _('Aucun abonnement actif') }}
         </div>
         <div class="status-details">
-            <p>{{ _('Vous êtes actuellement sur le plan gratuit.') }}</p>
+            <p>{{ _('Aucun abonnement actif sur ce compte.') }}</p>
             <a href="{{ url_for('subscription.pricing') }}" class="btn-upgrade">
-                <i class="fas fa-crown"></i> {{ _('Passer à Premium') }}
+                <i class="fas fa-crown"></i> {{ _('Choisir un abonnement') }}
             </a>
         </div>
         {% endif %}

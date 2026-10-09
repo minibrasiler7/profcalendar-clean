@@ -217,6 +217,27 @@
                             <i class="fas fa-cog"></i> {{ _('Paramètres') }}
                         </a>
                         {% if current_user.__class__.__name__ == 'User' %}
+                        {# Outils moins fréquents, retirés des tuiles du tableau de bord #}
+                        <a href="{{ url_for('sanctions.index') }}">
+                            <i class="fas fa-exclamation-triangle"></i> {{ _('Gestion des sanctions') }}
+                        </a>
+                        <a href="{{ url_for('attendance.index') }}">
+                            <i class="fas fa-calendar-check"></i> {{ _('Suivi des absences') }}
+                        </a>
+                        <a href="{{ url_for('planning.decoupage') }}">
+                            <i class="fas fa-cut"></i> {{ _('Création de découpage') }}
+                        </a>
+                        {% if students_space %}
+                        <a href="{{ url_for('exercises.index') }}">
+                            <i class="fas fa-flask"></i> {{ _('Exercices interactifs') }}
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('year_end.step1') }}">
+                            <i class="fas fa-graduation-cap"></i> {{ _("Terminer et archiver l'année") }}
+                        </a>
+                        <a href="{{ url_for('referral') }}">
+                            <i class="fas fa-gift"></i> {{ _('Inviter un collègue') }}
+                        </a>
                         <a href="#" onclick="event.preventDefault(); replayTutorial();">
                             <i class="fas fa-play-circle"></i> {{ _('Revoir le tutoriel') }}
                         </a>
@@ -605,7 +626,8 @@
     <script src="{{ url_for('static', filename='js/capacitor-push-helper.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}?v=2"></script>
     {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}
-    <script>window.IS_IOS_APP = {{ 'true' if is_ios_native_app else 'false' }};</script>
+    <script>window.IS_IOS_APP = {{ 'true' if is_ios_native_app else 'false' }};
+    window.PC_STUDENTS_SPACE = {{ 'true' if students_space else 'false' }};</script>
     {# Tutoriel animé (écran qui se joue tout seul) : chargé AVANT help-system.js,
        qui lui cède la main quand window.pcTutorial existe. #}
     {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}

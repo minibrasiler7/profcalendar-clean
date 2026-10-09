@@ -34,7 +34,7 @@
             <a class="${a('cal')}"><i class="fas fa-calendar"></i> Calendrier</a>
             <span class="user"><i class="fas fa-user-circle"></i> Mme Favre <span class="pro">PRO</span> <i class="fas fa-chevron-down" style="font-size:10px"></i></span>
         </div>
-        <div class="pt-trial"><i class="fas fa-crown" style="color:#F59E0B"></i> Tu profites de <b>Premium gratuit</b> · 356 jours restants. Profites-en pour tout explorer ! <span class="pt-b purple">Découvrir Premium</span></div>`;
+        <div class="pt-trial"><i class="fas fa-crown" style="color:#F59E0B"></i> Abonnement <b>Premium</b> actif · toutes les fonctionnalités sont débloquées.</div>`;
     }
     const page = (inner, style) => `<div class="pt-page with-trial" ${style ? 'style="' + style + '"' : ''}>${inner}</div>`;
 
@@ -884,8 +884,7 @@
         await k.scene(lessonScene({ current: true, exercise: true }));
         await k.cap('Sur la page du cours, l\'exercice est dans les ressources. Lance-le en direct.', '#r-launch');
         await k.click('#r-launch', () => k.modal(`<div class="pt-modal-h"><h3><i class="fas fa-rocket" style="color:#667eea"></i> Lancer l'exercice</h3><span class="x"><i class="fas fa-times"></i></span></div>
-            <div class="pt-modal-b"><div class="pt-select" style="border-color:#4F46E5;background:#EEF2FF;margin-bottom:8px"><b>📖 Mode classique</b><div class="pt-hint">Chaque élève avance à son rythme, tu suis la progression en direct.</div></div>
-            <div class="pt-select"><b>⚔️ Mode combat</b><div class="pt-hint">La classe affronte un monstre : chaque bonne réponse attaque.</div></div></div>
+            <div class="pt-modal-b"><div class="pt-select" style="border-color:#4F46E5;background:#EEF2FF;margin-bottom:8px"><b>📖 Mode classique</b><div class="pt-hint">Chaque élève avance à son rythme, tu suis la progression en direct.</div></div></div>
             <div class="pt-modal-f"><span class="pt-b">Annuler</span><span class="pt-b primary" id="ex-start"><i class="fas fa-play"></i> Lancer la mission</span></div>`));
         await k.click('#ex-start', () => {
             k.closeModal();
@@ -918,4 +917,9 @@
         { id: 'accounts', title: 'Comptes élèves et parents', desc: 'Un code par classe pour lier les élèves et leurs parents.', icon: 'fa-user-friends', color: '#0D9488', seconds: 70, steps: 9, run: chapAccounts },
         { id: 'exercise', title: 'Un exercice interactif', desc: 'Créer un QCM, le publier, le lancer en direct en classe.', icon: 'fa-gamepad', color: '#667eea', seconds: 70, steps: 8, run: chapExercise }
     ];
+    // Les chapitres de l'espace élèves et parents n'apparaissent que si le
+    // module est activé dans Paramètres (window.PC_STUDENTS_SPACE, base.html).
+    if (!window.PC_STUDENTS_SPACE) {
+        window.pcTutorialChapters = window.pcTutorialChapters.filter(c => c.id !== 'accounts' && c.id !== 'exercise');
+    }
 })();

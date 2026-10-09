@@ -92,10 +92,6 @@
 
 {% block content %}
 <div class="setup-container">
-    <!-- Barre de progression -->
-    {% set current_step = 1 %}
-    {% include 'setup/progress_bar.html' %}
-
     <form method="POST" action="{{ url_for('setup.initial_setup') }}">
         {{ form.hidden_tag() }}
         
@@ -278,16 +274,12 @@
         
         <!-- Boutons d'action -->
         <div class="action-buttons">
-            {% if current_user.setup_completed %}
-                <a href="{{ url_for('planning.dashboard') }}" class="btn btn-outline">
-                    <i class="fas fa-arrow-left"></i> Retour au tableau de bord
-                </a>
-            {% else %}
-                <div></div>
-            {% endif %}
-            
+            <a href="{{ url_for('settings.index') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Retour aux paramètres
+            </a>
+
             <button type="submit" class="btn btn-primary">
-                Suivant <i class="fas fa-arrow-right"></i>
+                <i class="fas fa-save"></i> Enregistrer
             </button>
         </div>
     </form>

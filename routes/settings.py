@@ -22,6 +22,22 @@ def index():
     
     return render_template('settings/index.html', preferences=preferences)
 
+@settings_bp.route('/students-space')
+@login_required
+def students_space():
+    """Page du module optionnel « Espace élèves et parents » (interrupteur)."""
+    return render_template('settings/students_space.html')
+
+@settings_bp.route('/update-students-space', methods=['POST'])
+@login_required
+def update_students_space():
+    """Active ou désactive le module « Espace élèves et parents »."""
+    data = request.get_json(silent=True) or {}
+    enabled = bool(data.get('enabled'))
+    from utils.feature_flags import set_students_space, students_space_enabled
+    set_students_space(current_user.id, enabled)
+    return jsonify({'success': True, 'enabled': students_space_enabled(current_user)})
+
 @settings_bp.route('/update-accommodations-display', methods=['POST'])
 @login_required
 def update_accommodations_display():

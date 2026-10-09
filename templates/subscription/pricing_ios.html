@@ -21,7 +21,11 @@
         </h1>
 
         <p style="margin: 0 0 20px; color: #4b5563; font-size: 15px; line-height: 1.6;">
-            {{ _('Débloquez toutes les fonctionnalités pour gérer vos classes : notes, présences, plan de classe, exercices interactifs, collaboration, et bien plus.') }}
+            {% if needs_subscription %}
+            {{ _('Pour utiliser ProfCalendar, choisis un abonnement. Tu peux aussi restaurer un achat existant.') }}
+            {% else %}
+            {{ _('Débloquez toutes les fonctionnalités pour gérer vos classes : notes, présences, plan de classe, fichiers annotés et bien plus.') }}
+            {% endif %}
         </p>
 
         {% if not is_premium %}
@@ -34,9 +38,15 @@
         {% endif %}
 
         <div style="margin-top: 28px;">
+            {% if needs_subscription %}
+            <a href="{{ url_for('auth.logout') }}" style="display: inline-block; padding: 10px 24px; background: #f3f4f6; color: #4b5563; border-radius: 8px; text-decoration: none; font-weight: 500;">
+                {{ _('Déconnexion') }}
+            </a>
+            {% else %}
             <a href="{{ url_for('planning.dashboard') }}" style="display: inline-block; padding: 10px 24px; background: #f3f4f6; color: #4b5563; border-radius: 8px; text-decoration: none; font-weight: 500;">
                 {{ _('Retour au tableau de bord') }}
             </a>
+            {% endif %}
         </div>
     </div>
 </div>

@@ -160,9 +160,8 @@ const HELP_CONTENT = {
         title: 'Abonnement',
         sections: [
             { title: 'Plans et paiement', items: [
-                { icon: 'fa-gift', color: '#10B981', title: 'Plan Gratuit', desc: 'Fonctions de base sans frais.', steps: ['Le plan gratuit inclut : tableau de bord, planification, calendrier', 'Les fonctions avec un cadenas necessitent le Premium', 'Vous pouvez utiliser ProfCalendar gratuitement sans limite de temps'] },
-                { icon: 'fa-crown', color: '#F59E0B', title: 'Plan Premium', desc: 'Debloquez toutes les fonctionnalites.', steps: ['CHF 4.90/mois ou CHF 39.90/an (economisez 32%)', 'Inclut : gestion de classe, notes, presences, sanctions', 'Inclut aussi : exercices interactifs, collaboration, fichiers', 'Cliquez "Choisir" puis completez le paiement via Stripe', 'Vous pouvez annuler a tout moment'] },
-                { icon: 'fa-ticket-alt', color: '#8B5CF6', title: 'Code promo / Voucher', desc: 'Activez un acces Premium gratuit avec un code.', steps: ['Si vous avez recu un code promo, rendez-vous sur cette page', 'Entrez le code dans le champ prevu', 'Cliquez "Appliquer"', 'L\'acces Premium sera active immediatement'] },
+                { icon: 'fa-crown', color: '#F59E0B', title: 'Abonnement', desc: 'Un seul abonnement, toutes les fonctionnalites.', steps: ['CHF 4.90/mois ou CHF 39.90/an (economisez 32%)', 'Inclut : planification, gestion de classe, notes, presences, sanctions, fichiers', 'Cliquez "S\'abonner" puis completez le paiement via Stripe', 'Sans engagement : vous pouvez annuler a tout moment', 'Les comptes crees avant octobre 2026 ont un acces a vie'] },
+                { icon: 'fa-ticket-alt', color: '#8B5CF6', title: 'Code promo / Voucher', desc: 'Activez un acces avec un code.', steps: ['Si vous avez recu un code promo, rendez-vous sur cette page', 'Entrez le code dans le champ prevu', 'Cliquez "Appliquer"', 'L\'acces sera active immediatement'] },
             ]},
         ]
     }
@@ -240,8 +239,7 @@ const DASHBOARD_GUIDE = [
             <p>Importez vos fichiers personnels (PDF, images, documents) depuis votre
             ordinateur, organisez-les en dossiers colorés, puis copiez-les vers les
             classes qui en ont besoin.</p>
-            <p><strong>Quota de stockage :</strong> 1 Go avec le plan Gratuit, 3 Go
-            avec le Premium annuel. Vous voyez votre consommation en haut de la page.</p>
+            <p><strong>Quota de stockage :</strong> 50 Go. Vous voyez votre consommation en haut de la page.</p>
         `
     },
     {
@@ -579,7 +577,7 @@ const PAGE_TUTORIALS = {
                 target: '.storage-info, [class*="storage"], main',
                 fallback: 'main',
                 title: 'Quota de stockage',
-                text: `Tout en haut, vous voyez votre consommation. 1 Go avec le plan Gratuit ; 3 Go avec le Premium annuel. Les fichiers copiés dans les classes comptent dans le quota.`
+                text: `Tout en haut, vous voyez votre consommation sur les 50 Go disponibles. Les fichiers copiés dans les classes comptent dans le quota.`
             }
         ]
     },
@@ -1105,7 +1103,7 @@ const TOUR_SEQUENCE = [
                 target: '.upload-btn, [data-action="upload"], button[class*="upload" i]',
                 fallback: 'main',
                 title: 'Uploader des fichiers',
-                text: 'Le bouton « Uploader » ajoute des fichiers (PDF, images, documents) à votre espace. Vous pouvez aussi glisser-déposer des fichiers directement dans la page. Selon votre plan, vous disposez de 1 Go (Gratuit) à 3 Go (Premium annuel) de stockage.'
+                text: 'Le bouton « Uploader » ajoute des fichiers (PDF, images, documents) à votre espace. Vous pouvez aussi glisser-déposer des fichiers directement dans la page. Vous disposez de 50 Go de stockage.'
             },
             {
                 target: '.new-folder-btn, [data-action="new-folder"], button[class*="folder" i]',

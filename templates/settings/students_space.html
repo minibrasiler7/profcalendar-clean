@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Espace élèves et parents - Paramètres{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 820px;">
+    <p style="margin-bottom: 0.75rem;">
+        <a href="{{ url_for('settings.index') }}" style="color: #6B7280; text-decoration: none;">
+            <i class="fas fa-arrow-left"></i> Paramètres
+        </a>
+    </p>
+    <h2><i class="fas fa-user-friends" style="color: #0D9488;"></i> Espace élèves et parents</h2>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <p class="text-muted" style="line-height: 1.55;">
+                Module optionnel. Il regroupe tout ce qui demande un compte côté élève ou parent :
+                codes d'accès par classe et application « Parents &amp; Élèves », exercices interactifs,
+                devoirs à rendre en ligne, partage de fichiers aux élèves, remarques envoyées aux parents.
+                Désactivé, ProfCalendar reste un cahier de l'enseignant, plus simple à prendre en main.
+            </p>
+
+            <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; border: 1px solid #E5E7EB; border-radius: 10px; cursor: pointer; background: #F9FAFB;">
+                <input type="checkbox" id="studentsSpaceToggle" style="width: 20px; height: 20px;"
+                       {% if students_space %}checked{% endif %} onchange="saveStudentsSpace(this.checked)">
+                <span><strong>Activer l'espace élèves et parents</strong><br>
+                <small class="text-muted">Tu peux le désactiver à tout moment ; rien n'est supprimé.</small></span>
+            </label>
+
+            <div id="students-space-links" style="display: {% if students_space %}flex{% else %}none{% endif %}; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
+                <a href="{{ url_for('collaboration.index') }}" class="btn btn-primary">
+                    <i class="fas fa-key"></i> Codes d'accès élèves et parents
+                </a>
+                <a href="{{ url_for('exercises.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-gamepad"></i> Exercices interactifs
+                </a>
+            </div>
+
+            <div id="students-space-alert" class="alert mt-3" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function saveStudentsSpace(enabled) {
+    const alertDiv = document.getElementById('students-space-alert');
+    const links = document.getElementById('students-space-links');
+    try {
+        const response = await fetch('{{ url_for("settings.update_students_space") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: !!enabled })
+        });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.message || 'Erreur');
+        if (links) links.style.display = result.enabled ? 'flex' : 'none';
+        alertDiv.className = 'alert alert-success mt-3';
+        alertDiv.textContent = result.enabled
+            ? 'Espace élèves et parents activé : codes d\'accès, exercices et partage aux élèves sont disponibles.'
+            : 'Espace élèves et parents désactivé.';
+        alertDiv.style.display = 'block';
+        setTimeout(() => { alertDiv.style.display = 'none'; }, 4000);
+    } catch (error) {
+        alert('Erreur lors de l\'enregistrement : ' + error.message);
+        const t = document.getElementById('studentsSpaceToggle');
+        if (t) t.checked = !enabled;
+    }
+}
+</script>
+{% endblock %}

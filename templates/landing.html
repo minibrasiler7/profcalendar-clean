@@ -14,7 +14,7 @@
     <meta name="google-site-verification" content="{{ config.GOOGLE_SITE_VERIFICATION }}">
     {% endif %}
     <title>{{ _('ProfCalendar - La plateforme scolaire tout-en-un') }}</title>
-    <meta name="description" content="{{ _('ProfCalendar simplifie la vie des enseignants : planification, exercices interactifs, suivi des présences, notes et collaboration. Gratuit pour commencer.') }}">
+    <meta name="description" content="{{ _('ProfCalendar simplifie la vie des enseignants : planification, suivi des présences, notes et fichiers annotés au stylet. Dès CHF 4.90 par mois, sans engagement.') }}">
 
     {# URLs canoniques par langue : le français est à la racine, chaque autre
        langue a son URL dédiée (/en, /es…). canonical = la langue courante ;
@@ -31,7 +31,7 @@
 
     <!-- Open Graph -->
     <meta property="og:title" content="{{ _('ProfCalendar - La plateforme scolaire tout-en-un') }}">
-    <meta property="og:description" content="{{ _('Planifiez vos cours, créez des exercices interactifs, suivez les présences et les notes. Gratuit pour commencer.') }}">
+    <meta property="og:description" content="{{ _('Planifiez vos cours, suivez les présences et les notes, annotez vos PDF au stylet. Dès CHF 4.90 par mois.') }}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ lang_urls.get(current_locale, lang_urls['fr']) }}">
     <meta property="og:locale" content="{{ og_locales.get(current_locale, 'fr_CH') }}">
@@ -378,7 +378,7 @@
             <li><i class="fas fa-user-check"></i> {{ _('Suivi des présences') }}</li>
         </ul>
         <div class="app-landing-cta">
-            <a href="{{ url_for('auth.register') }}" class="app-btn-primary">{{ _('Créer un compte gratuit') }}</a>
+            <a href="{{ url_for('auth.register') }}" class="app-btn-primary">{{ _('Créer un compte') }}</a>
             <a href="{{ url_for('auth.login') }}" class="app-btn-secondary">{{ _('Se connecter') }}</a>
         </div>
     </div>
@@ -399,7 +399,7 @@
             {% endfor %}
         </span>
         <a href="{{ url_for('auth.login') }}" class="btn-login">{{ _('Se connecter') }}</a>
-        <a href="{{ url_for('auth.register') }}" class="btn-cta">{{ _('Inscription gratuite') }}</a>
+        <a href="{{ url_for('auth.register') }}" class="btn-cta">{{ _('Créer un compte') }}</a>
     </div>
 </nav>
 
@@ -410,7 +410,7 @@
         <h1>{{ _('Planifiez, enseignez et suivez vos classes en un seul endroit') }}</h1>
         <p>{{ _('ProfCalendar combine planification de cours, exercices interactifs, suivi des présences et gestion des notes dans une plateforme intuitive et moderne.') }}</p>
         <div class="hero-buttons">
-            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary"><i class="fas fa-rocket"></i> {{ _('Créer un compte gratuit') }}</a>
+            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary"><i class="fas fa-rocket"></i> {{ _('Créer un compte') }}</a>
             <a href="{{ url_for('auth.login') }}" class="btn-hero-secondary"><i class="fas fa-sign-in-alt"></i> {{ _('Se connecter') }}</a>
         </div>
     </div>
@@ -442,11 +442,13 @@
                 <h3>{{ _('Suivi des présences') }}</h3>
                 <p>{{ _('Marquez les présences, absences et retards en un clic pendant votre cours. Historique complet et statistiques détaillées.') }}</p>
             </div>
+            {% if FEATURE_COLLAB %}
             <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #EF4444, #DC2626);"><i class="fas fa-users"></i></div>
                 <h3>{{ _('Collaboration enseignants') }}</h3>
                 <p>{{ _('Partagez vos classes avec vos collègues. Travaillez ensemble sur les mêmes élèves, sanctions et plans de classe.') }}</p>
             </div>
+            {% endif %}
             <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #8B5CF6, #7C3AED);"><i class="fas fa-folder-open"></i></div>
                 <h3>{{ _('Gestionnaire de fichiers') }}</h3>
@@ -547,34 +549,21 @@
 <section>
     <div class="container">
         <h2 class="section-title">{{ _('Un plan pour chaque enseignant') }}</h2>
-        <p class="section-subtitle">{{ _('Commencez gratuitement, passez à Premium quand vous êtes prêt.') }}</p>
+        <p class="section-subtitle">{{ _('Un seul abonnement, toutes les fonctionnalités. Sans engagement.') }}</p>
         <div class="pricing-grid">
-            <div class="pricing-card">
-                <h3>{{ _('Gratuit') }}</h3>
-                <div class="pricing-price">CHF 0 <span>/ {{ _('pour toujours') }}</span></div>
-                <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> {{ _('Tableau de bord') }}</li>
-                    <li><i class="fas fa-check"></i> {{ _('Planification des cours') }}</li>
-                    <li><i class="fas fa-check"></i> {{ _('Calendrier scolaire') }}</li>
-                    <li><i class="fas fa-check"></i> {{ _('Configuration de base') }}</li>
-                    <li class="locked"><i class="fas fa-lock"></i> {{ _('Gestion de classe') }}</li>
-                    <li class="locked"><i class="fas fa-lock"></i> {{ _('Notes & évaluations') }}</li>
-                </ul>
-                <a href="{{ url_for('auth.register') }}" class="btn-pricing outline">{{ _('Commencer gratuitement') }}</a>
-            </div>
             <div class="pricing-card popular">
                 <div class="pricing-badge">{{ _('Le plus populaire') }}</div>
                 <h3>Premium</h3>
                 <div class="pricing-price">CHF 4.90 <span>/ {{ _('mois') }}</span></div>
                 <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> {{ _('Tout du plan gratuit') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Planification des cours') }}</li>
                     <li><i class="fas fa-check"></i> {{ _('Gestion de classe complète') }}</li>
                     <li><i class="fas fa-check"></i> {{ _('Notes & évaluations') }}</li>
                     <li><i class="fas fa-check"></i> {{ _('Suivi des présences') }}</li>
-                    <li><i class="fas fa-check"></i> {{ _('Exercices interactifs') }}</li>
-                    <li><i class="fas fa-check"></i> {{ _('Collaboration enseignants') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Fichiers et annotation PDF (Apple Pencil)') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Plan de classe et coches') }}</li>
                 </ul>
-                <a href="{{ url_for('auth.register') }}" class="btn-pricing primary">{{ _('Essayer Premium') }}</a>
+                <a href="{{ url_for('auth.register') }}" class="btn-pricing primary">{{ _("S'abonner") }}</a>
             </div>
             <div class="pricing-card">
                 <h3>{{ _('Premium Annuel') }}</h3>
@@ -676,9 +665,9 @@
 <section class="cta-bottom">
     <div class="container">
         <h2>{{ _('Prêt à simplifier votre quotidien ?') }}</h2>
-        <p>{{ _('Rejoignez les enseignants qui utilisent déjà ProfCalendar. Inscription gratuite, aucune carte de crédit requise.') }}</p>
+        <p>{{ _('Rejoignez les enseignants qui utilisent déjà ProfCalendar. Sans engagement, résiliable à tout moment.') }}</p>
         <div class="hero-buttons">
-            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary"><i class="fas fa-user-plus"></i> {{ _('Créer mon compte gratuitement') }}</a>
+            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary"><i class="fas fa-user-plus"></i> {{ _('Créer mon compte') }}</a>
         </div>
     </div>
 </section>

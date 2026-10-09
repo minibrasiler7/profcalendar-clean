@@ -181,10 +181,6 @@
 
 {% block content %}
 <div class="setup-container">
-    <!-- Barre de progression -->
-    {% set current_step = 3 %}
-    {% include 'setup/progress_bar.html' %}
-
     <!-- Information -->
     <div class="info-box">
         <i class="fas fa-info-circle"></i>
@@ -283,12 +279,12 @@
 
     <!-- Boutons de navigation -->
     <div class="action-buttons" style="margin-top: 2rem;">
-        <a href="{{ url_for('setup.manage_holidays') }}" class="btn btn-outline">
-            <i class="fas fa-arrow-left"></i> Précédent
+        <a href="{{ url_for('settings.index') }}" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> Retour aux paramètres
         </a>
 
-        <a href="{{ url_for('setup.manage_classrooms') }}" class="btn btn-primary">
-            Suivant <i class="fas fa-arrow-right"></i>
+        <a href="{{ url_for('planning.dashboard') }}" class="btn btn-primary">
+            <i class="fas fa-home"></i> Tableau de bord
         </a>
     </div>
 </div>

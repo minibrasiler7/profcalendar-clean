@@ -28,8 +28,10 @@
             <span>Type de devoir</span>
             <div class="devoir-types">
                 <label><input type="radio" name="devoirType" value="classic" checked onchange="onDevoirTypeChange()"> Devoir classique (à faire pour la date)</label>
+                {% if students_space %}
                 <label id="devoirTypeSubmissionLabel"><input type="radio" name="devoirType" value="submission" onchange="onDevoirTypeChange()"> À rendre (l'élève envoie une photo)</label>
                 <label id="devoirTypeExerciseLabel"><input type="radio" name="devoirType" value="exercise" onchange="onDevoirTypeChange()"> Exercice interactif</label>
+                {% endif %}
             </div>
         </div>
         <label class="devoir-field" id="devoirExerciseField" style="display: none;">
@@ -131,12 +133,16 @@
     // Affiche ou masque les types réservés aux élèves connectés. Sans compte
     // élève, il ne reste qu'une option : on masque tout le bloc.
     function applyAccounts(n) {
+        // Sans le module « Espace élèves et parents », seul le devoir
+        // classique existe (les autres étiquettes ne sont pas rendues).
+        const sub = el('devoirTypeSubmissionLabel'), ex = el('devoirTypeExerciseLabel');
+        if (!sub || !ex) n = 0;
         state.accounts = n;
         const field = el('devoirTypeField');
         const hasAccounts = n > 0;
         field.style.display = hasAccounts ? 'flex' : 'none';
-        el('devoirTypeSubmissionLabel').style.display = hasAccounts ? 'flex' : 'none';
-        el('devoirTypeExerciseLabel').style.display = hasAccounts ? 'flex' : 'none';
+        if (sub) sub.style.display = hasAccounts ? 'flex' : 'none';
+        if (ex) ex.style.display = hasAccounts ? 'flex' : 'none';
         if (!hasAccounts) selectType('classic');
     }
 

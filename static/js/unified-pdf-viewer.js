@@ -2386,10 +2386,11 @@ class UnifiedPDFViewer {
                 <i class="fas fa-download" style="color: #6b7280; width: 16px; text-align: center;"></i>
                 <span style="flex: 1;">Télécharger</span>
             </div>
+            ${window.PC_STUDENTS_SPACE ? `
             <div class="download-option" data-action="send-students" style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; cursor: pointer; transition: background-color 0.2s ease; color: #374151; font-size: 14px; border: none; background: transparent;">
                 <i class="fas fa-paper-plane" style="color: #6b7280; width: 16px; text-align: center;"></i>
                 <span style="flex: 1;">Envoyer aux élèves</span>
-            </div>
+            </div>` : ''}
         `;
         
         // Calculer la position du bouton

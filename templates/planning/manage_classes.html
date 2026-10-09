@@ -3112,6 +3112,36 @@
         <div class="header-content">
             <div class="header-title">
                 <h1><i class="fas fa-users"></i> Gestion des classes</h1>
+                {# Une seule page pour les classes : création, suppression et
+                   corbeille se font ici (l'ancienne « Configuration des
+                   classes » n'est plus proposée). #}
+                <div class="header-tools" style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; margin-top:0.5rem;">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openNewClassModal()">
+                        <i class="fas fa-plus"></i> Nouvelle classe
+                    </button>
+                    <a href="{{ url_for('setup.corbeille') }}" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-trash-restore"></i> Corbeille
+                    </a>
+                    {% if selected_group and selected_group.classrooms %}
+                    <div style="position:relative;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleClassOptions(event)">
+                            <i class="fas fa-ellipsis-h"></i> Options de la classe
+                        </button>
+                        <div id="classOptionsMenu" style="display:none; position:absolute; left:0; top:110%; background:#fff; border:1px solid #E5E7EB; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.12); min-width:280px; z-index:60; padding:0.4rem;">
+                            {% for c in selected_group.classrooms %}
+                            {% if c.user_id == current_user.id %}
+                            <form method="POST" action="{{ url_for('setup.delete_classroom', id=c.id) }}" style="margin:0;"
+                                  onsubmit="return confirm('Supprimer la classe {{ c.name|e }} ({{ c.subject|e }}) ? Elle reste 30 jours dans la corbeille.');">
+                                <button type="submit" style="width:100%; text-align:left; background:none; border:none; padding:0.5rem 0.6rem; color:#B91C1C; cursor:pointer; border-radius:6px; font-size:0.9rem;">
+                                    <i class="fas fa-trash"></i> Supprimer {{ c.name }} · {{ c.subject }}
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
             {% if is_specialized_teacher and master_teacher_name %}
             <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 0.5rem 1rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: #1E40AF;">
@@ -3138,6 +3168,53 @@
                 </select>
             </div>
         </div>
+
+        <!-- Nouvelle classe (modale) -->
+        <div id="newClassModal" style="display:none; position:fixed; inset:0; background:rgba(17,24,39,0.45); z-index:2000; align-items:center; justify-content:center; padding:1rem;"
+             onclick="if (event.target === this) closeNewClassModal()">
+            <div style="background:#fff; border-radius:12px; padding:1.5rem; width:min(460px, 100%); box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+                <h3 style="margin:0 0 1rem;"><i class="fas fa-plus-circle" style="color:#4F46E5;"></i> Nouvelle classe</h3>
+                <form method="POST" action="{{ url_for('setup.manage_classrooms') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action_type" value="create">
+                    <input type="hidden" name="next" value="manage_classes">
+                    <div class="form-group">
+                        <label class="form-label">Nom de la classe</label>
+                        <input type="text" name="name" class="form-control" placeholder="ex. 9VP2" required maxlength="100" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Matière</label>
+                        <input type="text" name="subject" class="form-control" placeholder="ex. Mathématiques" required maxlength="100" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Couleur</label>
+                        <input type="color" name="color" value="#4F46E5" style="width:64px; height:38px; padding:2px; border:1px solid #D1D5DB; border-radius:6px; background:#fff; cursor:pointer;">
+                    </div>
+                    <div style="display:flex; gap:0.5rem; justify-content:flex-end; margin-top:1rem;">
+                        <button type="button" class="btn btn-outline" onclick="closeNewClassModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Créer la classe</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script>
+        function openNewClassModal() {
+            var m = document.getElementById('newClassModal');
+            m.style.display = 'flex';
+            var i = m.querySelector('input[name="name"]');
+            if (i) setTimeout(function () { i.focus(); }, 50);
+        }
+        function closeNewClassModal() { document.getElementById('newClassModal').style.display = 'none'; }
+        function toggleClassOptions(e) {
+            e.stopPropagation();
+            var m = document.getElementById('classOptionsMenu');
+            if (m) m.style.display = (m.style.display === 'none' || !m.style.display) ? 'block' : 'none';
+        }
+        document.addEventListener('click', function () {
+            var m = document.getElementById('classOptionsMenu');
+            if (m) m.style.display = 'none';
+        });
+        </script>
 
         <!-- Tabs -->
         <div class="tabs-container">
@@ -3224,7 +3301,7 @@
                     <i class="fas fa-user-graduate"></i> Liste des élèves
                 </h2>
                 <div class="header-actions">
-                    {% if not is_mixed_group_class and can_manage_access_codes %}
+                    {% if students_space and not is_mixed_group_class and can_manage_access_codes %}
                     <button class="btn btn-secondary" onclick="generateClassCode()">
                         <i class="fas fa-key"></i> Code élèves
                     </button>
@@ -3450,12 +3527,14 @@
                             <input type="text" class="form-control" id="studentLastName">
                             <small style="color: var(--gray-color); font-size: 0.75rem;">Obligatoire uniquement si un élève a déjà ce prénom</small>
                         </div>
-                        <div class="form-group">
+                        {# Emails élève et parents : utiles seulement avec l'espace
+                           élèves et parents (champs cachés sinon, valeurs vides). #}
+                        <div class="form-group" {% if not students_space %}style="display:none;"{% endif %}>
                             <label class="form-label">Email élève (optionnel)</label>
                             <input type="email" class="form-control" id="studentEmail">
                         </div>
                     </div>
-                    <div class="form-row">
+                    <div class="form-row" {% if not students_space %}style="display:none;"{% endif %}>
                         <div class="form-group">
                             <label class="form-label">Email mère (optionnel)</label>
                             <input type="email" class="form-control" id="parentEmailMother" placeholder="exemple@mail.com">
@@ -4104,7 +4183,7 @@
 
             {# Afficher le mode d'affichage si : maître de classe existe ET (plusieurs disciplines OU utilisateur est maître) #}
             {# Le maître de classe peut toujours centraliser, même avec une seule discipline #}
-            {% if (has_any_class_master|default(false) or user_is_master) and (selected_group.is_multi_subject or user_is_master) %}
+            {% if FEATURE_COLLAB and (has_any_class_master|default(false) or user_is_master) and (selected_group.is_multi_subject or user_is_master) %}
             <div class="display-mode-selector">
                         <label class="form-label">Mode d'affichage :</label>
                         {% if user_is_specialized and not user_is_master %}
@@ -9228,9 +9307,9 @@ function renderClassFiles(currentPath, classroomId = null) {
                             <i class="fas fa-eye"></i>
                         </button>
                         ${lienTelechargement}
-                        <button class="action-btn" onclick="shareFileWithStudents(${file.id}, '${file.original_filename}')" title="Partager avec des élèves" style="color: #10B981;">
+                        ${window.PC_STUDENTS_SPACE ? `<button class="action-btn" onclick="shareFileWithStudents(${file.id}, '${file.original_filename}')" title="Partager avec des élèves" style="color: #10B981;">
                             <i class="fas fa-share"></i>
-                        </button>
+                        </button>` : ''}
                         <button class="action-btn" onclick="renameClassItem('file', ${file.id}, '${file.original_filename}', ${classroomId})" title="Renommer">
                             <i class="fas fa-edit"></i>
                         </button>

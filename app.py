@@ -460,6 +460,46 @@ def create_app(config_name='development'):
         except Exception:
             db.session.rollback()
 
+        # Accès à vie (passage au modèle payant dès l'inscription, 2026-10-09).
+        # Colonne bilingue PostgreSQL / SQLite, puis attribution UNE fois aux
+        # comptes antérieurs à la bascule qui étaient Premium (essai compris)
+        # ou avaient utilisé un bon. Idempotent : les comptes déjà marqués et
+        # les comptes créés après la bascule ne sont jamais touchés.
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_premium BOOLEAN DEFAULT FALSE"
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            try:
+                db.session.execute(db.text(
+                    "ALTER TABLE users ADD COLUMN lifetime_premium BOOLEAN DEFAULT 0"
+                ))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+        # Module « Espace élèves et parents » : préférence par enseignant,
+        # NULL = pas encore décidé (déduit des données au premier affichage).
+        for _ddl in ("ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS students_space_enabled BOOLEAN",
+                     "ALTER TABLE user_preferences ADD COLUMN students_space_enabled BOOLEAN"):
+            try:
+                db.session.execute(db.text(_ddl))
+                db.session.commit()
+                break
+            except Exception:
+                db.session.rollback()
+        try:
+            from models.user import PAID_MODEL_SINCE
+            db.session.execute(db.text(
+                "UPDATE users SET lifetime_premium = TRUE, subscription_tier = 'premium', premium_until = NULL "
+                "WHERE COALESCE(lifetime_premium, FALSE) = FALSE AND created_at < :cutoff "
+                "AND (subscription_tier = 'premium' OR id IN (SELECT user_id FROM user_voucher_redemptions))"
+            ), {'cutoff': PAID_MODEL_SINCE})
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
         # Filet de sécurité : colonnes Exercise (badge_pattern, badge_color)
         # ajoutées par la migration 20260504_badge_image_001. Si l'arbre
         # Alembic est dans un état multi-head sur Render, la migration peut
@@ -1424,6 +1464,17 @@ def create_app(config_name='development'):
         if not current_user.has_premium_access():
             flash('Cette fonctionnalité nécessite un abonnement Premium.', 'warning')
             return redirect(url_for('subscription.pricing'))
+
+    # Modèle payant dès l'inscription : contrôle d'accès par abonnement sur
+    # tout l'outil enseignant (utils/subscription_gate.py).
+    from utils.subscription_gate import register_subscription_gate
+    register_subscription_gate(app)
+
+    # Fonctions masquées (collaboration, combat RPG, dispositions) et module
+    # « Espace élèves et parents » par enseignant (utils/feature_flags.py).
+    from utils.feature_flags import register_feature_gate, feature_context
+    register_feature_gate(app)
+    app.context_processor(feature_context)
 
     @app.errorhandler(404)
     def not_found_error(error):

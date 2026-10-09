@@ -11880,16 +11880,17 @@ class CleanPDFViewer {
                         <span>Télécharger le PDF annoté</span>
                     </button>
                     <div class="download-separator"></div>
-                    <h4>Envoyer aux élèves</h4>
-                    <button class="download-option" onclick="window.cleanPDFViewer.sendToStudents('all')">
+                    ${window.PC_STUDENTS_SPACE ? '' : '<style>.download-menu-students{display:none !important}</style>'}
+                    <h4 class="download-menu-students">Envoyer aux élèves</h4>
+                    <button class="download-option download-menu-students" onclick="window.cleanPDFViewer.sendToStudents('all')">
                         <i class="fas fa-users"></i>
                         <span>Tous les élèves</span>
                     </button>
-                    <button class="download-option" onclick="window.cleanPDFViewer.sendToStudents('absent')">
+                    <button class="download-option download-menu-students" onclick="window.cleanPDFViewer.sendToStudents('absent')">
                         <i class="fas fa-user-times"></i>
                         <span>Élèves absents uniquement</span>
                     </button>
-                    <button class="download-option" onclick="window.cleanPDFViewer.openStudentSelectionPanel()">
+                    <button class="download-option download-menu-students" onclick="window.cleanPDFViewer.openStudentSelectionPanel()">
                         <i class="fas fa-user-check"></i>
                         <span>Sélectionner des élèves...</span>
                     </button>

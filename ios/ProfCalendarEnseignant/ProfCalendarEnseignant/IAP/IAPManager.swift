@@ -24,6 +24,7 @@
 
 import Foundation
 import StoreKit
+import WebKit
 
 @available(iOS 15.0, *)
 final class IAPManager {
@@ -148,6 +149,9 @@ final class IAPManager {
             req.httpBody = try JSONSerialization.data(withJSONObject: [
                 "signed_transactions": jwsList
             ])
+            for (k, v) in await webViewCookieHeaders(for: url) {
+                req.setValue(v, forHTTPHeaderField: k)
+            }
             let (data, _) = try await URLSession.shared.data(for: req)
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                let r = json["restored"] as? Int {
@@ -172,6 +176,27 @@ final class IAPManager {
         }
     }
 
+    // MARK: - Cookies de session
+
+    /// URLSession.shared ne voit pas les cookies de la WKWebView : on copie
+    /// ceux du site (cookie de session Flask de l'enseignant connecté) sur
+    /// les requêtes /api/iap/*, qui exigent une session. Sans cela, le
+    /// backend répond par une redirection vers la page de connexion et
+    /// l'achat n'est jamais validé côté serveur.
+    @MainActor
+    private func webViewCookieHeaders(for url: URL) async -> [String: String] {
+        let store = WKWebsiteDataStore.default().httpCookieStore
+        let cookies: [HTTPCookie] = await withCheckedContinuation { cont in
+            store.getAllCookies { cont.resume(returning: $0) }
+        }
+        guard let host = url.host else { return [:] }
+        let relevant = cookies.filter { cookie in
+            let domain = cookie.domain.hasPrefix(".") ? String(cookie.domain.dropFirst()) : cookie.domain
+            return host == domain || host.hasSuffix("." + domain)
+        }
+        return relevant.isEmpty ? [:] : HTTPCookie.requestHeaderFields(with: relevant)
+    }
+
     // MARK: - HTTP backend
 
     private func submitToBackend(jws: String) async -> Bool {
@@ -183,6 +208,9 @@ final class IAPManager {
             req.httpBody = try JSONSerialization.data(withJSONObject: [
                 "signed_transaction": jws
             ])
+            for (k, v) in await webViewCookieHeaders(for: url) {
+                req.setValue(v, forHTTPHeaderField: k)
+            }
             let (data, response) = try await URLSession.shared.data(for: req)
             if let http = response as? HTTPURLResponse, http.statusCode == 200 {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],

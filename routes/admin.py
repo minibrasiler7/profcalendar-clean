@@ -31,13 +31,8 @@ def dashboard():
     # Tunnel d'acquisition (pour piloter la croissance)
     signups_7d = User.query.filter(User.created_at >= now - timedelta(days=7)).count()
     signups_30d = User.query.filter(User.created_at >= now - timedelta(days=30)).count()
-    # Essais actifs ≈ premium daté encore valide, sans abonnement Stripe payant.
-    active_trials = User.query.filter(
-        User.subscription_tier == 'premium',
-        User.premium_until.isnot(None),
-        User.premium_until > now,
-        User.stripe_subscription_id.is_(None),
-    ).count()
+    # Comptes d'avant le modèle payant : accès à vie.
+    lifetime_users = User.query.filter(User.lifetime_premium.is_(True)).count()
     # Taux de conversion : abonnés payants Stripe / inscriptions totales.
     conversion_rate = round(active_subscriptions / total_users * 100, 1) if total_users else 0.0
 
@@ -64,7 +59,7 @@ def dashboard():
                            monthly_revenue=monthly_revenue,
                            signups_7d=signups_7d,
                            signups_30d=signups_30d,
-                           active_trials=active_trials,
+                           lifetime_users=lifetime_users,
                            conversion_rate=conversion_rate,
                            recent_subscriptions=recent_subs)
 

@@ -353,10 +353,6 @@
 
 {% block content %}
 <div class="setup-container">
-    <!-- Barre de progression -->
-    {% set current_step = 5 %}
-    {% include 'setup/progress_bar.html' %}
-
     <!-- En-tête -->
     <div class="schedule-header">
         <div class="schedule-title">
@@ -455,8 +451,8 @@
 
     <!-- Boutons d'action -->
     <div class="action-buttons">
-        <a href="{{ url_for('setup.manage_classrooms') }}" class="btn btn-outline">
-            <i class="fas fa-arrow-left"></i> Précédent
+        <a href="{{ url_for('planning.dashboard') }}" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
         </a>
 
         <form method="POST" action="{{ url_for('schedule.validate_schedule') }}" style="margin: 0;">

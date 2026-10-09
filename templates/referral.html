@@ -9,9 +9,8 @@
         <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎁</div>
         <h1 style="margin: 0 0 0.5rem; font-size: 1.6rem;">Invite un collègue, gagne du Premium</h1>
         <p style="margin: 0; opacity: 0.92; line-height: 1.5;">
-            Pour chaque collègue qui crée un compte via ton lien&nbsp;: il démarre avec
-            <strong>60&nbsp;jours d'essai</strong> (au lieu de 30) et tu reçois
-            <strong>1&nbsp;mois de Premium offert</strong>.
+            Pour chaque collègue qui crée un compte via ton lien, tu reçois
+            <strong>1&nbsp;mois d'abonnement offert</strong>.
         </p>
     </div>
 
@@ -56,9 +55,9 @@
 <script>
 (function() {
     var url = {{ referral_url|tojson }};
-    var msg = "Je te recommande ProfCalendar pour planifier les cours, gérer notes et présences (avec annotation Apple Pencil sur iPad). Avec mon lien tu as 60 jours d'essai : " + url;
+    var msg = "Je te recommande ProfCalendar pour planifier les cours, gérer notes et présences (avec annotation Apple Pencil sur iPad). Voici mon lien pour créer ton compte : " + url;
     var emailLink = document.getElementById('shareEmail');
-    if (emailLink) emailLink.href = "mailto:?subject=" + encodeURIComponent("ProfCalendar — 60 jours d'essai offerts") + "&body=" + encodeURIComponent(msg);
+    if (emailLink) emailLink.href = "mailto:?subject=" + encodeURIComponent("ProfCalendar — planifier et gérer ses classes") + "&body=" + encodeURIComponent(msg);
     var waLink = document.getElementById('shareWhatsApp');
     if (waLink) waLink.href = "https://wa.me/?text=" + encodeURIComponent(msg);
 })();
