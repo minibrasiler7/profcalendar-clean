@@ -1591,48 +1591,8 @@ input, textarea, select {
                         </div>
                         {% endif %}
 
-                        <!-- Mémos (les remarques élèves se font depuis la liste de présence) -->
+                        <!-- Remarques élèves (ouvertes depuis la liste de présence ; les mémos ont été retirés) -->
                         <div class="form-group">
-                            <label class="form-label">Mémos</label>
-
-                            <div class="memos-actions">
-                                <button type="button" class="btn btn-memo" onclick="openMemoCreation()">
-                                    <i class="fas fa-sticky-note"></i> Enregistrer mémo
-                                </button>
-                            </div>
-
-                            <!-- Formulaire création mémo -->
-                            <div id="memoCreationForm" class="memo-form" style="display: none;">
-                                <div class="form-group">
-                                    <label class="form-label">Choisir une date de rappel</label>
-                                    <select id="memoDateType" class="form-control" onchange="handleMemoDateTypeChange()">
-                                        <option value="">-- Sélectionner --</option>
-                                        <option value="next_lesson">Cours suivant</option>
-                                        <option value="next_week">Semaine prochaine</option>
-                                        <option value="custom">Date personnalisée</option>
-                                        <option value="no_date">Sans date</option>
-                                    </select>
-                                </div>
-
-                                <div id="memoCustomDateDiv" class="form-group" style="display: none;">
-                                    <label class="form-label">Date personnalisée</label>
-                                    <input type="date" id="memoCustomDate" class="form-control">
-                                </div>
-
-                                <div id="memoContentDiv" class="form-group" style="display: none;">
-                                    <label class="form-label">Contenu du mémo</label>
-                                    <textarea id="memoContent" class="form-control" rows="3" placeholder="Entrez le contenu du mémo..."></textarea>
-                                    <div class="memo-form-actions">
-                                        <button type="button" class="btn btn-primary" onclick="submitMemo()">
-                                            <i class="fas fa-plus"></i> Ajouter
-                                        </button>
-                                        <button type="button" class="btn btn-outline" onclick="cancelMemoCreation()">
-                                            Annuler
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
                             <!-- Formulaire création remarque -->
                             <div id="remarkCreationForm" class="memo-form" style="display: none;">
                                 <div class="form-group">
@@ -1676,9 +1636,9 @@ input, textarea, select {
                             </div>
                         </div>
 
-                        <!-- Liste des mémos et remarques existants -->
+                        <!-- Liste des remarques existantes -->
                         <div id="memosListContainer" class="memos-list-container">
-                            <!-- Les mémos/remarques seront affichés ici -->
+                            <!-- Les remarques seront affichées ici -->
                         </div>
 
                         <div class="form-actions">

@@ -162,6 +162,9 @@ class LessonMemosManager {
     }
 
     displayMemosAndRemarks(memos, remarks) {
+        // Les mémos de cours ont été retirés de la page du cours : seules les
+        // remarques élèves sont affichées (le serveur renvoie encore les deux).
+        memos = [];
         // Afficher dans le conteneur du mode édition
         if (this.memosListContainer) {
             this.memosListContainer.innerHTML = this.buildMemosHtml(memos, remarks, true);
@@ -437,57 +440,44 @@ class LessonMemosManager {
 }
 
 // Fonctions globales pour les boutons
+// Le formulaire de mémo n'existe plus sur la page du cours : ces fonctions
+// restent pour d'éventuels anciens appels et tolèrent l'absence des éléments.
 function openMemoCreation() {
-    // Cacher le formulaire de remarque s'il est ouvert
-    document.getElementById('remarkCreationForm').style.display = 'none';
-
-    // Afficher le formulaire de mémo
-    document.getElementById('memoCreationForm').style.display = 'block';
-
-    // Reset le formulaire
-    document.getElementById('memoDateType').value = '';
-    document.getElementById('memoCustomDateDiv').style.display = 'none';
-    document.getElementById('memoContentDiv').style.display = 'none';
-    document.getElementById('memoContent').value = '';
+    const form = document.getElementById('memoCreationForm');
+    if (!form) return;
+    const remark = document.getElementById('remarkCreationForm');
+    if (remark) remark.style.display = 'none';
+    form.style.display = 'block';
 }
 
 function cancelMemoCreation() {
-    document.getElementById('memoCreationForm').style.display = 'none';
-    document.getElementById('memoDateType').value = '';
-    document.getElementById('memoCustomDateDiv').style.display = 'none';
-    document.getElementById('memoContentDiv').style.display = 'none';
-    document.getElementById('memoContent').value = '';
+    const form = document.getElementById('memoCreationForm');
+    if (form) form.style.display = 'none';
 }
 
 function handleMemoDateTypeChange() {
-    const dateType = document.getElementById('memoDateType').value;
+    const dateType = (document.getElementById('memoDateType') || {}).value;
     const customDateDiv = document.getElementById('memoCustomDateDiv');
     const contentDiv = document.getElementById('memoContentDiv');
+    if (!customDateDiv || !contentDiv) return;
 
     if (!dateType) {
         customDateDiv.style.display = 'none';
         contentDiv.style.display = 'none';
         return;
     }
-
-    // Afficher le champ de date personnalisée si nécessaire
-    if (dateType === 'custom') {
-        customDateDiv.style.display = 'block';
-    } else {
-        customDateDiv.style.display = 'none';
-    }
-
-    // Toujours afficher le champ de contenu une fois qu'un type de date est sélectionné
+    customDateDiv.style.display = (dateType === 'custom') ? 'block' : 'none';
     contentDiv.style.display = 'block';
 }
 
 function submitMemo() {
-    lessonMemosManager.submitMemo();
+    if (document.getElementById('memoCreationForm')) lessonMemosManager.submitMemo();
 }
 
 function openRemarkCreation() {
-    // Cacher le formulaire de mémo s'il est ouvert
-    document.getElementById('memoCreationForm').style.display = 'none';
+    // Cacher le formulaire de mémo s'il existe encore
+    const memoForm = document.getElementById('memoCreationForm');
+    if (memoForm) memoForm.style.display = 'none';
 
     // Afficher le formulaire de remarque
     document.getElementById('remarkCreationForm').style.display = 'block';

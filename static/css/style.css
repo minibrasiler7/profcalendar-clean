@@ -95,6 +95,11 @@ body {
     color: var(--primary-color);
 }
 
+/* « Gestion de classe » poussée tout à droite de la barre (grand écran) */
+@media (min-width: 769px) {
+    .nav-link-right { margin-left: auto; }
+}
+
 .nav-auth {
     display: flex;
     gap: 1rem;

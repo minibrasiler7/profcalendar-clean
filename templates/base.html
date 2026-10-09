@@ -168,8 +168,12 @@
 
             {% if current_user.is_authenticated %}
             <div class="nav-menu" id="navMenu">
+                {# Ordre : tableau de bord, calendrier, cours ; Gestion de classe tout à droite. #}
                 <a href="{{ url_for('planning.dashboard') }}" class="nav-link {% if request.endpoint == 'planning.dashboard' %}active{% endif %}">
                     <i class="fas fa-home"></i> {{ _('Tableau de bord') }}
+                </a>
+                <a href="{{ url_for('planning.calendar_view') }}" class="nav-link {% if request.endpoint == 'planning.calendar_view' %}active{% endif %}">
+                    <i class="fas fa-calendar"></i> {{ _('Calendrier') }}
                 </a>
                 <a href="{{ url_for('planning.lesson_view') }}" class="nav-link {% if request.endpoint == 'planning.lesson_view' %}active{% endif %} {% if global_has_current_lesson %}lesson-active current-lesson{% endif %}">
                     <i class="fas fa-graduation-cap"></i>
@@ -179,12 +183,9 @@
                         {{ _('Prochain cours') }}
                     {% endif %}
                 </a>
-                <a href="{{ url_for('planning.manage_classes') }}" class="nav-link {% if request.endpoint == 'planning.manage_classes' %}active{% endif %}">
+                <a href="{{ url_for('planning.manage_classes') }}" class="nav-link nav-link-right {% if request.endpoint == 'planning.manage_classes' %}active{% endif %}">
                     <i class="fas fa-users"></i> {{ _('Gestion de classe') }}
                     {% if not current_user.has_premium_access() %}<i class="fas fa-lock nav-lock"></i>{% endif %}
-                </a>
-                <a href="{{ url_for('planning.calendar_view') }}" class="nav-link {% if request.endpoint == 'planning.calendar_view' %}active{% endif %}">
-                    <i class="fas fa-calendar"></i> {{ _('Calendrier') }}
                 </a>
             </div>
 
