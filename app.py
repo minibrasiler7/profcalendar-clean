@@ -1967,6 +1967,11 @@ def create_app(config_name='development'):
         """Politique de confidentialité du jeu Quai (exigence App Store)."""
         return render_template('legal/quai_confidentialite.html')
 
+    @app.route('/gardien-du-phare/confidentialite')
+    def gardienduphare_privacy():
+        """Politique de confidentialité du jeu Gardien du phare (exigence App Store)."""
+        return render_template('legal/gardienduphare_confidentialite.html')
+
     @app.route('/friendz/confidentialite')
     def friendz_privacy():
         """Politique de confidentialité de l'app Friendz (exigence App Store)."""
