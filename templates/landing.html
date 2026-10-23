@@ -559,7 +559,7 @@
 <section>
     <div class="container">
         <h2 class="section-title">{{ _('Un plan pour chaque enseignant') }}</h2>
-        <p class="section-subtitle">{{ _('Un seul abonnement, toutes les fonctionnalités. Sans engagement.') }}</p>
+        <p class="section-subtitle">{{ _('Un seul abonnement, toutes les fonctionnalités. Sans engagement.') }} {{ _('Satisfait ou remboursé 30 jours') }}.</p>
         <div class="pricing-grid">
             <div class="pricing-card popular">
                 <div class="pricing-badge">{{ _('Le plus populaire') }}</div>
@@ -572,6 +572,7 @@
                     <li><i class="fas fa-check"></i> {{ _('Suivi des présences') }}</li>
                     <li><i class="fas fa-check"></i> {{ _('Fichiers et annotation PDF (Apple Pencil)') }}</li>
                     <li><i class="fas fa-check"></i> {{ _('Plan de classe et coches') }}</li>
+                    <li><i class="fas fa-shield-alt"></i> {{ _('Satisfait ou remboursé 30 jours') }}</li>
                 </ul>
                 <a href="{{ url_for('auth.register') }}" class="btn-pricing primary">{{ _("S'abonner") }}</a>
             </div>

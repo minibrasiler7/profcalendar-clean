@@ -2937,6 +2937,21 @@ msgstr "4.2 Funzionalità"
 msgid "L'abonnement donne accès à l'ensemble des fonctionnalités : gestion de classe, notes et évaluations, suivi des présences, gestionnaire de fichiers, annotation de PDF et plan de classe."
 msgstr "L'abbonamento dà accesso a tutte le funzionalità: gestione della classe, voti e valutazioni, presenze, gestore dei file, annotazione PDF e piano della classe."
 
+msgid "Satisfait ou remboursé 30 jours"
+msgstr "Soddisfatti o rimborsati entro 30 giorni"
+
+msgid "si ProfCalendar ne vous convient pas, un simple email dans les 30 jours suivant votre premier paiement et nous vous remboursons intégralement."
+msgstr "se ProfCalendar non fa per te, basta un'email entro 30 giorni dal primo pagamento e ti rimborsiamo integralmente."
+
+msgid "5.5 Garantie satisfait ou remboursé"
+msgstr "5.5 Garanzia soddisfatti o rimborsati"
+
+msgid "Pour un premier abonnement souscrit sur le site, vous pouvez demander le remboursement intégral de votre premier paiement dans les 30 jours qui le suivent, par simple email à l'adresse de support. L'abonnement est alors résilié. Cette garantie s'applique une seule fois par compte. Les achats effectués via l'App Store sont soumis aux conditions de remboursement d'Apple."
+msgstr "Per un primo abbonamento sottoscritto sul sito, puoi chiedere il rimborso integrale del primo pagamento entro 30 giorni, con una semplice email all'indirizzo di supporto. L'abbonamento viene quindi disdetto. Questa garanzia vale una sola volta per account. Gli acquisti effettuati tramite l'App Store sono soggetti alle condizioni di rimborso di Apple."
+
+msgid "5.6 Codes promo / Vouchers"
+msgstr "5.6 Codici promozionali / Voucher"
+
 msgid "ProfCalendar réunit la planification des cours, le suivi des présences, les notes et vos documents annotés au stylet dans une plateforme intuitive et moderne."
 msgstr "ProfCalendar riunisce la pianificazione delle lezioni, le presenze, i voti e i tuoi documenti annotati con la penna in una piattaforma intuitiva e moderna."
 

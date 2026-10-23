@@ -113,10 +113,16 @@
 
     <div class="res-cta">
         <h2>Planifie ton année autour de ces dates</h2>
-        <p>ProfCalendar tient compte des vacances et des jours fériés pour que ton planning
-           de cours tombe toujours juste — fini de recompter les semaines à la main.
-           <strong>Dès CHF 4.90 par mois</strong>, sans engagement.</p>
-        <a href="{{ url_for('auth.register') }}"><i class="fas fa-rocket"></i> Créer mon compte</a>
+        <p>ProfCalendar est le cahier de l'enseignant tout-en-un : ces vacances s'importent en un clic
+           et ton planning de cours tombe toujours juste, fini de recompter les semaines à la main.</p>
+        <ul style="margin:0 0 1rem 1.1rem; color:#374151; line-height:1.65;">
+            <li>Horaire type, calendrier de l'année et page de chaque cours avec tes documents</li>
+            <li>Présences, coches, plan de classe et remarques pendant le cours</li>
+            <li>Notes et moyennes automatiques, PDF annotés au stylet sur iPad</li>
+        </ul>
+        <p><strong>Dès CHF 4.90 par mois</strong>, sans engagement, satisfait ou remboursé 30 jours.</p>
+        <a href="{{ url_for('index') }}"><i class="fas fa-play-circle"></i> Découvrir ProfCalendar</a>
+        <a href="{{ url_for('auth.register') }}" style="margin-left:0.6rem;"><i class="fas fa-rocket"></i> Créer mon compte</a>
     </div>
 
     <div class="res-links">

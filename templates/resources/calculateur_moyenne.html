@@ -91,9 +91,16 @@
 
     <div class="mn-cta">
         <h2>Tes moyennes calculées automatiquement</h2>
-        <p>Avec ProfCalendar, saisis les notes de tes élèves et les moyennes (pondérées, par période, par branche)
-           se calculent toutes seules — fini les tableurs. <strong>Dès CHF 4.90 par mois</strong>, sans engagement.</p>
-        <a href="{{ url_for('auth.register') }}"><i class="fas fa-rocket"></i> Créer mon compte</a>
+        <p>ProfCalendar est le cahier de l'enseignant tout-en-un : tu saisis les notes de tes élèves
+           et les moyennes se calculent toutes seules, fini les tableurs.</p>
+        <ul style="margin:0 0 1rem 1.1rem; color:#374151; line-height:1.65;">
+            <li>Évaluations par classe, moyennes automatiques, export PDF et tableur</li>
+            <li>Présences, coches, plan de classe et remarques pendant le cours</li>
+            <li>Planning de l'année avec les vacances du canton, PDF annotés au stylet sur iPad</li>
+        </ul>
+        <p><strong>Dès CHF 4.90 par mois</strong>, sans engagement, satisfait ou remboursé 30 jours.</p>
+        <a href="{{ url_for('index') }}"><i class="fas fa-play-circle"></i> Découvrir ProfCalendar</a>
+        <a href="{{ url_for('auth.register') }}" style="margin-left:0.6rem;"><i class="fas fa-rocket"></i> Créer mon compte</a>
     </div>
 
     <div class="mn-explain">
