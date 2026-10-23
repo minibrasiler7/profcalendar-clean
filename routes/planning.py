@@ -2880,7 +2880,23 @@ def manage_classes():
     
     # Nombre d'évaluations du groupe (statistique de l'onglet Notes)
     recent_grades = Evaluation.query.filter(Evaluation.classroom_id.in_(classroom_ids)).all() if classroom_ids else []
-    grades_by_subject = {}  # ancien système de notes, plus utilisé par le gabarit
+    # Onglet Notes : le gabarit crée un conteneur par discipline (classe, droits
+    # d'édition), que le JavaScript remplit ensuite depuis /api/evaluations.
+    grades_by_subject = {}
+    for classroom in all_relevant_classrooms:
+        subject = classroom.subject
+        is_from_specialized_teacher = classroom not in selected_group['classrooms']
+        if subject in grades_by_subject:
+            if is_from_specialized_teacher:
+                grades_by_subject[subject]['has_specialized_grades'] = True
+            else:
+                grades_by_subject[subject]['classroom'] = classroom
+        else:
+            grades_by_subject[subject] = {
+                'classroom': classroom,
+                'has_specialized_grades': is_from_specialized_teacher,
+                'is_editable': not is_from_specialized_teacher,
+            }
 
     # Convertir les classes en dictionnaires pour le JSON (utilisé en JavaScript)
     # Inclure toutes les classes pertinentes (y compris celles des enseignants spécialisés)

@@ -12014,6 +12014,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         initClassDragAndDrop(classroom.id);
                     });
                     initClassDragAndDrop();
+                } else if (selectedTab === 'grades') {
+                    // Arrivée directe (changement de classe sur l'onglet Notes) :
+                    // sans cet appel, le tableau des évaluations restait vide.
+                    loadEvaluations();
                 } else if (selectedTab === 'groups') {
                     loadGroups();
                 } else if (selectedTab === 'accommodations') {
