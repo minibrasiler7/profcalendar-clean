@@ -71,8 +71,9 @@ def weekly_schedule():
         flash('Veuillez d\'abord ajouter au moins une classe.', 'warning')
         return redirect(url_for('setup.manage_classrooms'))
 
-    # Si déjà complété, proposer d'aller au tableau de bord
-    if current_user.schedule_completed:
+    # Si déjà complété, le signaler — seulement s'il existe vraiment des périodes
+    # (un nouveau compte a schedule_completed=True par défaut mais un horaire vide).
+    if current_user.schedule_completed and Schedule.query.filter_by(user_id=current_user.id).first():
         flash('Votre horaire type est déjà configuré. Vous pouvez le modifier ici.', 'info')
 
     # Récupérer les groupes mixtes d'abord pour filtrer les classes auto-créées

@@ -724,6 +724,10 @@
         if (!rows || !rows.firstElementChild) return;
         var clone = rows.firstElementChild.cloneNode(true);
         clone.querySelectorAll('input').forEach(function (i) { if (i.type !== 'color') i.value = ''; });
+        // Une couleur différente par classe (sinon toutes les classes sont indigo).
+        var palette = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#8B5CF6', '#EC4899', '#84CC16'];
+        var color = clone.querySelector('input[type=color]');
+        if (color) color.value = palette[rows.children.length % palette.length];
         rows.appendChild(clone);
         var first = clone.querySelector('input'); if (first) first.focus();
     }
