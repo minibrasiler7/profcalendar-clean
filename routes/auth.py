@@ -177,6 +177,12 @@ def register():
         user.apply_smart_defaults()
         db.session.add(user)
         db.session.commit()
+        # Récréation et pause de midi par défaut (il faut l'id du compte).
+        try:
+            if user.add_default_breaks():
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
 
         # Plus d'essai gratuit : l'abonnement est choisi juste après la
         # vérification de l'email. (Le parrainage a été retiré.)

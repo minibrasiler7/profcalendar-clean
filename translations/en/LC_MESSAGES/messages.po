@@ -3051,6 +3051,75 @@ msgstr "Not in French-speaking Switzerland? Enter holidays by hand"
 msgid "ProfCalendar fonctionne sur abonnement mensuel ou annuel, sans engagement. Consultez notre <a href=\"/subscription/pricing\">page tarifs</a> pour plus de détails."
 msgstr "ProfCalendar works on a monthly or annual subscription, with no commitment. See our <a href=\"/subscription/pricing\">pricing page</a> for details."
 
+msgid "Configurer mon compte (2 minutes)"
+msgstr "Set up my account (2 minutes)"
+
+msgid "Trois étapes guidées : tes classes, ton horaire, tes vacances."
+msgstr "Three guided steps: your classes, your timetable, your holidays."
+
+msgid "Nouvelle tâche…"
+msgstr "New task…"
+
+msgid "Aucune tâche pour le moment."
+msgstr "No tasks yet."
+
+msgid "Suis cette petite liste : crée tes classes, compose ton horaire, puis importe tes vacances."
+msgstr "Follow this short list: create your classes, build your timetable, then import your holidays."
+
+msgid "Passer"
+msgstr "Skip"
+
+msgid "Suivant"
+msgstr "Next"
+
+msgid "Terminer"
+msgstr "Finish"
+
+msgid "Ce que tu obtiens"
+msgstr "What you get"
+
+msgid "Planification et calendrier"
+msgstr "Planning and calendar"
+
+msgid "ta semaine période par période, les vacances de ton canton déjà placées."
+msgstr "your week period by period, with your canton's holidays already in place."
+
+msgid "Page du cours"
+msgstr "Lesson page"
+
+msgid "présences en un clic, remarques dictées, documents épinglés."
+msgstr "one-tap attendance, dictated remarks, pinned documents."
+
+msgid "notes et moyennes automatiques, absences, coches, plan de classe."
+msgstr "automatic marks and averages, absences, behaviour tallies, seating plan."
+
+msgid "stylo, surligneur, règle, compas et équerre en vrais centimètres."
+msgstr "pen, highlighter, ruler, compass and set square in real centimetres."
+
+msgid "50 Go pour garder tes documents d'une année à l'autre."
+msgstr "50 GB to keep your documents from one year to the next."
+
+msgid "Prix affiché à l’étape suivante"
+msgstr "Price shown at the next step"
+
+msgid "Sans engagement"
+msgstr "Cancel anytime"
+
+msgid "Un seul paiement par an"
+msgstr "One payment a year"
+
+msgid "Abonnement à renouvellement automatique, résiliable à tout moment dans Réglages > Apple ID > Abonnements, au plus tard 24 heures avant la fin de la période en cours."
+msgstr "Auto-renewing subscription. Cancel anytime in Settings > Apple ID > Subscriptions, at least 24 hours before the end of the current period."
+
+msgid "Conditions d'utilisation"
+msgstr "Terms of Use"
+
+msgid "/ mois"
+msgstr "/ month"
+
+msgid "/ an"
+msgstr "/ year"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."

@@ -35,12 +35,13 @@
         </div>
 
         <div class="success-actions">
-            <a href="{{ url_for('planning.manage_classes') }}" class="btn-primary-action">
-                <i class="fas fa-arrow-right"></i> {{ _('Aller à la gestion de classe') }}
+            {# Après le paiement : droit au démarrage guidé (classes, horaire, vacances).
+               L'ancien bouton « gestion de classe » renvoyait au tableau de bord
+               tant qu'aucune classe n'existait. #}
+            <a href="{{ url_for('planning.dashboard') }}" class="btn-primary-action">
+                <i class="fas fa-rocket"></i> {{ _('Configurer mon compte (2 minutes)') }}
             </a>
-            <a href="{{ url_for('planning.dashboard') }}" class="btn-secondary-action">
-                {{ _('Retour au tableau de bord') }}
-            </a>
+            <p style="margin: 0.75rem 0 0; color: #6B7280; font-size: 0.9rem;">{{ _('Trois étapes guidées : tes classes, ton horaire, tes vacances.') }}</p>
         </div>
     </div>
 </div>

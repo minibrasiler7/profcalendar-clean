@@ -3051,6 +3051,75 @@ msgstr "Nicht in der Romandie? Ferien von Hand eingeben"
 msgid "ProfCalendar fonctionne sur abonnement mensuel ou annuel, sans engagement. Consultez notre <a href=\"/subscription/pricing\">page tarifs</a> pour plus de détails."
 msgstr "ProfCalendar funktioniert mit einem monatlichen oder jährlichen Abonnement ohne Bindung. Details finden Sie auf unserer <a href=\"/subscription/pricing\">Preisseite</a>."
 
+msgid "Configurer mon compte (2 minutes)"
+msgstr "Mein Konto einrichten (2 Minuten)"
+
+msgid "Trois étapes guidées : tes classes, ton horaire, tes vacances."
+msgstr "Drei geführte Schritte: Ihre Klassen, Ihr Stundenplan, Ihre Ferien."
+
+msgid "Nouvelle tâche…"
+msgstr "Neue Aufgabe…"
+
+msgid "Aucune tâche pour le moment."
+msgstr "Noch keine Aufgaben."
+
+msgid "Suis cette petite liste : crée tes classes, compose ton horaire, puis importe tes vacances."
+msgstr "Folgen Sie dieser kurzen Liste: Klassen anlegen, Stundenplan zusammenstellen, dann Ferien importieren."
+
+msgid "Passer"
+msgstr "Überspringen"
+
+msgid "Suivant"
+msgstr "Weiter"
+
+msgid "Terminer"
+msgstr "Fertig"
+
+msgid "Ce que tu obtiens"
+msgstr "Das erhalten Sie"
+
+msgid "Planification et calendrier"
+msgstr "Planung und Kalender"
+
+msgid "ta semaine période par période, les vacances de ton canton déjà placées."
+msgstr "Ihre Woche Lektion für Lektion, die Ferien Ihres Kantons bereits eingetragen."
+
+msgid "Page du cours"
+msgstr "Lektionsseite"
+
+msgid "présences en un clic, remarques dictées, documents épinglés."
+msgstr "Anwesenheit mit einem Tipp, diktierte Bemerkungen, angeheftete Dokumente."
+
+msgid "notes et moyennes automatiques, absences, coches, plan de classe."
+msgstr "automatische Noten und Durchschnitte, Absenzen, Strichliste, Sitzplan."
+
+msgid "stylo, surligneur, règle, compas et équerre en vrais centimètres."
+msgstr "Stift, Textmarker, Lineal, Zirkel und Geodreieck in echten Zentimetern."
+
+msgid "50 Go pour garder tes documents d'une année à l'autre."
+msgstr "50 GB, um Ihre Dokumente von Jahr zu Jahr aufzubewahren."
+
+msgid "Prix affiché à l’étape suivante"
+msgstr "Preis im nächsten Schritt"
+
+msgid "Sans engagement"
+msgstr "Jederzeit kündbar"
+
+msgid "Un seul paiement par an"
+msgstr "Eine Zahlung pro Jahr"
+
+msgid "Abonnement à renouvellement automatique, résiliable à tout moment dans Réglages > Apple ID > Abonnements, au plus tard 24 heures avant la fin de la période en cours."
+msgstr "Automatisch verlängertes Abonnement. Jederzeit kündbar unter Einstellungen > Apple-ID > Abonnements, spätestens 24 Stunden vor Ende des laufenden Zeitraums."
+
+msgid "Conditions d'utilisation"
+msgstr "Nutzungsbedingungen"
+
+msgid "/ mois"
+msgstr "/ Monat"
+
+msgid "/ an"
+msgstr "/ Jahr"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Deine Premium-Testphase endet in %(num)d Tag."

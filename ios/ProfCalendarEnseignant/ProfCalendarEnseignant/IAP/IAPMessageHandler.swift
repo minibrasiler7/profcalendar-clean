@@ -42,8 +42,37 @@ final class IAPMessageHandler: NSObject, WKScriptMessageHandler {
         switch action {
         case "openPaywall":
             DispatchQueue.main.async { self.presentPaywall() }
+        case "getProducts":
+            // La page d'abonnement (pricing_ios.html) affiche les vrais prix
+            // StoreKit, dans la monnaie de la vitrine de l'utilisateur.
+            sendProducts(to: message.webView)
         default:
             print("[IAP message] Action inconnue : \(action)")
+        }
+    }
+
+    // MARK: - Prix des abonnements pour la page web
+
+    private func sendProducts(to webView: WKWebView?) {
+        guard let webView = webView else { return }
+        Task { @MainActor in
+            if IAPManager.shared.products.isEmpty {
+                await IAPManager.shared.loadProducts()
+            }
+            var payload: [String: [String: String]] = [:]
+            for product in IAPManager.shared.products {
+                let key: String
+                switch product.id {
+                case IAPManager.monthlyProductId: key = "monthly"
+                case IAPManager.annualProductId: key = "annual"
+                default: key = product.id
+                }
+                payload[key] = ["price": product.displayPrice, "name": product.displayName]
+            }
+            guard !payload.isEmpty,
+                  let data = try? JSONSerialization.data(withJSONObject: payload),
+                  let json = String(data: data, encoding: .utf8) else { return }
+            webView.evaluateJavaScript("window.pcIapProducts && window.pcIapProducts(\(json));", completionHandler: nil)
         }
     }
 

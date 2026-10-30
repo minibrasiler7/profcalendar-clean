@@ -392,6 +392,47 @@
         </div>
     </div>
 
+    <!-- Heures de l'école : modifiables ici, sans passer par les Paramètres -->
+    <div class="times-card{% if not has_schedule_entries %} times-card-first{% endif %}" id="timesCard">
+        <div class="times-head">
+            <div class="times-head-text">
+                <strong><i class="fas fa-clock"></i> Heures de ton école</strong>
+                <span class="times-summary" id="timesSummary">
+                    {{ periods|length }} périodes{% if periods %}, de {{ periods[0].start.strftime('%H:%M') }} à {{ periods[-1].end.strftime('%H:%M') }}{% endif %}
+                    · {{ time_settings.period_duration }} min · {{ time_settings.break_duration }} min entre deux périodes
+                    {% for b in time_settings.breaks %}· {{ b.name }} {{ b.start }}–{{ b.end }} {% endfor %}
+                </span>
+            </div>
+            <button type="button" class="times-toggle" id="timesToggle" onclick="toggleTimesForm()">
+                <i class="fas fa-pen"></i> Modifier les heures
+            </button>
+        </div>
+        {% if not has_schedule_entries %}
+        <p class="times-hint">
+            <i class="fas fa-lightbulb"></i>
+            Ces heures sont proposées par défaut. Vérifie qu'elles correspondent à ton école avant de placer tes classes.
+        </p>
+        {% endif %}
+        <div class="times-form" id="timesForm" hidden>
+            <div class="times-grid">
+                <label>Début des cours<input type="time" id="tDayStart" value="{{ time_settings.day_start }}"></label>
+                <label>Fin de la journée<input type="time" id="tDayEnd" value="{{ time_settings.day_end }}"></label>
+                <label>Durée d'une période<span class="times-unit"><input type="number" id="tPeriod" min="20" max="120" step="5" value="{{ time_settings.period_duration }}"> min</span></label>
+                <label>Entre deux périodes<span class="times-unit"><input type="number" id="tGap" min="0" max="30" step="1" value="{{ time_settings.break_duration }}"> min</span></label>
+            </div>
+            <div class="times-breaks-title">Pauses (récréation, midi…)</div>
+            <div id="tBreaks"></div>
+            <button type="button" class="times-add" onclick="addBreakRow()"><i class="fas fa-plus"></i> Ajouter une pause</button>
+            <div class="times-preview-title">Aperçu de tes périodes</div>
+            <div class="times-preview" id="tPreview"></div>
+            <p class="times-error" id="tError" hidden></p>
+            <div class="times-actions">
+                <button type="button" class="btn btn-outline" onclick="toggleTimesForm(false)">Annuler</button>
+                <button type="button" class="btn btn-primary" id="tSave" onclick="saveTimes()"><i class="fas fa-check"></i> Enregistrer les heures</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Grille horaire -->
     <div class="schedule-grid">
         <table class="schedule-table">
@@ -944,5 +985,123 @@ async function toggleMergePair(weekday, periodStart, periodEnd) {
         alert('Erreur de connexion');
     }
 }
+</script>
+
+<style>
+.times-card { background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+.times-card-first { border-color: #FCD34D; box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.25); }
+.times-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.times-head-text { display: flex; flex-direction: column; gap: 0.2rem; }
+.times-head-text strong { color: #1F2937; }
+.times-head-text strong i { color: #4F46E5; margin-right: 0.3rem; }
+.times-summary { color: #6B7280; font-size: 0.9rem; }
+.times-toggle { background: #4F46E5; color: white; border: none; border-radius: 8px; padding: 0.5rem 0.9rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.times-toggle:hover { background: #4338CA; }
+.times-hint { margin: 0.75rem 0 0; color: #92400E; background: #FEF3C7; border-radius: 8px; padding: 0.55rem 0.8rem; font-size: 0.9rem; }
+.times-hint i { margin-right: 0.35rem; }
+.times-form { margin-top: 1rem; border-top: 1px solid #E5E7EB; padding-top: 1rem; }
+.times-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem; }
+.times-grid label, .times-break-row label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; font-weight: 600; color: #374151; }
+.times-form input { padding: 0.45rem 0.55rem; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 0.95rem; }
+.times-unit { display: flex; align-items: center; gap: 0.4rem; font-weight: 400; color: #6B7280; }
+.times-unit input { width: 5.5rem; }
+.times-breaks-title, .times-preview-title { margin: 1rem 0 0.5rem; font-weight: 700; font-size: 0.9rem; color: #1F2937; }
+.times-break-row { display: flex; align-items: flex-end; gap: 0.6rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+.times-break-row .tb-name { flex: 1 1 160px; }
+.times-break-row button { background: none; border: 1px solid #FCA5A5; color: #DC2626; border-radius: 6px; padding: 0.42rem 0.6rem; cursor: pointer; }
+.times-add { background: none; border: 1px dashed #A5B4FC; color: #4F46E5; border-radius: 6px; padding: 0.4rem 0.8rem; cursor: pointer; font-weight: 600; }
+.times-preview { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.times-chip { background: #EEF2FF; color: #3730A3; border-radius: 999px; padding: 0.25rem 0.65rem; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.times-chip.break { background: #FEF3C7; color: #92400E; }
+.times-error { color: #B91C1C; font-size: 0.9rem; margin: 0.75rem 0 0; }
+.times-actions { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1rem; }
+</style>
+
+<script>
+// ── Heures de l'école : formulaire, aperçu en direct (même calcul que le serveur) et enregistrement
+const TIME_SETTINGS = {{ time_settings|tojson }};
+const toMin = v => { const [h, m] = (v || '').split(':').map(Number); return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : NaN; };
+const toHHMM = n => String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+function addBreakRow(b) {
+    b = b || { id: '', name: '', start: '', end: '' };
+    const row = document.createElement('div');
+    row.className = 'times-break-row'; row.dataset.id = b.id || '';
+    row.innerHTML = `<label class="tb-name">Nom<input type="text" maxlength="100" placeholder="Récréation" class="tb-n"></label>
+        <label>De<input type="time" class="tb-s"></label><label>À<input type="time" class="tb-e"></label>
+        <button type="button" title="Supprimer cette pause"><i class="fas fa-trash"></i></button>`;
+    row.querySelector('.tb-n').value = b.name || ''; row.querySelector('.tb-s').value = b.start || ''; row.querySelector('.tb-e').value = b.end || '';
+    row.querySelector('button').onclick = () => { row.remove(); renderTimesPreview(); };
+    row.querySelectorAll('input').forEach(i => i.addEventListener('input', renderTimesPreview));
+    document.getElementById('tBreaks').appendChild(row);
+    renderTimesPreview();
+}
+function readTimesForm() {
+    return {
+        day_start: document.getElementById('tDayStart').value, day_end: document.getElementById('tDayEnd').value,
+        period_duration: parseInt(document.getElementById('tPeriod').value, 10), break_duration: parseInt(document.getElementById('tGap').value, 10),
+        breaks: [...document.querySelectorAll('#tBreaks .times-break-row')].map(r => ({ id: r.dataset.id || null, name: r.querySelector('.tb-n').value.trim(),
+            start: r.querySelector('.tb-s').value, end: r.querySelector('.tb-e').value }))
+    };
+}
+function computePeriods(cfg) {
+    const start = toMin(cfg.day_start), end = toMin(cfg.day_end), dur = cfg.period_duration, gap = cfg.break_duration;
+    const breaks = cfg.breaks.map(b => ({ s: toMin(b.start), e: toMin(b.end) })).filter(b => b.s < b.e).sort((a, b) => a.s - b.s);
+    const out = []; let cur = start, guard = 0;
+    if (!(start < end) || !(dur >= 20)) return out;
+    while (cur < end && guard++ < 40) {
+        let pend = cur + dur, beforeBreak = null;
+        for (const b of breaks) { if (pend >= b.s && cur < b.s) { pend = b.s; beforeBreak = b; break; } }
+        out.push([cur, pend]);
+        cur = beforeBreak ? beforeBreak.e : pend + (Number.isFinite(gap) ? gap : 0);
+        if (cur >= end) break;
+    }
+    return out;
+}
+function renderTimesPreview() {
+    const cfg = readTimesForm(), list = computePeriods(cfg), box = document.getElementById('tPreview');
+    const breaks = cfg.breaks.filter(b => toMin(b.start) < toMin(b.end));
+    box.innerHTML = '';
+    list.forEach(([a, b], i) => {
+        const chip = document.createElement('span'); chip.className = 'times-chip'; chip.textContent = `P${i + 1} ${toHHMM(a)}–${toHHMM(b)}`; box.appendChild(chip);
+        const br = breaks.find(x => toMin(x.start) === b);
+        if (br) { const c = document.createElement('span'); c.className = 'times-chip break'; c.textContent = `${br.name || 'Pause'} ${br.start}–${br.end}`; box.appendChild(c); }
+    });
+    if (!list.length) box.innerHTML = '<span class="times-summary">Vérifie le début et la fin de la journée.</span>';
+    return list;
+}
+function toggleTimesForm(force) {
+    const form = document.getElementById('timesForm');
+    const open = typeof force === 'boolean' ? force : form.hidden;
+    form.hidden = !open;
+    document.getElementById('timesToggle').style.display = open ? 'none' : '';
+    if (open && !document.querySelector('#tBreaks .times-break-row')) {
+        (TIME_SETTINGS.breaks.length ? TIME_SETTINGS.breaks : []).forEach(addBreakRow);
+        renderTimesPreview();
+    }
+    if (!open) {   // Annuler : on remet les valeurs enregistrées
+        document.getElementById('tDayStart').value = TIME_SETTINGS.day_start; document.getElementById('tDayEnd').value = TIME_SETTINGS.day_end;
+        document.getElementById('tPeriod').value = TIME_SETTINGS.period_duration; document.getElementById('tGap').value = TIME_SETTINGS.break_duration;
+        document.getElementById('tBreaks').innerHTML = ''; document.getElementById('tError').hidden = true;
+    }
+}
+async function saveTimes() {
+    const err = document.getElementById('tError'), btn = document.getElementById('tSave');
+    const cfg = readTimesForm(), list = renderTimesPreview();
+    err.hidden = true;
+    if (!list.length) { err.textContent = 'Ces réglages ne donnent aucune période.'; err.hidden = false; return; }
+    // Cours déjà placés au-delà de la dernière période : on prévient avant d'enregistrer
+    const usedMax = Math.max(0, ...[...document.querySelectorAll('.schedule-cell')].filter(c => c.dataset.item).map(c => parseInt(c.dataset.period, 10) || 0));
+    if (usedMax > list.length && !confirm(`Ton horaire contient des cours en période ${usedMax}, mais ces réglages n'en donnent que ${list.length}. Ces cours ne seront plus affichés. Continuer ?`)) return;
+    btn.disabled = true;
+    try {
+        const r = await fetch('{{ url_for("schedule.update_times") }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(cfg) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.message || 'Enregistrement impossible.');
+        window.location.reload();
+    } catch (e) {
+        err.textContent = e.message; err.hidden = false; btn.disabled = false;
+    }
+}
+['tDayStart', 'tDayEnd', 'tPeriod', 'tGap'].forEach(id => document.getElementById(id).addEventListener('input', renderTimesPreview));
 </script>
 {% endblock %}

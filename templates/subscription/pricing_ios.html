@@ -3,24 +3,25 @@
 {% block title %}Premium - ProfCalendar{% endblock %}
 
 {% block content %}
-<div style="max-width: 680px; margin: 40px auto; padding: 0 20px;">
+{# Page d'abonnement DANS l'app iOS (achat intégré Apple obligatoire).
+   Les prix viennent de StoreKit via le pont natif `iap` (action getProducts) :
+   ce sont les prix réels de la vitrine de l'utilisateur, dans sa monnaie.
+   Une ancienne version de l'app ne répond pas à getProducts : la page affiche
+   alors « Prix affiché à l'étape suivante » et le paywall natif montre le prix.
+   Pas de garantie « satisfait ou remboursé » ici : sur l'App Store, c'est
+   Apple qui rembourse. Aucune mention des prix ou du paiement sur le site. #}
+<div class="iosp">
     {% if is_premium %}
-    <div style="background: #d1fae5; color: #065f46; padding: 16px 20px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+    <div class="iosp-ok">
         <i class="fas fa-check-circle"></i>
         <span>{{ _("Votre compte dispose déjà d'un accès Premium actif.") }}</span>
     </div>
     {% endif %}
 
-    <div style="background: white; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); padding: 32px; text-align: center;">
-        <div style="font-size: 56px; margin-bottom: 16px;">
-            <i class="fas fa-crown" style="color: #F59E0B;"></i>
-        </div>
-
-        <h1 style="margin: 0 0 12px; color: #1f2937; font-size: 26px;">
-            ProfCalendar Premium
-        </h1>
-
-        <p style="margin: 0 0 20px; color: #4b5563; font-size: 15px; line-height: 1.6;">
+    <div class="iosp-card">
+        <div class="iosp-crown"><i class="fas fa-crown"></i></div>
+        <h1>ProfCalendar Premium</h1>
+        <p class="iosp-lead">
             {% if needs_subscription %}
             {{ _('Pour utiliser ProfCalendar, choisis un abonnement. Tu peux aussi restaurer un achat existant.') }}
             {% else %}
@@ -28,36 +29,86 @@
             {% endif %}
         </p>
 
+        <h2 class="iosp-h2">{{ _('Ce que tu obtiens') }}</h2>
+        <ul class="iosp-features">
+            <li><i class="fas fa-calendar-week"></i><span><strong>{{ _('Planification et calendrier') }}</strong> — {{ _('ta semaine période par période, les vacances de ton canton déjà placées.') }}</span></li>
+            <li><i class="fas fa-chalkboard-teacher"></i><span><strong>{{ _('Page du cours') }}</strong> — {{ _('présences en un clic, remarques dictées, documents épinglés.') }}</span></li>
+            <li><i class="fas fa-users"></i><span><strong>{{ _('Gestion de classe') }}</strong> — {{ _('notes et moyennes automatiques, absences, coches, plan de classe.') }}</span></li>
+            <li><i class="fas fa-pen-nib"></i><span><strong>{{ _('Lecteur PDF avec Apple Pencil') }}</strong> — {{ _('stylo, surligneur, règle, compas et équerre en vrais centimètres.') }}</span></li>
+            <li><i class="fas fa-folder-open"></i><span><strong>{{ _('Gestionnaire de fichiers') }}</strong> — {{ _("50 Go pour garder tes documents d'une année à l'autre.") }}</span></li>
+        </ul>
+
         {% if not is_premium %}
-        <button onclick="openIAPPaywall()" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; background: linear-gradient(135deg, #4F46E5, #7C3AED); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
+        <div class="iosp-plans">
+            <button type="button" class="iosp-plan" onclick="openIAPPaywall()">
+                <span class="iosp-plan-name">{{ _('Mensuel') }}</span>
+                <span class="iosp-plan-price" data-iap-price="monthly"></span>
+                <span class="iosp-plan-fallback" data-iap-fallback="monthly">{{ _('Prix affiché à l’étape suivante') }}</span>
+                <span class="iosp-plan-note">{{ _('Sans engagement') }}</span>
+            </button>
+            <button type="button" class="iosp-plan iosp-plan-best" onclick="openIAPPaywall()">
+                <span class="iosp-badge">{{ _('Meilleure offre') }}</span>
+                <span class="iosp-plan-name">{{ _('Annuel') }}</span>
+                <span class="iosp-plan-price" data-iap-price="annual"></span>
+                <span class="iosp-plan-fallback" data-iap-fallback="annual">{{ _('Prix affiché à l’étape suivante') }}</span>
+                <span class="iosp-plan-note">{{ _('Un seul paiement par an') }}</span>
+            </button>
+        </div>
+
+        <button type="button" class="iosp-cta" onclick="openIAPPaywall()">
             <i class="fas fa-crown"></i> {{ _('Voir les abonnements') }}
         </button>
-        <p style="margin-top: 16px; color: #6b7280; font-size: 13px;">
-            {{ _('Le paiement passe par votre compte Apple (App Store).') }}
+        <p class="iosp-small">{{ _('Le paiement passe par votre compte Apple (App Store).') }}</p>
+        <p class="iosp-legal">
+            {{ _('Abonnement à renouvellement automatique, résiliable à tout moment dans Réglages > Apple ID > Abonnements, au plus tard 24 heures avant la fin de la période en cours.') }}
+            <a href="{{ url_for('terms_of_service') }}">{{ _("Conditions d'utilisation") }}</a> ·
+            <a href="{{ url_for('privacy_policy') }}">{{ _('Politique de confidentialité') }}</a>
         </p>
         {% endif %}
 
-        <div style="margin-top: 28px;">
+        <div class="iosp-footer">
             {% if needs_subscription %}
-            <a href="{{ url_for('auth.logout') }}" style="display: inline-block; padding: 10px 24px; background: #f3f4f6; color: #4b5563; border-radius: 8px; text-decoration: none; font-weight: 500;">
-                {{ _('Déconnexion') }}
-            </a>
+            <a href="{{ url_for('auth.logout') }}" class="iosp-secondary">{{ _('Déconnexion') }}</a>
             {% else %}
-            <a href="{{ url_for('planning.dashboard') }}" style="display: inline-block; padding: 10px 24px; background: #f3f4f6; color: #4b5563; border-radius: 8px; text-decoration: none; font-weight: 500;">
-                {{ _('Retour au tableau de bord') }}
-            </a>
+            <a href="{{ url_for('planning.dashboard') }}" class="iosp-secondary">{{ _('Retour au tableau de bord') }}</a>
             {% endif %}
         </div>
     </div>
 </div>
 
+<style>
+.iosp { max-width: 720px; margin: 32px auto; padding: 0 16px; }
+.iosp-ok { background: #d1fae5; color: #065f46; padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+.iosp-card { background: white; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); padding: 28px 24px; text-align: center; }
+.iosp-crown { font-size: 48px; color: #F59E0B; margin-bottom: 8px; }
+.iosp-card h1 { margin: 0 0 10px; color: #1f2937; font-size: 26px; }
+.iosp-lead { margin: 0 0 22px; color: #4b5563; font-size: 15px; line-height: 1.6; }
+.iosp-h2 { font-size: 16px; color: #1f2937; margin: 0 0 10px; text-align: left; }
+.iosp-features { list-style: none; padding: 0; margin: 0 0 22px; text-align: left; display: grid; gap: 10px; }
+.iosp-features li { display: flex; gap: 12px; align-items: flex-start; color: #374151; font-size: 14.5px; line-height: 1.45; }
+.iosp-features i { color: #4F46E5; width: 20px; text-align: center; margin-top: 3px; }
+.iosp-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+.iosp-plan { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px 12px 14px; border: 2px solid #E5E7EB; border-radius: 14px; background: #FAFAFF; cursor: pointer; font: inherit; color: #1f2937; }
+.iosp-plan-best { border-color: #4F46E5; background: #EEF2FF; }
+.iosp-badge { position: absolute; top: -11px; background: #10B981; color: white; font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.iosp-plan-name { font-weight: 700; font-size: 16px; }
+.iosp-plan-price { font-size: 22px; font-weight: 800; color: #312E81; }
+.iosp-plan-price:empty { display: none; }
+.iosp-plan-fallback { font-size: 13px; color: #6b7280; }
+.iosp-plan-note { font-size: 12.5px; color: #6b7280; }
+.iosp-cta { display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; background: linear-gradient(135deg, #4F46E5, #7C3AED); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
+.iosp-small { margin: 12px 0 0; color: #6b7280; font-size: 13px; }
+.iosp-legal { margin: 14px 0 0; color: #9ca3af; font-size: 12px; line-height: 1.5; }
+.iosp-legal a { color: #6b7280; }
+.iosp-footer { margin-top: 22px; }
+.iosp-secondary { display: inline-block; padding: 10px 24px; background: #f3f4f6; color: #4b5563; border-radius: 8px; text-decoration: none; font-size: 14px; }
+@media (max-width: 420px) { .iosp-plans { grid-template-columns: 1fr; } }
+</style>
+
 <script>
 /**
- * Demande à l'app iOS native d'ouvrir le paywall natif (StoreKit 2).
- * Le bridge `iap` est enregistré par WebViewController.setupWebView()
- * en Swift. Si on n'est pas dans l'app native, ce bouton ne devrait pas
- * être visible (le template pricing_ios.html n'est rendu que pour
- * is_ios_native_app == True côté Flask).
+ * Ouvre le paywall natif (StoreKit 2) de l'app iOS.
+ * Le bridge `iap` est enregistré par WebViewController.setupWebView() en Swift.
  */
 function openIAPPaywall() {
     try {
@@ -70,5 +121,25 @@ function openIAPPaywall() {
         console.error('Erreur openIAPPaywall:', e);
     }
 }
+
+/**
+ * Prix réels des abonnements (StoreKit, monnaie de l'utilisateur), renvoyés par
+ * l'app native en réponse à {action: 'getProducts'} :
+ * window.pcIapProducts({monthly: {price: 'CHF 5.00', name: '…'}, annual: {…}})
+ */
+window.pcIapProducts = function (products) {
+    var labels = {monthly: {{ _('/ mois')|tojson }}, annual: {{ _('/ an')|tojson }}};
+    ['monthly', 'annual'].forEach(function (k) {
+        var p = products && products[k];
+        if (!p || !p.price) return;
+        document.querySelectorAll('[data-iap-price="' + k + '"]').forEach(function (el) { el.textContent = p.price + ' ' + labels[k]; });
+        document.querySelectorAll('[data-iap-fallback="' + k + '"]').forEach(function (el) { el.style.display = 'none'; });
+    });
+};
+try {
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iap) {
+        window.webkit.messageHandlers.iap.postMessage({action: 'getProducts'});
+    }
+} catch (e) { /* ancienne version de l'app : les prix s'affichent dans le paywall natif */ }
 </script>
 {% endblock %}

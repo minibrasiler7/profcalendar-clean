@@ -616,7 +616,7 @@
        qui lui cède la main quand window.pcTutorial existe. #}
     {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}
     <script src="{{ url_for('static', filename='js/pc-tutorial-chapters.js') }}?v=1"></script>
-    <script src="{{ url_for('static', filename='js/pc-tutorial.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/pc-tutorial.js') }}?v=2"></script>
     {% endif %}
     <script src="{{ url_for('static', filename='js/help-system.js') }}"></script>
     {% endif %}

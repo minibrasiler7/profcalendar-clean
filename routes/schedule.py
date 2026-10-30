@@ -14,7 +14,8 @@ def calculate_periods(user):
     end_time = datetime.combine(datetime.today(), user.day_end_time)
 
     # Récupérer les pauses majeures
-    major_breaks = [(b.start_time, b.end_time) for b in user.breaks.filter_by(is_major_break=True).all()]
+    from models.user import Break
+    major_breaks = [(b.start_time, b.end_time) for b in user.breaks.filter_by(is_major_break=True).order_by(Break.start_time).all()]
 
     current_time = start_time
     period_number = 1
@@ -71,6 +72,11 @@ def weekly_schedule():
         flash('Veuillez d\'abord ajouter au moins une classe.', 'warning')
         return redirect(url_for('setup.manage_classrooms'))
 
+    # Comptes restés sur les anciens défauts (15 min entre les périodes, aucune
+    # pause) : nouveaux défauts avant d'afficher la grille.
+    if current_user.upgrade_untouched_time_defaults():
+        db.session.commit()
+
     # Si déjà complété, le signaler — seulement s'il existe vraiment des périodes
     # (un nouveau compte a schedule_completed=True par défaut mais un horaire vide).
     if current_user.schedule_completed and Schedule.query.filter_by(user_id=current_user.id).first():
@@ -126,13 +132,104 @@ def weekly_schedule():
 
     days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi']
 
+    # Panneau « Heures de ton école » : réglages modifiables sans quitter la page
+    from models.user import Break
+    major_breaks = current_user.breaks.filter_by(is_major_break=True).order_by(Break.start_time).all()
+    time_settings = {
+        'day_start': current_user.day_start_time.strftime('%H:%M'),
+        'day_end': current_user.day_end_time.strftime('%H:%M') if current_user.day_end_time else '16:00',
+        'period_duration': current_user.period_duration or 45,
+        'break_duration': current_user.break_duration if current_user.break_duration is not None else 5,
+        'breaks': [{'id': b.id, 'name': b.name, 'start': b.start_time.strftime('%H:%M'),
+                    'end': b.end_time.strftime('%H:%M')} for b in major_breaks],
+    }
+
     return render_template('setup/weekly_schedule.html',
                          classrooms=classrooms,
                          classrooms_json=classrooms_dict,
                          periods=periods,
                          periods_json=periods_json,
                          schedule_grid=schedule_grid,
-                         days=days)
+                         days=days,
+                         time_settings=time_settings,
+                         has_schedule_entries=bool(schedules))
+
+
+def _parse_hhmm(value):
+    """'08:05' → time(8, 5) ; None si invalide."""
+    try:
+        h, m = str(value).strip().split(':')[:2]
+        return time(int(h), int(m))
+    except (ValueError, TypeError):
+        return None
+
+
+@schedule_bp.route('/update-times', methods=['POST'])
+@login_required
+def update_times():
+    """Heures de l'école modifiées depuis l'horaire type : début et fin de
+    journée, durée des périodes, pause entre deux périodes et grandes pauses
+    (récréation, midi…). Les petites pauses (non « grandes ») ne sont pas touchées."""
+    from models.user import Break
+    data = request.get_json(silent=True) or {}
+    day_start, day_end = _parse_hhmm(data.get('day_start')), _parse_hhmm(data.get('day_end'))
+    try:
+        period_duration = int(data.get('period_duration'))
+        break_duration = int(data.get('break_duration'))
+    except (TypeError, ValueError):
+        return jsonify(success=False, message='Durées invalides.'), 400
+    if not day_start or not day_end or day_start >= day_end:
+        return jsonify(success=False, message='Le début de la journée doit précéder la fin.'), 400
+    if not 20 <= period_duration <= 120:
+        return jsonify(success=False, message='Une période dure entre 20 et 120 minutes.'), 400
+    if not 0 <= break_duration <= 30:
+        return jsonify(success=False, message='La pause entre deux périodes dure entre 0 et 30 minutes.'), 400
+
+    breaks_in = []
+    for b in (data.get('breaks') or [])[:8]:
+        start, end = _parse_hhmm(b.get('start')), _parse_hhmm(b.get('end'))
+        name = (str(b.get('name') or '').strip() or 'Pause')[:100]
+        if not start or not end or start >= end:
+            return jsonify(success=False, message=f'Pause « {name} » : l’heure de fin doit suivre l’heure de début.'), 400
+        if start <= day_start or end >= day_end:
+            return jsonify(success=False, message=f'Pause « {name} » : elle doit se situer pendant la journée.'), 400
+        try:
+            bid = int(b.get('id')) if b.get('id') not in (None, '') else None
+        except (TypeError, ValueError):
+            bid = None
+        breaks_in.append({'id': bid, 'name': name, 'start': start, 'end': end})
+    breaks_in.sort(key=lambda x: x['start'])
+    for a, b in zip(breaks_in, breaks_in[1:]):
+        if b['start'] < a['end']:
+            return jsonify(success=False, message=f'Les pauses « {a["name"]} » et « {b["name"]} » se chevauchent.'), 400
+
+    try:
+        current_user.day_start_time = day_start
+        current_user.day_end_time = day_end
+        current_user.period_duration = period_duration
+        current_user.break_duration = break_duration
+        existing = {b.id: b for b in current_user.breaks.filter_by(is_major_break=True).all()}
+        kept = set()
+        for b in breaks_in:
+            obj = existing.get(b['id']) if b['id'] else None
+            if obj is None:
+                obj = Break(user_id=current_user.id, is_major_break=True)
+                db.session.add(obj)
+            else:
+                kept.add(obj.id)
+            obj.name, obj.start_time, obj.end_time = b['name'], b['start'], b['end']
+        for bid, obj in existing.items():
+            if bid not in kept:
+                db.session.delete(obj)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(success=False, message='Enregistrement impossible : ' + str(e)[:120]), 500
+
+    periods = calculate_periods(current_user)
+    orphaned = Schedule.query.filter(Schedule.user_id == current_user.id,
+                                     Schedule.period_number > len(periods)).count()
+    return jsonify(success=True, periods=len(periods), orphaned=orphaned)
 
 @schedule_bp.route('/save', methods=['POST'])
 @login_required

@@ -1872,7 +1872,7 @@ renderDashboardTasks();
 
     var STEPS = [
         { sel: null, title: {{ _("Bienvenue sur ProfCalendar !")|tojson }}, text: {{ _("Faisons un tour rapide pour bien démarrer. Tu peux le passer à tout moment.")|tojson }} },
-        { sel: '#onboarding-steps', title: {{ _("Tes 3 étapes pour démarrer")|tojson }}, text: {{ _("Suis cette petite liste : créer ta classe, ajouter tes élèves, puis planifier ton premier cours.")|tojson }} },
+        { sel: '#onboarding-steps', title: {{ _("Tes 3 étapes pour démarrer")|tojson }}, text: {{ _("Suis cette petite liste : crée tes classes, compose ton horaire, puis importe tes vacances.")|tojson }} },
         { sel: '#onboarding-primary-cta', title: {{ _("Commence ici")|tojson }}, text: {{ _("Clique sur ce bouton pour créer ta première classe — ça prend 30 secondes.")|tojson }} },
         { sel: '.help-fab', title: {{ _("Besoin d'aide ?")|tojson }}, text: {{ _("Ce bouton ouvre l'aide contextuelle sur chaque page. Il est toujours disponible.")|tojson }} }
     ].filter(function (s) { return !s.sel || document.querySelector(s.sel); });

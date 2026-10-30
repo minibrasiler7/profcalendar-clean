@@ -179,7 +179,9 @@ class User(UserMixin, db.Model):
         if self.period_duration is None:
             self.period_duration = 45  # période standard en Suisse romande
         if self.break_duration is None:
-            self.break_duration = 15
+            # 5 min entre deux périodes : avec 15 min, l'horaire type d'un
+            # nouveau compte ne ressemblait à aucun horaire scolaire réel.
+            self.break_duration = 5
 
         # Année scolaire : ~fin août → début juillet. On calcule selon la date
         # du jour pour tomber sur l'année scolaire en cours.
@@ -197,6 +199,36 @@ class User(UserMixin, db.Model):
         # (il l'enrichira quand il en aura besoin) mais l'app est utilisable.
         self.setup_completed = True
         self.schedule_completed = True
+
+    # Pauses créées pour un compte neuf : récréation et midi (grandes pauses,
+    # prises en compte par calculate_periods). Le prof les ajuste depuis
+    # l'horaire type (« Heures de ton école »).
+    DEFAULT_BREAKS = (('Récréation', (9, 35), (9, 55)), ('Pause de midi', (12, 20), (13, 30)))
+
+    def add_default_breaks(self):
+        """Ajoute la récréation et la pause de midi par défaut si le compte n'a
+        encore AUCUNE pause. Exige un id (compte déjà enregistré). NE COMMITTE PAS."""
+        from datetime import time
+        if not self.id or self.breaks.count() > 0:
+            return False
+        for name, (h1, m1), (h2, m2) in self.DEFAULT_BREAKS:
+            db.session.add(Break(user_id=self.id, name=name, start_time=time(h1, m1),
+                                 end_time=time(h2, m2), is_major_break=True))
+        return True
+
+    def upgrade_untouched_time_defaults(self):
+        """Comptes créés avec les anciens défauts (15 min entre les périodes,
+        aucune pause) et jamais retouchés : passage aux nouveaux défauts.
+        Sans effet dès que le prof a un horaire, une pause ou d'autres heures.
+        NE COMMITTE PAS."""
+        from datetime import time
+        if (self.day_start_time == time(8, 0) and self.day_end_time == time(16, 0)
+                and self.period_duration == 45 and self.break_duration == 15
+                and self.schedules.count() == 0 and self.breaks.count() == 0):
+            self.break_duration = 5
+            self.add_default_breaks()
+            return True
+        return False
 
     def get_trial_info(self):
         """État de l'essai / abonnement, pour les bannières UI.

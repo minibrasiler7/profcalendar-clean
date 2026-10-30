@@ -563,7 +563,12 @@
             url.searchParams.delete('replay_tour');
             try { history.replaceState(null, '', url.pathname + (url.search || '')); } catch (e) {}
         }
-        if (replay || (onDashboard && document.body.dataset.firstVisit === 'true')) {
+        // Tant que le démarrage guidé (classes, horaire, vacances) est affiché, on
+        // n'ouvre PAS la fenêtre des tutoriels : elle masquait les 3 étapes au
+        // premier passage. Elle s'ouvrira au premier retour sur le tableau de bord
+        // une fois le démarrage terminé ou fermé (data-first-visit reste posé).
+        const onboardingPending = !!document.getElementById('onboarding-steps');
+        if (replay || (onDashboard && !onboardingPending && document.body.dataset.firstVisit === 'true')) {
             setTimeout(() => tuto.open(), 700);
         }
     });
