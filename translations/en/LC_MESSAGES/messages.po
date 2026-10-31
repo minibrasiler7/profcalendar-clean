@@ -3120,6 +3120,105 @@ msgstr "/ month"
 msgid "/ an"
 msgstr "/ year"
 
+msgid "Le calendrier de la semaine"
+msgstr "The weekly calendar"
+
+msgid "Chaque période aux couleurs de tes classes, les vacances du canton déjà placées."
+msgstr "Every period in your classes' colours, with your canton's holidays already in place."
+
+msgid "La planification d'un cours"
+msgstr "Planning a lesson"
+
+msgid "Un titre, le déroulement avec des cases à cocher et les documents joints."
+msgstr "A title, the lesson flow with checkboxes, and attached documents."
+
+msgid "La page du cours"
+msgstr "The lesson page"
+
+msgid "Ta planification, les documents épinglés et les présences sur un seul écran."
+msgstr "Your plan, pinned documents and attendance on a single screen."
+
+msgid "Le lecteur PDF"
+msgstr "The PDF reader"
+
+msgid "Annote tes documents : stylo, surligneur, règle et compas en vrais centimètres."
+msgstr "Annotate your documents: pen, highlighter, ruler and compass in real centimetres."
+
+msgid "Les notes"
+msgstr "Marks"
+
+msgid "Les moyennes se calculent seules et s’exportent en PDF ou en tableur."
+msgstr "Averages calculate themselves and export to PDF or a spreadsheet."
+
+msgid "Le plan de classe"
+msgstr "The seating plan"
+
+msgid "Glisse les élèves sur les tables et retrouve qui est où, d’un coup d’œil."
+msgstr "Drag students onto desks and see who sits where at a glance."
+
+msgid "Découvre ProfCalendar avant de t’abonner"
+msgstr "Discover ProfCalendar before you subscribe"
+
+msgid "Une vidéo, six écrans réels et un compte d’exemple à explorer librement."
+msgstr "A video, six real screens and a sample account to explore freely."
+
+msgid "Présentation de ProfCalendar"
+msgstr "ProfCalendar overview"
+
+msgid "Bien démarrer en trois étapes"
+msgstr "Get started in three steps"
+
+msgid "Écrans de ProfCalendar"
+msgstr "ProfCalendar screens"
+
+msgid "Écran précédent"
+msgstr "Previous screen"
+
+msgid "Écran suivant"
+msgstr "Next screen"
+
+msgid "Explorer un compte d’exemple"
+msgstr "Explore a sample account"
+
+msgid "Sans inscription : navigue partout, rien n’est enregistré."
+msgstr "No sign-up: browse everywhere, nothing is saved."
+
+msgid "Voir la vidéo de présentation"
+msgstr "Watch the overview video"
+
+msgid "Voir la vidéo et les écrans"
+msgstr "Watch the video and see the screens"
+
+msgid "Télécharger ProfCalendar sur l’App Store"
+msgstr "Download ProfCalendar on the App Store"
+
+msgid "Télécharger sur l’"
+msgstr "Download on the"
+
+msgid "Pas encore sûr ? Regarde la vidéo, les écrans ou explore un compte d’exemple"
+msgstr "Not sure yet? Watch the video, see the screens or explore a sample account"
+
+msgid "Pas encore décidé ? Explore un compte d’exemple"
+msgstr "Not decided yet? Explore a sample account"
+
+msgid "Compte de démonstration"
+msgstr "Demo account"
+
+msgid "explore librement : rien n'est enregistré."
+msgstr "explore freely: nothing is saved."
+
+msgid "Quitter la démo"
+msgstr "Leave the demo"
+
+msgid "Mode démonstration : rien n'est enregistré. Crée ton compte pour utiliser ProfCalendar avec tes classes."
+msgstr "Demo mode: nothing is saved. Create your account to use ProfCalendar with your own classes."
+
+msgid "Voir comment faire en vidéo"
+msgstr "Watch how in a video"
+
+msgid "La démonstration est momentanément indisponible."
+msgstr "The demo is temporarily unavailable."
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."

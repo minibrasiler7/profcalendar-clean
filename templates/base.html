@@ -358,6 +358,61 @@
         {% endif %}
     {% endif %}
 
+    {% if is_demo_session %}
+    <!-- Mode démonstration : bandeau permanent + message quand une action est bloquée -->
+    <div class="demo-bar" role="status">
+        <span class="demo-bar-text"><i class="fas fa-eye"></i> <strong>{{ _('Compte de démonstration') }}</strong> — {{ _("explore librement : rien n'est enregistré.") }}</span>
+        <span class="demo-bar-actions">
+            <a href="{{ url_for('demo.exit_demo', to='register') }}" class="demo-bar-cta">{{ _('Créer mon compte') }}</a>
+            <a href="{{ url_for('demo.exit_demo', to='login') }}" class="demo-bar-quit">{{ _('Quitter la démo') }}</a>
+        </span>
+    </div>
+    <div class="demo-toast" id="demoToast" role="alert" hidden></div>
+    <style>
+    .demo-bar { position: sticky; top: 0; z-index: 1040; display: flex; align-items: center; justify-content: center; gap: 0.75rem 1.25rem; flex-wrap: wrap;
+                background: #312E81; color: #fff; padding: 0.55rem 1rem; font-size: 0.92rem; }
+    .demo-bar i { color: #FCD34D; margin-right: 0.25rem; }
+    .demo-bar-actions { display: inline-flex; gap: 0.6rem; }
+    .demo-bar-cta { background: #FCD34D; color: #1E1B4B; font-weight: 700; padding: 0.3rem 0.85rem; border-radius: 999px; text-decoration: none; }
+    .demo-bar-quit { color: #C7D2FE; text-decoration: underline; padding: 0.3rem 0.2rem; }
+    .demo-toast { position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%); z-index: 3000; max-width: min(92vw, 560px);
+                  background: #1E1B4B; color: #fff; padding: 0.8rem 1.1rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); font-size: 0.95rem; }
+    .demo-toast a { color: #FCD34D; font-weight: 700; margin-left: 0.4rem; }
+    </style>
+    <script>
+    (function () {
+        // Une action bloquée en démo (réponse 403 + X-Demo-Readonly) affiche un message discret.
+        var toast = document.getElementById('demoToast'), timer;
+        window.pcDemoNotice = function (msg) {
+            if (!toast) return;
+            toast.innerHTML = '';
+            toast.appendChild(document.createTextNode(msg || {{ _("Mode démonstration : rien n'est enregistré. Crée ton compte pour utiliser ProfCalendar avec tes classes.")|tojson }}));
+            var a = document.createElement('a'); a.href = {{ url_for('demo.exit_demo', to='register')|tojson }}; a.textContent = {{ _('Créer mon compte')|tojson }};
+            toast.appendChild(a); toast.hidden = false;
+            clearTimeout(timer); timer = setTimeout(function () { toast.hidden = true; }, 6000);
+        };
+        var origFetch = window.fetch;
+        if (origFetch) {
+            window.fetch = function () {
+                return origFetch.apply(this, arguments).then(function (r) {
+                    if (r.status === 403 && r.headers.get('X-Demo-Readonly')) {
+                        r.clone().json().then(function (d) { window.pcDemoNotice(d && d.message); }).catch(function () { window.pcDemoNotice(); });
+                    }
+                    return r;
+                });
+            };
+        }
+        var origSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function () {
+            this.addEventListener('load', function () {
+                if (this.status === 403 && this.getResponseHeader('X-Demo-Readonly')) window.pcDemoNotice();
+            });
+            return origSend.apply(this, arguments);
+        };
+    })();
+    </script>
+    {% endif %}
+
     <!-- Contenu principal -->
     <main class="main-content" data-help-page="{{ request.endpoint or '' }}">
         {% block content %}{% endblock %}

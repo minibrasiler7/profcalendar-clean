@@ -1459,6 +1459,10 @@ def create_app(config_name='development'):
 
     # Modèle payant dès l'inscription : contrôle d'accès par abonnement sur
     # tout l'outil enseignant (utils/subscription_gate.py).
+    # Compte de démonstration en lecture seule (/demo) : avant la passerelle payante
+    from utils.demo_mode import register_demo_mode
+    register_demo_mode(app)
+
     from utils.subscription_gate import register_subscription_gate
     register_subscription_gate(app)
 

@@ -1,4 +1,5 @@
 User-agent: *
+Disallow: /demo
 Allow: /
 Disallow: /planning/
 Disallow: /student/

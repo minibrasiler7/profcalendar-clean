@@ -29,6 +29,7 @@
             {% endif %}
         </p>
 
+        {% if not is_premium %}<p class="iosp-small" style="margin:-10px 0 18px;"><a href="#apercu" style="color:#4F46E5; font-weight:600;"><i class="fas fa-play-circle"></i> {{ _('Pas encore sûr ? Regarde la vidéo, les écrans ou explore un compte d’exemple') }}</a></p>{% endif %}
         <h2 class="iosp-h2">{{ _('Ce que tu obtiens') }}</h2>
         <ul class="iosp-features">
             <li><i class="fas fa-calendar-week"></i><span><strong>{{ _('Planification et calendrier') }}</strong> — {{ _('ta semaine période par période, les vacances de ton canton déjà placées.') }}</span></li>
@@ -75,6 +76,8 @@
         </div>
     </div>
 </div>
+
+{% if not is_premium %}{% set apercu_compact = true %}{% include 'includes/apercu.html' %}{% endif %}
 
 <style>
 .iosp { max-width: 720px; margin: 32px auto; padding: 0 16px; }

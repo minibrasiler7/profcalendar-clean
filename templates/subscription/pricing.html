@@ -12,6 +12,7 @@
         {% if needs_subscription %}
         <h1><i class="fas fa-crown"></i> {{ _('Choisis ton abonnement pour commencer') }}</h1>
         <p>{{ _('ProfCalendar est un outil payant, sans engagement : choisis la formule qui te convient. Tu peux résilier à tout moment.') }}</p>
+        <p style="margin-top:0.75rem;"><a href="#apercu" style="color:inherit; font-weight:700; text-decoration:underline;"><i class="fas fa-play-circle"></i> {{ _('Pas encore sûr ? Regarde la vidéo, les écrans ou explore un compte d’exemple') }}</a></p>
         <p style="margin-top:0.5rem; font-size:0.9rem; opacity:0.85;"><a href="{{ url_for('auth.logout') }}" style="color:inherit;">{{ _('Déconnexion') }}</a></p>
         {% else %}
         <h1><i class="fas fa-crown"></i> {{ _('Passez à Premium') }}</h1>
@@ -102,6 +103,8 @@
         <strong>{{ _('Satisfait ou remboursé 30 jours') }}</strong> :
         {{ _("si ProfCalendar ne vous convient pas, un simple email dans les 30 jours suivant votre premier paiement et nous vous remboursons intégralement.") }}
     </p>
+
+    {% if not is_premium %}{% include 'includes/apercu.html' %}{% endif %}
 
     <!-- Section Bon -->
     <div class="voucher-section">

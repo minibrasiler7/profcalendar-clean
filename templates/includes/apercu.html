@@ -1,0 +1,109 @@
+{# Aperçu avant achat : vidéos, 6 écrans réels et compte de démonstration.
+   Inclus dans l'accueil (web), la page de tarifs (web) et la page d'abonnement
+   de l'app iOS. Les vidéos ne citent ni prix ni garantie (autorisées dans l'app).
+   Variables facultatives : apercu_compact (bool) masque la seconde vidéo. #}
+{% set apercu_slides = [
+    ('calendrier', _('Le calendrier de la semaine'), _('Chaque période aux couleurs de tes classes, les vacances du canton déjà placées.')),
+    ('planification', _("La planification d'un cours"), _('Un titre, le déroulement avec des cases à cocher et les documents joints.')),
+    ('cours', _('La page du cours'), _('Ta planification, les documents épinglés et les présences sur un seul écran.')),
+    ('pdf', _('Le lecteur PDF'), _('Annote tes documents : stylo, surligneur, règle et compas en vrais centimètres.')),
+    ('notes', _('Les notes'), _('Les moyennes se calculent seules et s’exportent en PDF ou en tableur.')),
+    ('plan', _('Le plan de classe'), _('Glisse les élèves sur les tables et retrouve qui est où, d’un coup d’œil.')),
+] %}
+<section class="apercu" id="apercu">
+    <div class="apercu-inner">
+        <h2 class="apercu-title">{{ _('Découvre ProfCalendar avant de t’abonner') }}</h2>
+        <p class="apercu-sub">{{ _('Une vidéo, six écrans réels et un compte d’exemple à explorer librement.') }}</p>
+
+        <div class="apercu-videos{% if apercu_compact %} apercu-videos-one{% endif %}">
+            <figure class="apercu-video">
+                <video controls preload="none" playsinline poster="{{ url_for('static', filename='videos/presentation.jpg') }}">
+                    <source src="{{ url_for('static', filename='videos/presentation.mp4') }}" type="video/mp4">
+                    <track kind="subtitles" srclang="fr" label="Français" src="{{ url_for('static', filename='videos/presentation.vtt') }}">
+                </video>
+                <figcaption>{{ _('Présentation de ProfCalendar') }}</figcaption>
+            </figure>
+            {% if not apercu_compact %}
+            <figure class="apercu-video">
+                <video controls preload="none" playsinline poster="{{ url_for('static', filename='videos/bien_demarrer.jpg') }}">
+                    <source src="{{ url_for('static', filename='videos/bien_demarrer.mp4') }}" type="video/mp4">
+                    <track kind="subtitles" srclang="fr" label="Français" src="{{ url_for('static', filename='videos/bien_demarrer.vtt') }}">
+                </video>
+                <figcaption>{{ _('Bien démarrer en trois étapes') }}</figcaption>
+            </figure>
+            {% endif %}
+        </div>
+
+        <p class="apercu-credit">Voix de synthèse : Kokoro · corpus SIWIS (CC BY 4.0)</p>
+
+        <div class="apercu-carousel" role="region" aria-roledescription="carousel" aria-label="{{ _('Écrans de ProfCalendar') }}">
+            <button type="button" class="apercu-nav apercu-prev" aria-label="{{ _('Écran précédent') }}" onclick="pcApercuGo(-1)"><i class="fas fa-chevron-left"></i></button>
+            <div class="apercu-track" id="apercuTrack">
+                {% for key, title, text in apercu_slides %}
+                <figure class="apercu-slide">
+                    <img src="{{ url_for('static', filename='apercu/' ~ key ~ '.webp') }}" alt="{{ title }}" loading="lazy" width="1440" height="900">
+                    <figcaption><strong>{{ title }}</strong> — {{ text }}</figcaption>
+                </figure>
+                {% endfor %}
+            </div>
+            <button type="button" class="apercu-nav apercu-next" aria-label="{{ _('Écran suivant') }}" onclick="pcApercuGo(1)"><i class="fas fa-chevron-right"></i></button>
+            <div class="apercu-dots" id="apercuDots">
+                {% for key, title, text in apercu_slides %}<button type="button" aria-label="{{ title }}" onclick="pcApercuGo(null, {{ loop.index0 }})"></button>{% endfor %}
+            </div>
+        </div>
+
+        <div class="apercu-demo">
+            <a href="{{ url_for('demo.start') }}" rel="nofollow" class="apercu-demo-btn"><i class="fas fa-eye"></i> {{ _('Explorer un compte d’exemple') }}</a>
+            <span class="apercu-demo-note">{{ _('Sans inscription : navigue partout, rien n’est enregistré.') }}</span>
+        </div>
+    </div>
+</section>
+
+<style>
+.apercu { padding: 3rem 1rem; background: #F8FAFC; }
+.apercu-inner { max-width: 1040px; margin: 0 auto; text-align: center; }
+.apercu-title { font-size: clamp(1.4rem, 3vw, 2rem); margin: 0 0 0.5rem; color: #1F2937; }
+.apercu-sub { color: #6B7280; margin: 0 0 1.75rem; }
+.apercu-videos { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 2rem; }
+.apercu-videos-one { grid-template-columns: 1fr; max-width: 760px; margin-left: auto; margin-right: auto; }
+.apercu-video { margin: 0; }
+.apercu-video video { width: 100%; aspect-ratio: 16 / 9; border-radius: 14px; background: #1E1B4B; box-shadow: 0 10px 30px rgba(30, 27, 75, 0.18); }
+.apercu-video figcaption { margin-top: 0.5rem; font-weight: 600; color: #374151; font-size: 0.95rem; }
+.apercu-carousel { position: relative; }
+.apercu-credit { margin: -1.4rem 0 1.6rem; font-size: 0.75rem; color: #9CA3AF; }
+.apercu-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; gap: 0; padding-bottom: 0.25rem; scrollbar-width: none; }
+.apercu-track::-webkit-scrollbar { display: none; }
+.apercu-slide { flex: 0 0 100%; scroll-snap-align: center; margin: 0; padding: 0 0.35rem; box-sizing: border-box; }
+.apercu-slide img { width: 100%; height: auto; border-radius: 14px; border: 1px solid #E5E7EB; box-shadow: 0 10px 30px rgba(30, 27, 75, 0.12); background: white; }
+.apercu-slide figcaption { margin-top: 0.75rem; color: #4B5563; font-size: 0.98rem; }
+.apercu-slide figcaption strong { color: #1F2937; }
+.apercu-nav { position: absolute; top: 40%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.95);
+              color: #312E81; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); cursor: pointer; z-index: 2; }
+.apercu-prev { left: -10px; } .apercu-next { right: -10px; }
+.apercu-dots { display: flex; justify-content: center; gap: 0.45rem; margin-top: 0.75rem; }
+.apercu-dots button { width: 9px; height: 9px; border-radius: 50%; border: none; padding: 0; background: #C7D2FE; cursor: pointer; }
+.apercu-dots button.on { background: #4F46E5; width: 22px; border-radius: 999px; }
+.apercu-demo { margin-top: 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+.apercu-demo-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: #312E81; color: #fff !important; padding: 0.85rem 1.6rem; border-radius: 12px;
+                   font-weight: 700; text-decoration: none; box-shadow: 0 6px 18px rgba(49, 46, 129, 0.3); }
+.apercu-demo-btn:hover { background: #3730A3; }
+.apercu-demo-note { color: #6B7280; font-size: 0.9rem; }
+@media (max-width: 760px) {
+    .apercu-videos { grid-template-columns: 1fr; }
+    .apercu-nav { display: none; }
+}
+</style>
+<script>
+(function () {
+    var track = document.getElementById('apercuTrack'), dots = document.querySelectorAll('#apercuDots button');
+    if (!track) return;
+    function current() { return Math.round(track.scrollLeft / Math.max(1, track.clientWidth)); }
+    function mark() { var i = current(); dots.forEach(function (d, k) { d.classList.toggle('on', k === i); }); }
+    window.pcApercuGo = function (step, index) {
+        var n = track.children.length, i = index != null ? index : (current() + step + n) % n;
+        track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' });
+    };
+    track.addEventListener('scroll', function () { window.requestAnimationFrame(mark); }, { passive: true });
+    mark();
+})();
+</script>
