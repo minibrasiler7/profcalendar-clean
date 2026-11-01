@@ -3909,6 +3909,7 @@ ENTRIES = [
     ('Essayer gratuitement', 'Try it free', 'Probar gratis', 'Kostenlos testen', 'Prova gratis'),
     ('L’essai gratuit devient automatiquement un abonnement payant à sa fin.', 'The free trial automatically becomes a paid subscription when it ends.', 'La prueba gratuita se convierte automáticamente en una suscripción de pago al terminar.', 'Die kostenlose Testphase geht an ihrem Ende automatisch in ein kostenpflichtiges Abonnement über.', 'La prova gratuita diventa automaticamente un abbonamento a pagamento alla sua scadenza.'),
     ('%(days)s jours gratuits, puis', '%(days)s days free, then', '%(days)s días gratis, luego', '%(days)s Tage gratis, danach', '%(days)s giorni gratis, poi'),
+    ('Voix de synthèse', 'Synthetic voice', 'Voz sintética', 'Synthetische Stimme', 'Voce sintetica'),
 ]
 
 # Pluriels : (msgid_singulier, msgid_pluriel, {lang: (singulier, pluriel)})

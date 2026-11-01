@@ -3276,6 +3276,9 @@ msgstr "La prova gratuita diventa automaticamente un abbonamento a pagamento all
 msgid "%(days)s jours gratuits, puis"
 msgstr "%(days)s giorni gratis, poi"
 
+msgid "Voix de synthèse"
+msgstr "Voce sintetica"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "La tua prova Premium termina tra %(num)d giorno."

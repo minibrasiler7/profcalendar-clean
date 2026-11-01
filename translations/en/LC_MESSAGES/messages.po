@@ -3276,6 +3276,9 @@ msgstr "The free trial automatically becomes a paid subscription when it ends."
 msgid "%(days)s jours gratuits, puis"
 msgstr "%(days)s days free, then"
 
+msgid "Voix de synthèse"
+msgstr "Synthetic voice"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."

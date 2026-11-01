@@ -3276,6 +3276,9 @@ msgstr "Die kostenlose Testphase geht an ihrem Ende automatisch in ein kostenpfl
 msgid "%(days)s jours gratuits, puis"
 msgstr "%(days)s Tage gratis, danach"
 
+msgid "Voix de synthèse"
+msgstr "Synthetische Stimme"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Deine Premium-Testphase endet in %(num)d Tag."

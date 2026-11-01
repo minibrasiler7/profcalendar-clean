@@ -10,6 +10,9 @@
     ('notes', _('Les notes'), _('Les moyennes se calculent seules et s’exportent en PDF ou en tableur.')),
     ('plan', _('Le plan de classe'), _('Glisse les élèves sur les tables et retrouve qui est où, d’un coup d’œil.')),
 ] %}
+{# Vidéos dans la langue de la page (fichiers *_en, *_de, *_it, *_es ; français par défaut) #}
+{% set vlang = current_locale if current_locale in ['en', 'de', 'it', 'es'] else 'fr' %}
+{% set vsfx = '' if vlang == 'fr' else '_' ~ vlang %}
 <section class="apercu" id="apercu">
     <div class="apercu-inner">
         <h2 class="apercu-title">{{ _('Découvre ProfCalendar avant de t’abonner') }}</h2>
@@ -17,24 +20,24 @@
 
         <div class="apercu-videos{% if apercu_compact %} apercu-videos-one{% endif %}">
             <figure class="apercu-video">
-                <video controls preload="none" playsinline poster="{{ url_for('static', filename='videos/presentation.jpg') }}">
-                    <source src="{{ url_for('static', filename='videos/presentation.mp4') }}" type="video/mp4">
-                    <track kind="subtitles" srclang="fr" label="Français" src="{{ url_for('static', filename='videos/presentation.vtt') }}">
+                <video controls preload="none" playsinline poster="{{ url_for('static', filename='videos/presentation' ~ vsfx ~ '.jpg') }}">
+                    <source src="{{ url_for('static', filename='videos/presentation' ~ vsfx ~ '.mp4') }}" type="video/mp4">
+                    <track kind="subtitles" srclang="{{ vlang }}" label="{{ LANGUAGES.get(vlang, 'Français') }}" src="{{ url_for('static', filename='videos/presentation' ~ vsfx ~ '.vtt') }}">
                 </video>
                 <figcaption>{{ _('Présentation de ProfCalendar') }}</figcaption>
             </figure>
             {% if not apercu_compact %}
             <figure class="apercu-video">
-                <video controls preload="none" playsinline poster="{{ url_for('static', filename='videos/bien_demarrer.jpg') }}">
-                    <source src="{{ url_for('static', filename='videos/bien_demarrer.mp4') }}" type="video/mp4">
-                    <track kind="subtitles" srclang="fr" label="Français" src="{{ url_for('static', filename='videos/bien_demarrer.vtt') }}">
+                <video controls preload="none" playsinline poster="{{ url_for('static', filename='videos/bien_demarrer' ~ vsfx ~ '.jpg') }}">
+                    <source src="{{ url_for('static', filename='videos/bien_demarrer' ~ vsfx ~ '.mp4') }}" type="video/mp4">
+                    <track kind="subtitles" srclang="{{ vlang }}" label="{{ LANGUAGES.get(vlang, 'Français') }}" src="{{ url_for('static', filename='videos/bien_demarrer' ~ vsfx ~ '.vtt') }}">
                 </video>
                 <figcaption>{{ _('Bien démarrer en trois étapes') }}</figcaption>
             </figure>
             {% endif %}
         </div>
 
-        <p class="apercu-credit">Voix de synthèse : Kokoro · corpus SIWIS (CC BY 4.0)</p>
+        <p class="apercu-credit">{% if vlang == 'de' %}Synthetische Stimme: Thorsten-Voice (CC0){% else %}{{ _('Voix de synthèse') }} : Kokoro{% if vlang == 'fr' %} · SIWIS (CC BY 4.0){% endif %}{% endif %}</p>
 
         <div class="apercu-carousel" role="region" aria-roledescription="carousel" aria-label="{{ _('Écrans de ProfCalendar') }}">
             <button type="button" class="apercu-nav apercu-prev" aria-label="{{ _('Écran précédent') }}" onclick="pcApercuGo(-1)"><i class="fas fa-chevron-left"></i></button>

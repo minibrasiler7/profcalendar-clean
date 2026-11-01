@@ -381,7 +381,7 @@
             <a href="{{ url_for('auth.register') }}" class="app-btn-primary">{{ _('Créer un compte') }}</a>
             <a href="{{ url_for('auth.login') }}" class="app-btn-secondary">{{ _('Se connecter') }}</a>
             <a href="{{ url_for('demo.start') }}" rel="nofollow" class="app-btn-secondary"><i class="fas fa-eye"></i> {{ _('Explorer un compte d’exemple') }}</a>
-            <a href="{{ url_for('static', filename='videos/presentation.mp4') }}" class="app-btn-secondary"><i class="fas fa-play-circle"></i> {{ _('Voir la vidéo de présentation') }}</a>
+            <a href="{{ url_for('static', filename='videos/presentation' ~ ('' if current_locale not in ['en', 'de', 'it', 'es'] else '_' ~ current_locale) ~ '.mp4') }}" class="app-btn-secondary"><i class="fas fa-play-circle"></i> {{ _('Voir la vidéo de présentation') }}</a>
         </div>
     </div>
 </div>
