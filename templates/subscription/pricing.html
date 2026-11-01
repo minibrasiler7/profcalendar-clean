@@ -20,6 +20,8 @@
         {% endif %}
     </div>
 
+    {% if needs_subscription %}{% include 'includes/demo_invite.html' %}{% endif %}
+
     {% if is_premium %}
     <div class="pricing-alert pricing-alert-success">
         <i class="fas fa-check-circle"></i>

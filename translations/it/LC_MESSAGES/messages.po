@@ -3219,6 +3219,63 @@ msgstr "Guarda come fare in video"
 msgid "La démonstration est momentanément indisponible."
 msgstr "La demo è temporaneamente non disponibile."
 
+msgid "Le calendrier fait partie de l’abonnement."
+msgstr "Il calendario fa parte dell'abbonamento."
+
+msgid "La page du cours fait partie de l’abonnement."
+msgstr "La pagina della lezione fa parte dell'abbonamento."
+
+msgid "La gestion de classe fait partie de l’abonnement."
+msgstr "La gestione della classe fa parte dell'abbonamento."
+
+msgid "Le gestionnaire de fichiers fait partie de l’abonnement."
+msgstr "La gestione dei file fa parte dell'abbonamento."
+
+msgid "L’horaire type fait partie de l’abonnement."
+msgstr "L'orario tipo fa parte dell'abbonamento."
+
+msgid "Le tableau de bord fait partie de l’abonnement."
+msgstr "Il pannello principale fa parte dell'abbonamento."
+
+msgid "Voir le calendrier du compte d’exemple"
+msgstr "Vedi il calendario dell'account di esempio"
+
+msgid "Voir la page du cours du compte d’exemple"
+msgstr "Vedi la pagina della lezione dell'account di esempio"
+
+msgid "Voir la gestion de classe du compte d’exemple"
+msgstr "Vedi la gestione della classe dell'account di esempio"
+
+msgid "Voir les fichiers du compte d’exemple"
+msgstr "Vedi i file dell'account di esempio"
+
+msgid "Voir l’horaire du compte d’exemple"
+msgstr "Vedi l'orario dell'account di esempio"
+
+msgid "Voir le tableau de bord du compte d’exemple"
+msgstr "Vedi il pannello dell'account di esempio"
+
+msgid "Avant de t’abonner, regarde comment ça marche sur un compte d’exemple déjà rempli : tu peux tout explorer, rien n’est enregistré."
+msgstr "Prima di abbonarti, guarda come funziona su un account di esempio già compilato: puoi esplorare tutto, nulla viene salvato."
+
+msgid "Envie de voir l’app avant de t’abonner ?"
+msgstr "Vuoi vedere l'app prima di abbonarti?"
+
+msgid "Explore un compte d’exemple déjà rempli : calendrier, page du cours, notes et plan de classe. Rien n’est enregistré."
+msgstr "Esplora un account di esempio già compilato: calendario, pagina della lezione, voti e piano dei posti. Nulla viene salvato."
+
+msgid "14 jours d’essai gratuit pour un premier abonnement"
+msgstr "14 giorni di prova gratuita per un primo abbonamento"
+
+msgid "Essayer gratuitement"
+msgstr "Prova gratis"
+
+msgid "L’essai gratuit devient automatiquement un abonnement payant à sa fin."
+msgstr "La prova gratuita diventa automaticamente un abbonamento a pagamento alla sua scadenza."
+
+msgid "%(days)s jours gratuits, puis"
+msgstr "%(days)s giorni gratis, poi"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "La tua prova Premium termina tra %(num)d giorno."

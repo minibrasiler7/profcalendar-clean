@@ -3219,6 +3219,63 @@ msgstr "Watch how in a video"
 msgid "La démonstration est momentanément indisponible."
 msgstr "The demo is temporarily unavailable."
 
+msgid "Le calendrier fait partie de l’abonnement."
+msgstr "The calendar is part of the subscription."
+
+msgid "La page du cours fait partie de l’abonnement."
+msgstr "The lesson page is part of the subscription."
+
+msgid "La gestion de classe fait partie de l’abonnement."
+msgstr "Class management is part of the subscription."
+
+msgid "Le gestionnaire de fichiers fait partie de l’abonnement."
+msgstr "The file manager is part of the subscription."
+
+msgid "L’horaire type fait partie de l’abonnement."
+msgstr "The weekly timetable is part of the subscription."
+
+msgid "Le tableau de bord fait partie de l’abonnement."
+msgstr "The dashboard is part of the subscription."
+
+msgid "Voir le calendrier du compte d’exemple"
+msgstr "See the sample account's calendar"
+
+msgid "Voir la page du cours du compte d’exemple"
+msgstr "See the sample account's lesson page"
+
+msgid "Voir la gestion de classe du compte d’exemple"
+msgstr "See the sample account's class management"
+
+msgid "Voir les fichiers du compte d’exemple"
+msgstr "See the sample account's files"
+
+msgid "Voir l’horaire du compte d’exemple"
+msgstr "See the sample account's timetable"
+
+msgid "Voir le tableau de bord du compte d’exemple"
+msgstr "See the sample account's dashboard"
+
+msgid "Avant de t’abonner, regarde comment ça marche sur un compte d’exemple déjà rempli : tu peux tout explorer, rien n’est enregistré."
+msgstr "Before subscribing, see how it works on a ready-filled sample account: explore everything, nothing is saved."
+
+msgid "Envie de voir l’app avant de t’abonner ?"
+msgstr "Want to see the app before subscribing?"
+
+msgid "Explore un compte d’exemple déjà rempli : calendrier, page du cours, notes et plan de classe. Rien n’est enregistré."
+msgstr "Explore a ready-filled sample account: calendar, lesson page, marks and seating plan. Nothing is saved."
+
+msgid "14 jours d’essai gratuit pour un premier abonnement"
+msgstr "14-day free trial for a first subscription"
+
+msgid "Essayer gratuitement"
+msgstr "Try it free"
+
+msgid "L’essai gratuit devient automatiquement un abonnement payant à sa fin."
+msgstr "The free trial automatically becomes a paid subscription when it ends."
+
+msgid "%(days)s jours gratuits, puis"
+msgstr "%(days)s days free, then"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."

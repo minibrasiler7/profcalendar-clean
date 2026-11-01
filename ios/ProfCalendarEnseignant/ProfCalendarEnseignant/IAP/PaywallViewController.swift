@@ -148,7 +148,7 @@ final class PaywallViewController: UIViewController {
 
         let disclaimer = UILabel()
         disclaimer.text = """
-            Les abonnements se renouvellent automatiquement sauf annulation au moins 24 h avant la fin de la période en cours. Vous pouvez gérer ou annuler dans Réglages → Apple ID → Abonnements.
+            L'essai gratuit, s'il est proposé, devient automatiquement un abonnement payant à sa fin. Les abonnements se renouvellent automatiquement sauf annulation au moins 24 h avant la fin de la période en cours (ou de l'essai). Vous pouvez gérer ou annuler dans Réglages → Apple ID → Abonnements.
             """
         disclaimer.font = .systemFont(ofSize: 11)
         disclaimer.textColor = .secondaryLabel
@@ -240,6 +240,17 @@ final class PaywallViewController: UIViewController {
         } else {
             annualButton.setTitle("Annuel\nIndisponible", for: .normal)
             annualButton.isEnabled = false
+        }
+
+        // Essai gratuit (offre d'introduction Apple) : annoncé sur chaque bouton
+        // quand l'utilisateur y a droit — durée et prix ensuite, comme l'exige Apple.
+        Task { @MainActor in
+            if let p = monthly, let days = await IAPManager.shared.freeTrialDays(for: p) {
+                self.monthlyButton.setTitle("Mensuel\n\(days) jours gratuits, puis \(p.displayPrice) / mois", for: .normal)
+            }
+            if let p = annual, let days = await IAPManager.shared.freeTrialDays(for: p) {
+                self.annualButton.setTitle("Annuel — Meilleure offre\n\(days) jours gratuits, puis \(p.displayPrice) / an", for: .normal)
+            }
         }
     }
 

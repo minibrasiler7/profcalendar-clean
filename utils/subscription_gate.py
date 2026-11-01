@@ -31,6 +31,33 @@ def is_paywalled_request():
     return endpoint.startswith(PAYWALLED_PREFIXES) or request.path.startswith(PAYWALLED_PATHS)
 
 
+# Page demandée par un non-abonné → clé de section affichée sur la page de
+# tarifs et page correspondante du compte de démonstration.
+LOCKED_SECTIONS = {
+    'calendar': '/planning/calendar',
+    'lesson': '/planning/lesson',
+    'classes': '/planning/manage-classes',
+    'files': '/file_manager/',
+    'schedule': '/schedule/weekly',
+    'dashboard': '/planning/',
+}
+
+
+def locked_section_key(endpoint):
+    endpoint = endpoint or ''
+    if endpoint == 'planning.calendar_view':
+        return 'calendar'
+    if endpoint == 'planning.lesson_view':
+        return 'lesson'
+    if endpoint.startswith('planning.manage_classes') or endpoint.startswith(('evaluations.', 'attendance.', 'sanctions.')):
+        return 'classes'
+    if endpoint.startswith(('file_manager.', 'class_files.')):
+        return 'files'
+    if endpoint.startswith(('schedule.', 'setup.')):
+        return 'schedule'
+    return 'dashboard'
+
+
 def register_subscription_gate(app):
     from models.user import User
 
@@ -51,5 +78,6 @@ def register_subscription_gate(app):
         if wants_json:
             return jsonify({'error': 'subscription_required',
                             'redirect': url_for('subscription.pricing')}), 402
-        flash(gettext('Choisis ton abonnement pour accéder à ProfCalendar.'), 'warning')
-        return redirect(url_for('subscription.pricing'))
+        # Plus de renvoi muet : la page de tarifs explique quelle page est
+        # réservée aux abonnés et propose de la voir sur le compte d'exemple.
+        return redirect(url_for('subscription.pricing', locked=locked_section_key(request.endpoint)))

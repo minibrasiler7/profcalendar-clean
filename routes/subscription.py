@@ -29,14 +29,23 @@ def pricing():
     # Enseignant connecté sans abonnement : l'accès à l'outil attend ce choix.
     needs_subscription = bool(is_teacher and not is_premium)
 
+    # Arrivée depuis une page réservée aux abonnés (passerelle payante)
+    from utils.subscription_gate import LOCKED_SECTIONS
+    locked = request.args.get('locked')
+    # Le tableau de bord (arrivée après connexion) garde l'invitation générale.
+    locked_section = locked if (needs_subscription and locked in LOCKED_SECTIONS and locked != 'dashboard') else None
+    locked_next = LOCKED_SECTIONS.get(locked_section) if locked_section else None
+
     if is_ios_native_app():
         return render_template('subscription/pricing_ios.html', is_premium=is_premium,
-                               needs_subscription=needs_subscription)
+                               needs_subscription=needs_subscription,
+                               locked_section=locked_section, locked_next=locked_next)
 
     return render_template('subscription/pricing.html',
                            stripe_public_key=current_app.config.get('STRIPE_PUBLIC_KEY'),
                            is_premium=is_premium,
-                           needs_subscription=needs_subscription)
+                           needs_subscription=needs_subscription,
+                           locked_section=locked_section, locked_next=locked_next)
 
 
 @subscription_bp.route('/checkout', methods=['POST'])

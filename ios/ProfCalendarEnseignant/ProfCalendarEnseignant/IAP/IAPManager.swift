@@ -60,6 +60,25 @@ final class IAPManager {
         updateListenerTask?.cancel()
     }
 
+    // MARK: - Essai gratuit (offre d'introduction)
+
+    /// Nombre de jours d'essai gratuit offerts pour ce produit si l'utilisateur
+    /// y a droit (jamais abonné dans le groupe), sinon nil.
+    func freeTrialDays(for product: Product) async -> Int? {
+        guard let sub = product.subscription,
+              let offer = sub.introductoryOffer,
+              offer.paymentMode == .freeTrial else { return nil }
+        guard await sub.isEligibleForIntroOffer else { return nil }
+        let value = offer.period.value
+        switch offer.period.unit {
+        case .day: return value
+        case .week: return value * 7
+        case .month: return value * 30
+        case .year: return value * 365
+        @unknown default: return nil
+        }
+    }
+
     // MARK: - Chargement des produits
 
     @MainActor

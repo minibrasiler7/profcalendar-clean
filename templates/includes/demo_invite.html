@@ -1,0 +1,47 @@
+{# En haut des pages de tarifs (web et app) pour un enseignant sans abonnement :
+   - arrivée depuis une page réservée (locked_section) : explique pourquoi et
+     propose de voir CETTE page sur le compte d'exemple ;
+   - sinon : invitation à explorer le compte d'exemple avant de s'abonner. #}
+{% set locked_titles = {
+    'calendar': _('Le calendrier fait partie de l’abonnement.'),
+    'lesson': _('La page du cours fait partie de l’abonnement.'),
+    'classes': _('La gestion de classe fait partie de l’abonnement.'),
+    'files': _('Le gestionnaire de fichiers fait partie de l’abonnement.'),
+    'schedule': _('L’horaire type fait partie de l’abonnement.'),
+    'dashboard': _('Le tableau de bord fait partie de l’abonnement.'),
+} %}
+{% set locked_buttons = {
+    'calendar': _('Voir le calendrier du compte d’exemple'),
+    'lesson': _('Voir la page du cours du compte d’exemple'),
+    'classes': _('Voir la gestion de classe du compte d’exemple'),
+    'files': _('Voir les fichiers du compte d’exemple'),
+    'schedule': _('Voir l’horaire du compte d’exemple'),
+    'dashboard': _('Voir le tableau de bord du compte d’exemple'),
+} %}
+<div class="demo-invite{% if locked_section %} demo-invite-locked{% endif %}">
+    <div class="demo-invite-icon"><i class="fas {{ 'fa-lock' if locked_section else 'fa-eye' }}"></i></div>
+    <div class="demo-invite-body">
+        {% if locked_section %}
+        <strong>{{ locked_titles[locked_section] }}</strong>
+        <p>{{ _('Avant de t’abonner, regarde comment ça marche sur un compte d’exemple déjà rempli : tu peux tout explorer, rien n’est enregistré.') }}</p>
+        <a href="{{ url_for('demo.start', next=locked_next) }}" rel="nofollow" class="demo-invite-btn"><i class="fas fa-eye"></i> {{ locked_buttons[locked_section] }}</a>
+        {% else %}
+        <strong>{{ _('Envie de voir l’app avant de t’abonner ?') }}</strong>
+        <p>{{ _('Explore un compte d’exemple déjà rempli : calendrier, page du cours, notes et plan de classe. Rien n’est enregistré.') }}</p>
+        <a href="{{ url_for('demo.start') }}" rel="nofollow" class="demo-invite-btn"><i class="fas fa-eye"></i> {{ _('Explorer un compte d’exemple') }}</a>
+        {% endif %}
+    </div>
+</div>
+<style>
+.demo-invite { display: flex; gap: 1rem; align-items: flex-start; text-align: left; background: #EEF2FF; border: 2px solid #A5B4FC; border-radius: 16px;
+               padding: 1.1rem 1.25rem; margin: 0 auto 1.5rem; max-width: 720px; }
+.demo-invite-locked { background: #FFFBEB; border-color: #FCD34D; }
+.demo-invite-icon { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                    background: #4F46E5; color: #fff; font-size: 1.1rem; }
+.demo-invite-locked .demo-invite-icon { background: #D97706; }
+.demo-invite-body strong { display: block; color: #1F2937; font-size: 1.05rem; margin-bottom: 0.25rem; }
+.demo-invite-body p { margin: 0 0 0.75rem; color: #4B5563; font-size: 0.95rem; line-height: 1.45; }
+.demo-invite-btn { display: inline-flex; align-items: center; gap: 0.45rem; background: #312E81; color: #fff !important; padding: 0.7rem 1.2rem;
+                   border-radius: 10px; font-weight: 700; text-decoration: none; }
+.demo-invite-btn:hover { background: #3730A3; }
+</style>

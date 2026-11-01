@@ -67,7 +67,11 @@ final class IAPMessageHandler: NSObject, WKScriptMessageHandler {
                 case IAPManager.annualProductId: key = "annual"
                 default: key = product.id
                 }
-                payload[key] = ["price": product.displayPrice, "name": product.displayName]
+                var entry = ["price": product.displayPrice, "name": product.displayName]
+                if let days = await IAPManager.shared.freeTrialDays(for: product) {
+                    entry["trial_days"] = String(days)
+                }
+                payload[key] = entry
             }
             guard !payload.isEmpty,
                   let data = try? JSONSerialization.data(withJSONObject: payload),
