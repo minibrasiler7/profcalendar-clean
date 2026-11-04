@@ -3210,6 +3210,9 @@ msgstr "erkunden Sie frei: nichts wird gespeichert."
 msgid "Quitter la démo"
 msgstr "Demo verlassen"
 
+msgid "Revenir à mon compte"
+msgstr "Zurück zu meinem Konto"
+
 msgid "Mode démonstration : rien n'est enregistré. Crée ton compte pour utiliser ProfCalendar avec tes classes."
 msgstr "Demomodus: nichts wird gespeichert. Erstellen Sie Ihr Konto, um ProfCalendar mit Ihren Klassen zu nutzen."
 

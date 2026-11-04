@@ -19,8 +19,15 @@ def index():
     """Page principale des paramètres utilisateur"""
     # Récupérer ou créer les préférences de l'utilisateur
     preferences = UserPreferences.get_or_create_for_user(current_user.id)
-    
-    return render_template('settings/index.html', preferences=preferences)
+    # Abonnement App Store en cours : à résilier chez Apple (la page l'indique)
+    from models.apple_subscription import AppleSubscription
+    active_apple_subscription = AppleSubscription.query.filter(
+        AppleSubscription.user_id == current_user.id,
+        AppleSubscription.status.in_(('active', 'in_grace_period'))
+    ).first()
+
+    return render_template('settings/index.html', preferences=preferences,
+                           active_apple_subscription=active_apple_subscription)
 
 @settings_bp.route('/students-space')
 @login_required
@@ -433,8 +440,25 @@ def delete_account():
 
     user_id = current_user.id
     username = current_user.username
+    stripe_sub_id = current_user.stripe_subscription_id
+    from models.apple_subscription import AppleSubscription
+    had_apple_sub = AppleSubscription.query.filter(
+        AppleSubscription.user_id == user_id,
+        AppleSubscription.status.in_(('active', 'in_grace_period'))
+    ).first() is not None
 
     try:
+        # ─── 0. Résilier l'abonnement Stripe : sans compte, il ne doit plus être facturé ───
+        # (un abonnement App Store, lui, ne peut être résilié que par l'utilisateur chez Apple)
+        if stripe_sub_id:
+            try:
+                import stripe
+                from flask import current_app
+                stripe.api_key = current_app.config.get('STRIPE_SECRET_KEY')
+                stripe.Subscription.cancel(stripe_sub_id)
+            except Exception as e:
+                print(f"[delete_account] résiliation Stripe impossible pour user {user_id}: {e}", flush=True)
+
         # ─── 1. Générer les backups PDF pour les enseignants spécialisés ───
         _generate_backup_pdfs_before_deletion(user_id)
 
@@ -453,6 +477,9 @@ def delete_account():
         logout_user()
 
         logger.info(f"Compte supprimé: {username} (ID: {user_id})")
+        if had_apple_sub:
+            flash("Votre compte a été supprimé. Votre abonnement App Store, lui, reste actif tant que vous ne le "
+                  "résiliez pas : Réglages > [votre nom] > Abonnements > ProfCalendar.", 'warning')
 
         return jsonify({
             'success': True,
@@ -470,7 +497,8 @@ def delete_account():
         print(f"[delete_account] ÉCHEC pour user {user_id}: {type(e).__name__}: {e}", flush=True)
         traceback.print_exc()
         logger.error(f"Erreur suppression compte {user_id}: {e}")
-        return jsonify({'success': False, 'message': f'Erreur lors de la suppression: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': "La suppression n'a pas pu aboutir. Réessayez dans un instant ; "
+                        "si le problème persiste, écrivez à contact@profcalendar.org."}), 500
 
 
 def _generate_backup_pdfs_before_deletion(user_id):
@@ -531,7 +559,13 @@ def _delete_all_user_data(user_id):
     from models.file_sharing import StudentFileShare
     from models.mixed_group import MixedGroup, MixedGroupStudent
     from models.combat import CombatSession
-    from models.exercise_progress import ExercisePublication
+    from models.exercise_progress import ExercisePublication, StudentExerciseAttempt, StudentBlockAnswer
+    from models.exercise import Exercise, ExerciseFolder, ExerciseBlock
+    from models.devoir import Devoir, DevoirSubmission
+    from models.announcement import Announcement
+    from models.deleted_classroom import DeletedClassroom
+    from models.subscription import Subscription
+    from models.apple_subscription import AppleSubscription
     from models.absence_justification import AbsenceJustification
     from models.voucher import Voucher, user_voucher_redemptions
     from models.college import College, CollegeHoliday, CollegeBreak
@@ -733,6 +767,54 @@ def _delete_all_user_data(user_id):
             CollegeHoliday.query.filter_by(college_id=_college.id).delete(synchronize_session='fetch')
             CollegeBreak.query.filter_by(college_id=_college.id).delete(synchronize_session='fetch')
             db.session.delete(_college)
+
+    # 15 quater. Encore des tables sans cascade, qui bloquaient la suppression
+    # (04.11.2026 : un enseignant en essai gratuit App Store n'a pas pu supprimer
+    # son compte, apple_subscriptions.user_id étant NOT NULL).
+    # Abonnements : l'historique local part avec le compte. Un abonnement App Store
+    # continue côté Apple tant qu'il n'est pas résilié (la page le signale) ;
+    # un abonnement Stripe est résilié dans delete_account().
+    AppleSubscription.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    Subscription.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    DeletedClassroom.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    Announcement.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    _dv_ids = [d.id for d in Devoir.query.filter_by(user_id=user_id).all()]
+    if _dv_ids:
+        DevoirSubmission.query.filter(
+            DevoirSubmission.devoir_id.in_(_dv_ids)).delete(synchronize_session='fetch')
+        Devoir.query.filter(Devoir.id.in_(_dv_ids)).delete(synchronize_session='fetch')
+
+    # Exercices : réponses → tentatives → publications → blocs → exercices → dossiers.
+    _ex_ids = [e.id for e in Exercise.query.filter_by(user_id=user_id).all()]
+    if _ex_ids:
+        CombatSession.query.filter(
+            CombatSession.exercise_id.in_(_ex_ids)).delete(synchronize_session='fetch')
+        Devoir.query.filter(Devoir.exercise_id.in_(_ex_ids)).update(
+            {'exercise_id': None}, synchronize_session='fetch')
+        _att_ids = [a.id for a in StudentExerciseAttempt.query.filter(
+            StudentExerciseAttempt.exercise_id.in_(_ex_ids)).all()]
+        _blk_ids = [b.id for b in ExerciseBlock.query.filter(
+            ExerciseBlock.exercise_id.in_(_ex_ids)).all()]
+        if _att_ids:
+            StudentBlockAnswer.query.filter(
+                StudentBlockAnswer.attempt_id.in_(_att_ids)).delete(synchronize_session='fetch')
+        if _blk_ids:
+            StudentBlockAnswer.query.filter(
+                StudentBlockAnswer.block_id.in_(_blk_ids)).delete(synchronize_session='fetch')
+        StudentExerciseAttempt.query.filter(
+            StudentExerciseAttempt.exercise_id.in_(_ex_ids)).delete(synchronize_session='fetch')
+        ExercisePublication.query.filter(
+            ExercisePublication.exercise_id.in_(_ex_ids)).delete(synchronize_session='fetch')
+        ExerciseBlock.query.filter(
+            ExerciseBlock.exercise_id.in_(_ex_ids)).delete(synchronize_session='fetch')
+        Exercise.query.filter(Exercise.id.in_(_ex_ids)).delete(synchronize_session='fetch')
+    _ef_ids = [f.id for f in ExerciseFolder.query.filter_by(user_id=user_id).all()]
+    if _ef_ids:
+        Exercise.query.filter(Exercise.exercise_folder_id.in_(_ef_ids)).update(
+            {'exercise_folder_id': None}, synchronize_session='fetch')
+        ExerciseFolder.query.filter(ExerciseFolder.id.in_(_ef_ids)).update(
+            {'parent_id': None}, synchronize_session='fetch')
+        ExerciseFolder.query.filter(ExerciseFolder.id.in_(_ef_ids)).delete(synchronize_session='fetch')
 
     db.session.flush()
 

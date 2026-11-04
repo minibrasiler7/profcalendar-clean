@@ -3,7 +3,8 @@
 - GET /demo : connecte le visiteur au compte de démo (services/demo_account.py),
   sans mot de passe, et pose le drapeau de session « demo_mode ».
 - GET /demo/exit?to=register|login : déconnecte et renvoie vers l'inscription
-  (défaut) ou la connexion.
+  (défaut) ou la connexion. Un enseignant qui était connecté en ouvrant la démo
+  (inscrit, pas encore abonné) retrouve directement son compte.
 - Toute requête d'écriture (POST, PUT, PATCH, DELETE) en mode démo est refusée :
   JSON 403 avec l'en-tête X-Demo-Readonly pour les appels JavaScript, sinon
   retour à la page précédente avec un message. Les quelques POST de pure
@@ -14,6 +15,7 @@ from flask_babel import gettext
 from flask_login import current_user, login_user, logout_user
 
 SESSION_KEY = 'demo_mode'
+RETURN_KEY = 'demo_return_uid'   # enseignant connecté avant la démo, reconnecté en la quittant
 demo_bp = Blueprint('demo', __name__, url_prefix='/demo')
 
 # Endpoints POST qui ne modifient rien (chargements de données) : autorisés en démo.
@@ -33,8 +35,16 @@ def _readonly_message():
 @demo_bp.route('', strict_slashes=False)
 def start():
     from services.demo_account import ensure_demo_account
+    from models.user import User
+    return_uid = session.get(RETURN_KEY)
     if current_user.is_authenticated and not is_demo_session():
-        logout_user()          # un compte réel (non abonné, par exemple) cède la place à la démo
+        # Un compte réel (inscrit pas encore abonné, le plus souvent) cède la place
+        # à la démo ; on retient qui il est pour le reconnecter à la sortie, sans
+        # lui redemander son mot de passe (02.11.2026 : un inscrit qui avait ouvert
+        # la démo est ressorti sur l'écran de connexion et n'est jamais revenu).
+        real = current_user._get_current_object()
+        return_uid = real.id if isinstance(real, User) and session.get('user_type', 'teacher') == 'teacher' else None
+        logout_user()
     try:
         user = ensure_demo_account()
     except Exception as e:     # la démo ne doit jamais casser le site
@@ -46,6 +56,10 @@ def start():
     session['user_type'] = 'teacher'
     login_user(user, remember=False)
     session[SESSION_KEY] = True
+    if return_uid:
+        session[RETURN_KEY] = return_uid
+    else:
+        session.pop(RETURN_KEY, None)
     print('[DEMO] session de démonstration ouverte')
     target = request.args.get('next', '')
     if not target.startswith('/') or target.startswith('//'):
@@ -55,11 +69,20 @@ def start():
 
 @demo_bp.route('/exit')
 def exit_demo():
+    from services.demo_account import DEMO_EMAIL
+    from models.user import User
     to = request.args.get('to', 'register')
+    return_uid = session.pop(RETURN_KEY, None)
     if is_demo_session() or session.get(SESSION_KEY):
         session.pop(SESSION_KEY, None)
         session.pop('user_type', None)
         logout_user()
+        owner = User.query.get(return_uid) if return_uid else None
+        if owner and owner.email != DEMO_EMAIL:
+            session['user_type'] = 'teacher'
+            login_user(owner, remember=True)
+            return redirect(url_for('planning.dashboard') if owner.has_premium_access()
+                            else url_for('subscription.pricing'))
     return redirect(url_for('auth.login' if to == 'login' else 'auth.register'))
 
 
@@ -72,6 +95,7 @@ def register_demo_mode(app):
             return None
         if not is_demo_session():          # drapeau orphelin (autre compte connecté) : on nettoie
             session.pop(SESSION_KEY, None)
+            session.pop(RETURN_KEY, None)
             return None
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return None
@@ -101,6 +125,7 @@ def register_demo_mode(app):
     @app.context_processor
     def demo_context():
         try:
-            return {'is_demo_session': is_demo_session()}
+            demo = is_demo_session()
+            return {'is_demo_session': demo, 'demo_has_account': demo and bool(session.get(RETURN_KEY))}
         except Exception:
-            return {'is_demo_session': False}
+            return {'is_demo_session': False, 'demo_has_account': False}

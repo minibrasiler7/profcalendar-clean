@@ -236,6 +236,19 @@ def _delete_classroom_dependencies(classroom_id):
         {'classroom_id': None}, synchronize_session='fetch'
     )
 
+    # Devoirs et annonces de la classe (classroom_id NOT NULL, sans cascade en base).
+    # Les rendus d'abord : leur cascade n'existe que côté ORM, qu'un .delete() en
+    # masse ignore.
+    from models.devoir import Devoir, DevoirSubmission
+    from models.announcement import Announcement
+    devoir_ids = [d.id for d in Devoir.query.filter_by(classroom_id=classroom_id).all()]
+    if devoir_ids:
+        DevoirSubmission.query.filter(
+            DevoirSubmission.devoir_id.in_(devoir_ids)
+        ).delete(synchronize_session='fetch')
+        Devoir.query.filter(Devoir.id.in_(devoir_ids)).delete(synchronize_session='fetch')
+    Announcement.query.filter_by(classroom_id=classroom_id).delete(synchronize_session='fetch')
+
 
 def get_classroom_collaboration_info(classroom_id):
     """

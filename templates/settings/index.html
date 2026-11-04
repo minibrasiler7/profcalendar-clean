@@ -477,6 +477,12 @@
                     <i class="fas fa-cog"></i> Gérer mon abonnement
                 </a>
                 {% endif %}
+                {% if active_apple_subscription %}
+                <a href="https://apps.apple.com/account/subscriptions" target="_blank" rel="noopener" class="btn btn-primary">
+                    <i class="fab fa-apple"></i> Gérer mon abonnement App Store
+                </a>
+                <p style="color: #6B7280; font-size: 0.9rem; margin: 0.75rem 0 0;">Ou sur l'iPad / l'iPhone : Réglages &gt; [votre nom] &gt; Abonnements.</p>
+                {% endif %}
                 {% else %}
                 <div style="background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
                     <p style="color: #9A3412; margin-bottom: 0;">
@@ -540,6 +546,17 @@
                         classes, élèves, évaluations, notes, remarques, sanctions, planifications, et fichiers.
                     </p>
                 </div>
+
+                {% if active_apple_subscription %}
+                <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <p style="color: #1E3A8A; margin-bottom: 0;">
+                        <i class="fab fa-apple"></i>
+                        <strong>Abonnement App Store :</strong> supprimer votre compte ne résilie pas l'abonnement pris sur l'App Store.
+                        Résiliez-le d'abord dans Réglages &gt; [votre nom] &gt; Abonnements &gt; ProfCalendar,
+                        ou <a href="https://apps.apple.com/account/subscriptions" target="_blank" rel="noopener">ouvrez vos abonnements Apple</a>.
+                    </p>
+                </div>
+                {% endif %}
 
                 <div style="background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
                     <p style="color: #9A3412; margin-bottom: 0;">

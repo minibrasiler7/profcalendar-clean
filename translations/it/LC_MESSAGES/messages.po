@@ -3210,6 +3210,9 @@ msgstr "esplora liberamente: nulla viene salvato."
 msgid "Quitter la démo"
 msgstr "Esci dalla demo"
 
+msgid "Revenir à mon compte"
+msgstr "Torna al mio account"
+
 msgid "Mode démonstration : rien n'est enregistré. Crée ton compte pour utiliser ProfCalendar avec tes classes."
 msgstr "Modalità dimostrativa: nulla viene salvato. Crea il tuo account per usare ProfCalendar con le tue classi."
 

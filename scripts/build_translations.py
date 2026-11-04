@@ -3887,6 +3887,7 @@ ENTRIES = [
     ('Compte de démonstration', 'Demo account', 'Cuenta de demostración', 'Demokonto', 'Account dimostrativo'),
     ("explore librement : rien n'est enregistré.", 'explore freely: nothing is saved.', 'explora libremente: no se guarda nada.', 'erkunden Sie frei: nichts wird gespeichert.', 'esplora liberamente: nulla viene salvato.'),
     ('Quitter la démo', 'Leave the demo', 'Salir de la demo', 'Demo verlassen', 'Esci dalla demo'),
+    ('Revenir à mon compte', 'Back to my account', 'Volver a mi cuenta', 'Zurück zu meinem Konto', 'Torna al mio account'),
     ("Mode démonstration : rien n'est enregistré. Crée ton compte pour utiliser ProfCalendar avec tes classes.", 'Demo mode: nothing is saved. Create your account to use ProfCalendar with your own classes.', 'Modo demostración: no se guarda nada. Crea tu cuenta para usar ProfCalendar con tus clases.', 'Demomodus: nichts wird gespeichert. Erstellen Sie Ihr Konto, um ProfCalendar mit Ihren Klassen zu nutzen.', 'Modalità dimostrativa: nulla viene salvato. Crea il tuo account per usare ProfCalendar con le tue classi.'),
     ('Voir comment faire en vidéo', 'Watch how in a video', 'Ver cómo hacerlo en vídeo', "So geht's im Video", 'Guarda come fare in video'),
     ('La démonstration est momentanément indisponible.', 'The demo is temporarily unavailable.', 'La demostración no está disponible por el momento.', 'Die Demo ist vorübergehend nicht verfügbar.', 'La demo è temporaneamente non disponibile.'),
