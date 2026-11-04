@@ -2014,11 +2014,15 @@ html.fm-modal-lock #annualCalendarContainer {
 
 <div class="calendar-container">
 
+    {% if not classrooms %}
+    {% include 'includes/no_classes_cta.html' %}
+    {% endif %}
+
     {# Invitation à personnaliser : tant que le prof n'a pas saisi son horaire
        hebdo / ses pauses / ses vacances, le calendrier tourne sur les valeurs
        par défaut (apply_smart_defaults). On l'invite à les renseigner.
        Dismissible pour la session. #}
-    {% if needs_personalization %}
+    {% if needs_personalization and classrooms %}
     <div id="perso-banner"
          style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; justify-content:space-between;
                 background:#EEF2FF; border:1px solid #C7D2FE; border-radius:0.75rem;

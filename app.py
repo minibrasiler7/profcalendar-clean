@@ -1523,10 +1523,13 @@ def create_app(config_name='development'):
     @app.route('/api/onboarding/dismiss', methods=['POST'])
     @login_required
     def onboarding_dismiss():
-        """Ferme définitivement la checklist « 3 étapes » du tableau de bord."""
+        """Ferme définitivement la checklist « 3 étapes » du tableau de bord
+        (pas avant la première classe : sans elle, tout le reste est vide)."""
         from flask import jsonify
         from models.user import User
         if isinstance(current_user, User):
+            if current_user.classrooms.count() == 0:
+                return jsonify({'success': False, 'error': 'no_classroom'}), 409
             current_user.onboarding_dismissed = True
             db.session.commit()
         return jsonify({'success': True})

@@ -1214,7 +1214,9 @@ input, textarea, select {
 {% endblock %}
 
 {% block content %}
-{% if not lesson %}
+{% if not lesson and current_user.classrooms.count() == 0 %}
+{% include 'includes/no_classes_cta.html' %}
+{% elif not lesson %}
 <div style="max-width: 600px; margin: 4rem auto; text-align: center; padding: 2rem;">
     <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 12px; padding: 2rem;">
         <i class="fas fa-calendar-alt" style="font-size: 3rem; color: #F59E0B; margin-bottom: 1rem;"></i>

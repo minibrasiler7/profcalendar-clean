@@ -12,6 +12,20 @@ from utils.platform_detection import is_ios_native_app
 subscription_bp = Blueprint('subscription', __name__, url_prefix='/subscription')
 
 
+# Essai gratuit sur le web (Stripe), aligné sur l'offre d'introduction de l'App Store :
+# 14 jours pour un PREMIER abonnement, carte demandée, aucun débit avant la fin.
+TRIAL_DAYS = 14
+
+
+def _trial_eligible(user):
+    """Premier abonnement : jamais d'abonnement Stripe ni App Store sur ce compte."""
+    if not hasattr(user, 'stripe_subscription_id') or user.lifetime_premium or user.stripe_subscription_id:
+        return False
+    from models.apple_subscription import AppleSubscription
+    return (Subscription.query.filter_by(user_id=user.id).count() == 0
+            and AppleSubscription.query.filter_by(user_id=user.id).count() == 0)
+
+
 @subscription_bp.route('/pricing')
 def pricing():
     """Page de tarification avec les différentes offres.
@@ -41,9 +55,11 @@ def pricing():
                                needs_subscription=needs_subscription,
                                locked_section=locked_section, locked_next=locked_next)
 
+    trial_days = TRIAL_DAYS if (not current_user.is_authenticated
+                                or (is_teacher and not is_premium and _trial_eligible(current_user))) else 0
     return render_template('subscription/pricing.html',
                            stripe_public_key=current_app.config.get('STRIPE_PUBLIC_KEY'),
-                           is_premium=is_premium,
+                           is_premium=is_premium, trial_days=trial_days,
                            needs_subscription=needs_subscription,
                            locked_section=locked_section, locked_next=locked_next)
 
@@ -99,6 +115,7 @@ def checkout():
             cancel_url=url_for('subscription.pricing', _external=True),
             client_reference_id=str(current_user.id),
             locale=str(get_locale() or 'fr'),
+            **({'subscription_data': {'trial_period_days': TRIAL_DAYS}} if _trial_eligible(current_user) else {}),
         )
 
         return jsonify({'checkout_url': checkout_session.url})
@@ -397,7 +414,7 @@ def _handle_subscription_updated(sub_data):
 
     user = User.query.get(sub.user_id)
     if user:
-        if sub_data['status'] == 'active':
+        if sub_data['status'] in ('active', 'trialing'):
             user.subscription_tier = 'premium'
             user.premium_until = datetime.fromtimestamp(sub_data['current_period_end'])
         elif sub_data['status'] in ('past_due', 'unpaid'):

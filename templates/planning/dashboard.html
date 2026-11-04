@@ -596,12 +596,15 @@
     {# --- Démarrage guidé : trois étapes, directement ici. 1) les classes
        (plusieurs d'un coup), 2) l'horaire type (la grille), 3) les vacances
        (import par canton en un clic). Les élèves viennent après, et restent
-       facultatifs. Fermable ; disparaît une fois les trois étapes faites. --#}
+       facultatifs. Fermable dès la première classe ; disparaît une fois les
+       trois étapes faites. --#}
     {% set onb_step1 = classrooms_count > 0 %}
     {% set onb_step2 = schedules_count > 0 %}
     {% set onb_step3 = holidays_count > 0 %}
     {% set onb_done = (1 if onb_step1 else 0) + (1 if onb_step2 else 0) + (1 if onb_step3 else 0) %}
-    {% if onb_done < 3 and not onboarding_dismissed %}
+    {# Fermable seulement une fois une classe créée : sans classe, calendrier et
+       page du cours restent vides (et le guide revient même s'il avait été fermé). #}
+    {% if onb_done < 3 and (not onboarding_dismissed or not onb_step1) %}
     {% set onb_current = 1 if not onb_step1 else (2 if not onb_step2 else 3) %}
     <style>
         .onb-form { margin-top: 0.6rem; }
@@ -616,7 +619,7 @@
         .onb-small a { color: #4F46E5; }
     </style>
     <style>
-        .onb-card { background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border: 1px solid var(--primary-color, #6366F1); border-radius: var(--border-radius, 0.75rem); padding: 1.5rem 1.75rem; margin-bottom: 2rem; }
+        .onb-card { background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border: 1px solid var(--primary-color, #6366F1); border-radius: var(--border-radius, 0.75rem); padding: 1.5rem 1.75rem; margin-bottom: 2rem; scroll-margin-top: 90px; }
         .onb-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
         .onb-head h2 { margin: 0; font-size: 1.2rem; color: #312E81; }
         .onb-progress { font-size: 0.8rem; font-weight: 600; color: #4F46E5; background: #fff; border-radius: 999px; padding: 0.25rem 0.7rem; white-space: nowrap; }
@@ -641,7 +644,7 @@
                 <a href="{{ url_for('static', filename='videos/bien_demarrer' ~ ('' if current_locale not in ['en', 'de', 'it', 'es'] else '_' ~ current_locale) ~ '.mp4') }}" target="_blank" rel="noopener" style="margin-left:0.6rem; font-size:0.85rem; font-weight:600; color:#4F46E5;"><i class="fas fa-play-circle"></i> {{ _('Voir comment faire en vidéo') }}</a></h2>
             <div class="onb-head-right">
                 <span class="onb-progress">{{ onb_done }}/3 {{ _('étapes') }}</span>
-                <button type="button" class="onb-close" onclick="dismissOnboarding()" title="{{ _('Fermer') }}" aria-label="{{ _('Fermer') }}">&times;</button>
+                {% if onb_step1 %}<button type="button" class="onb-close" onclick="dismissOnboarding()" title="{{ _('Fermer') }}" aria-label="{{ _('Fermer') }}">&times;</button>{% endif %}
             </div>
         </div>
 
