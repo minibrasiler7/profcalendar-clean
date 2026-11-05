@@ -3492,6 +3492,17 @@
                 return (vars && Object.prototype.hasOwnProperty.call(vars, k)) ? String(vars[k]) : m;
             });
         }
+        // Texte inséré dans du HTML construit en JS (noms d'élèves, de classes…)
+        function ciEsc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
+            });
+        }
+        // showAlert était appelée (classes mixtes, sélection d'élèves) sans être
+        // définie : l'appel levait une erreur et le message ne s'affichait pas.
+        function showAlert(type, message) {
+            showNotification(type, message);
+        }
         function openNewClassModal() {
             var m = document.getElementById('newClassModal');
             m.style.display = 'flex';
@@ -3897,7 +3908,7 @@
                                 <i class="fas fa-edit"></i>
                             </button>
                             {% endif %}
-                            <button class="btn-icon danger" title="{{ _('Supprimer') }}" onclick="deleteStudent({{ student.id }}, '{{ student.full_name }}')">
+                            <button class="btn-icon danger" title="{{ _('Supprimer') }}" data-name="{{ student.full_name }}" onclick="deleteStudent({{ student.id }}, this.dataset.name)">
                                 <i class="fas fa-trash"></i>
                             </button>
                         {% else %}
@@ -5463,10 +5474,13 @@ function getSelectedClassroomId() {
 
 // Vérifier si le bouton de chargement du plan du maître doit être affiché
 function checkMasterPlanButton() {
+    // Collaboration entre enseignants désactivée : l'adresse répond 404 exprès
+    // (utils/feature_flags.py) ; inutile de l'appeler et d'afficher une erreur.
+    if (!{{ (FEATURE_COLLAB or False)|tojson }}) return;
     const selectedClass = getSelectedClassroomId();
     if (!selectedClass) return;
     
-    fetch(`/planning/check-master-plan-available/${selectedClass}`)
+    fetch(`/planning/check-master-plan-available/${encodeURIComponent(selectedClass)}`)
     .then(response => response.json())
     .then(data => {
         const button = document.getElementById('load-master-plan-btn');
@@ -7124,8 +7138,12 @@ function printSeatingPlan() {
     }
 
     // Nom de la classe pour le titre
-    const classSelector = document.getElementById('classroomSelector');
-    const selectedClassroom = classSelector ? classSelector.options[classSelector.selectedIndex]?.text : CLASSES_I18N.classLabel;
+    const classSelector = document.getElementById('classSelect');
+    const seatingName = document.getElementById('seating-class-name');
+    const selectedClassroom = (classSelector && classSelector.selectedIndex >= 0
+            ? classSelector.options[classSelector.selectedIndex].text.trim() : '')
+        || (seatingName ? seatingName.textContent.trim() : '')
+        || CLASSES_I18N.classLabel;
 
     // Calculer les bornes du contenu pour centrer le plan
     let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
@@ -7219,7 +7237,7 @@ function printSeatingPlan() {
     const totalHeight = contentHeight + padding * 2 + titleHeight;
 
     printWindow.document.write('<!DOCTYPE html><html><head><meta charset="utf-8">' +
-        '<title>' + ciFmt(CLASSES_I18N.seatingPrintTitle, {name: selectedClassroom}) + '</title>' +
+        '<title>' + ciFmt(CLASSES_I18N.seatingPrintTitle, {name: ciEsc(selectedClassroom)}) + '</title>' +
         '<style>' +
         '@page { size: landscape; margin: 8mm; }' +
         '* { margin: 0; padding: 0; box-sizing: border-box; }' +
@@ -7229,7 +7247,7 @@ function printSeatingPlan() {
         '</style>' +
         '</head><body>' +
         '<div class="print-container">' +
-        '<div class="print-title">' + ciFmt(CLASSES_I18N.seatingPrintTitle, {name: selectedClassroom}) + '</div>' +
+        '<div class="print-title">' + ciFmt(CLASSES_I18N.seatingPrintTitle, {name: ciEsc(selectedClassroom)}) + '</div>' +
         elementsHTML +
         '</div>' +
         '<scr' + 'ipt>' +
@@ -8597,15 +8615,15 @@ function addStudentCard(student) {
                 ${student.initials}
             </div>
             <div class="student-details">
-                <h4>${student.full_name}</h4>
-                ${student.email ? `<p>${student.email}</p>` : ''}
+                <h4>${ciEsc(student.full_name)}</h4>
+                ${student.email ? `<p>${ciEsc(student.email)}</p>` : ''}
             </div>
         </div>
         <div class="student-actions">
             ${canEditStudents ? `<button class="btn-icon" title="${CLASSES_I18N.edit}" onclick="editStudent(${student.id})">
                 <i class="fas fa-edit"></i>
             </button>` : ''}
-            <button class="btn-icon danger" title="${CLASSES_I18N.delete}" onclick="deleteStudent(${student.id}, '${student.full_name}')">
+            <button class="btn-icon danger" title="${CLASSES_I18N.delete}" data-name="${ciEsc(student.full_name)}" onclick="deleteStudent(${student.id}, this.dataset.name)">
                 <i class="fas fa-trash"></i>
             </button>
         </div>
@@ -8653,13 +8671,14 @@ function updateStudentCard(student) {
 
         const details = card.querySelector('.student-details');
         details.innerHTML = `
-            <h4>${student.full_name}</h4>
-            ${student.email ? `<p>${student.email}</p>` : ''}
+            <h4>${ciEsc(student.full_name)}</h4>
+            ${student.email ? `<p>${ciEsc(student.email)}</p>` : ''}
         `;
 
         // Mettre à jour le bouton de suppression avec le nouveau nom
         const deleteBtn = card.querySelector('.btn-icon.danger');
-        deleteBtn.setAttribute('onclick', `deleteStudent(${student.id}, '${student.full_name}')`);
+        deleteBtn.dataset.name = student.full_name;
+        deleteBtn.setAttribute('onclick', `deleteStudent(${student.id}, this.dataset.name)`);
 
         // Animation de mise à jour
         card.style.animation = 'pulse 0.5s ease';
@@ -8833,7 +8852,7 @@ async function deleteMixedGroupStudent(studentId, studentName) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                classroom: '{{ selected_class_group }}',
+                classroom: {{ selected_class_group|tojson }},
                 student_id: studentId
             })
         });
@@ -9026,8 +9045,8 @@ function showNotification(type, message) {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.style.cssText = `
-        background-color: ${type === 'success' ? '#D1FAE5' : '#FEE2E2'};
-        color: ${type === 'success' ? '#065F46' : '#991B1B'};
+        background-color: ${({success: '#D1FAE5', info: '#DBEAFE', warning: '#FEF3C7'})[type] || '#FEE2E2'};
+        color: ${({success: '#065F46', info: '#1E40AF', warning: '#92400E'})[type] || '#991B1B'};
         padding: 1rem 1.5rem;
         border-radius: 0.5rem;
         margin-bottom: 0.5rem;
@@ -9040,7 +9059,7 @@ function showNotification(type, message) {
     `;
 
     const icon = document.createElement('i');
-    icon.className = `fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}`;
+    icon.className = `fas fa-${({success: 'check-circle', info: 'info-circle', warning: 'exclamation-triangle'})[type] || 'exclamation-circle'}`;
 
     const text = document.createElement('span');
     text.textContent = message;
@@ -12756,7 +12775,7 @@ async function addSelectedMixedGroupStudents() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                classroom: '{{ selected_class_group }}',
+                classroom: {{ selected_class_group|tojson }},
                 student_ids: studentIds
             })
         });
