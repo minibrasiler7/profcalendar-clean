@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Configuration initiale - ProfCalendar{% endblock %}
+{% block title %}{{ _('Configuration initiale') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -98,21 +98,21 @@
         <!-- Section Copie de configuration -->
         <div class="setup-section">
             <i class="fas fa-school section-icon"></i>
-            <h2 class="section-title">Collège (optionnel)</h2>
-            <p class="section-description">Entrez le nom de votre collège pour copier sa configuration existante ou créer une nouvelle configuration pour votre établissement.</p>
+            <h2 class="section-title">{{ _('Collège (optionnel)') }}</h2>
+            <p class="section-description">{{ _('Entrez le nom de votre collège pour copier sa configuration existante ou créer une nouvelle configuration pour votre établissement.') }}</p>
             
             <div class="form-group">
                 {{ form.college_name.label(class="form-label") }}
                 <div class="autocomplete-wrapper">
-                    {{ form.college_name(class="form-control", placeholder="Ex: Collège de Béthusy, Gymnase de Chamblandes...", autocomplete="off") }}
+                    {{ form.college_name(class="form-control", placeholder=_('Ex: Collège de Béthusy, Gymnase de Chamblandes...'), autocomplete="off") }}
                     <div id="college-suggestions" class="autocomplete-suggestions"></div>
                 </div>
-                <p class="form-help">Laissez vide pour configurer manuellement. Si vous entrez un collège existant, sa configuration sera copiée.</p>
+                <p class="form-help">{{ _('Laissez vide pour configurer manuellement. Si vous entrez un collège existant, sa configuration sera copiée.') }}</p>
                 <div id="college-status" style="margin-top: 0.5rem; font-size: 0.875rem;">
                     <!-- Le statut sera affiché ici -->
                 </div>
                 <div id="copy-info" class="alert alert-info" style="display: none; margin-top: 1rem;">
-                    <i class="fas fa-info-circle"></i> La configuration de ce collège a été copiée dans les champs ci-dessous. Vous pouvez les modifier librement si nécessaire.
+                    <i class="fas fa-info-circle"></i> {{ _('La configuration de ce collège a été copiée dans les champs ci-dessous. Vous pouvez les modifier librement si nécessaire.') }}
                 </div>
                 {% if form.college_name.errors %}
                     <div class="form-error">
@@ -127,8 +127,8 @@
         <!-- Section Année scolaire -->
         <div class="setup-section">
             <i class="fas fa-calendar-alt section-icon"></i>
-            <h2 class="section-title">Année scolaire</h2>
-            <p class="section-description">Définissez les dates de début et de fin de votre année scolaire.</p>
+            <h2 class="section-title">{{ _('Année scolaire') }}</h2>
+            <p class="section-description">{{ _('Définissez les dates de début et de fin de votre année scolaire.') }}</p>
             
             <div class="form-row date-row">
                 <div class="form-group">
@@ -160,17 +160,17 @@
         <!-- Section Horaires quotidiens -->
         <div class="setup-section">
             <i class="fas fa-clock section-icon"></i>
-            <h2 class="section-title">Horaires quotidiens</h2>
-            <p class="section-description">Configurez vos heures de cours et la durée des périodes.</p>
+            <h2 class="section-title">{{ _('Horaires quotidiens') }}</h2>
+            <p class="section-description">{{ _('Configurez vos heures de cours et la durée des périodes.') }}</p>
             
             <div class="form-group">
-                <label class="form-label">Heures de cours</label>
+                <label class="form-label">{{ _('Heures de cours') }}</label>
                 <div class="time-input-group">
                     {{ form.day_start_time(class="form-control", type="time") }}
-                    <span class="time-separator">à</span>
+                    <span class="time-separator">{{ _('à') }}</span>
                     {{ form.day_end_time(class="form-control", type="time") }}
                 </div>
-                <p class="form-help">Définissez l'heure de début et de fin de votre journée de cours.</p>
+                <p class="form-help">{{ _("Définissez l'heure de début et de fin de votre journée de cours.") }}</p>
             </div>
             
             <div class="form-row">
@@ -178,9 +178,9 @@
                     {{ form.period_duration.label(class="form-label") }}
                     <div class="input-with-addon">
                         {{ form.period_duration(class="form-control", type="number", min="30", max="120") }}
-                        <span class="input-addon">minutes</span>
+                        <span class="input-addon">{{ _('minutes') }}</span>
                     </div>
-                    <p class="form-help">Durée d'une période de cours (entre 30 et 120 minutes).</p>
+                    <p class="form-help">{{ _("Durée d'une période de cours (entre 30 et 120 minutes).") }}</p>
                     {% if form.period_duration.errors %}
                         <div class="form-error">
                             {% for error in form.period_duration.errors %}
@@ -194,9 +194,9 @@
                     {{ form.break_duration.label(class="form-label") }}
                     <div class="input-with-addon">
                         {{ form.break_duration(class="form-control", type="number", min="5", max="30") }}
-                        <span class="input-addon">minutes</span>
+                        <span class="input-addon">{{ _('minutes') }}</span>
                     </div>
-                    <p class="form-help">Durée de la pause entre les cours (entre 5 et 30 minutes).</p>
+                    <p class="form-help">{{ _('Durée de la pause entre les cours (entre 5 et 30 minutes).') }}</p>
                     {% if form.break_duration.errors %}
                         <div class="form-error">
                             {% for error in form.break_duration.errors %}
@@ -211,17 +211,17 @@
         <!-- Section Fuseau horaire -->
         <div class="setup-section">
             <i class="fas fa-globe section-icon"></i>
-            <h2 class="section-title">Fuseau horaire</h2>
-            <p class="section-description">Configurez votre fuseau horaire pour un affichage correct du temps.</p>
+            <h2 class="section-title">{{ _('Fuseau horaire') }}</h2>
+            <p class="section-description">{{ _('Configurez votre fuseau horaire pour un affichage correct du temps.') }}</p>
             
             <div class="form-group">
                 <div class="timezone-display">
                     <div class="current-time-info">
-                        <strong>Heure actuelle du serveur:</strong> 
+                        <strong>{{ _('Heure actuelle du serveur :') }}</strong> 
                         <span id="server-time">{{ server_time }}</span>
                     </div>
                     <div class="timezone-help" style="margin-top: 0.5rem; color: var(--gray-color); font-size: 0.875rem;">
-                        Si cette heure ne correspond pas à votre heure locale, ajustez le décalage ci-dessous.
+                        {{ _('Si cette heure ne correspond pas à votre heure locale, ajustez le décalage ci-dessous.') }}
                     </div>
                 </div>
             </div>
@@ -244,7 +244,7 @@
                         <option value="-1">UTC-1 (Azores)</option>
                         <option value="0" selected>UTC+0 (GMT, London)</option>
                         <option value="1">UTC+1 (Paris, Berlin)</option>
-                        <option value="2">UTC+2 (Suisse, Autriche)</option>
+                        <option value="2">UTC+2 ({{ _('Suisse, Autriche') }})</option>
                         <option value="3">UTC+3 (Moscow)</option>
                         <option value="4">UTC+4 (Dubai)</option>
                         <option value="5">UTC+5 (Pakistan)</option>
@@ -257,11 +257,11 @@
                         <option value="12">UTC+12 (New Zealand)</option>
                     </select>
                     <div class="timezone-preview" style="margin-top: 0.5rem;">
-                        <strong>Votre heure locale serait:</strong>
+                        <strong>{{ _('Votre heure locale serait :') }}</strong>
                         <span id="local-time-preview">{{ server_time }}</span>
                     </div>
                 </div>
-                <p class="form-help">Sélectionnez votre fuseau horaire. Par défaut, la Suisse est sur UTC+1 (hiver) ou UTC+2 (été).</p>
+                <p class="form-help">{{ _('Sélectionnez votre fuseau horaire. Par défaut, la Suisse est sur UTC+1 (hiver) ou UTC+2 (été).') }}</p>
                 {% if form.timezone_offset.errors %}
                     <div class="form-error">
                         {% for error in form.timezone_offset.errors %}
@@ -275,11 +275,11 @@
         <!-- Boutons d'action -->
         <div class="action-buttons">
             <a href="{{ url_for('settings.index') }}" class="btn btn-outline">
-                <i class="fas fa-arrow-left"></i> Retour aux paramètres
+                <i class="fas fa-arrow-left"></i> {{ _('Retour aux paramètres') }}
             </a>
 
             <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Enregistrer
+                <i class="fas fa-save"></i> {{ _('Enregistrer') }}
             </button>
         </div>
     </form>
@@ -368,6 +368,18 @@
 </style>
 
 <script>
+// Chaînes traduites pour le JS (jeton {n} remplacé en JS).
+const SETUP_INITIAL_I18N = {
+    searching: {{ _('Recherche en cours...')|tojson }},
+    collegesFound: {{ _('{n} collège(s) trouvé(s)')|tojson }},
+    newCollege: {{ _('Nouveau collège - vous pouvez créer sa configuration')|tojson }},
+    connectionError: {{ _('Erreur de connexion')|tojson }},
+    configAvailable: {{ _('Configuration disponible')|tojson }},
+    noConfig: {{ _('Pas de configuration')|tojson }},
+    incompleteConfig: {{ _("Ce collège existe mais n'a pas de configuration complète")|tojson }},
+    configFound: {{ _('Configuration trouvée pour ce collège')|tojson }}
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     const collegeField = document.getElementById('college_name');
     const collegeSuggestions = document.getElementById('college-suggestions');
@@ -394,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Afficher un message de chargement
-        collegeStatus.innerHTML = '<span style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Recherche en cours...</span>';
+        collegeStatus.innerHTML = '<span style="color: #666;"><i class="fas fa-spinner fa-spin"></i> ' + SETUP_INITIAL_I18N.searching + '</span>';
         
         fetch('{{ url_for("setup.search_colleges") }}', {
             method: 'POST',
@@ -408,15 +420,15 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.colleges && data.colleges.length > 0) {
                 showSuggestions(data.colleges);
-                collegeStatus.innerHTML = '<span style="color: #666;"><i class="fas fa-search"></i> ' + data.colleges.length + ' collège(s) trouvé(s)</span>';
+                collegeStatus.innerHTML = '<span style="color: #666;"><i class="fas fa-search"></i> ' + SETUP_INITIAL_I18N.collegesFound.replace('{n}', data.colleges.length) + '</span>';
             } else {
                 collegeSuggestions.style.display = 'none';
-                collegeStatus.innerHTML = '<span style="color: #17a2b8;"><i class="fas fa-plus-circle"></i> Nouveau collège - vous pouvez créer sa configuration</span>';
+                collegeStatus.innerHTML = '<span style="color: #17a2b8;"><i class="fas fa-plus-circle"></i> ' + SETUP_INITIAL_I18N.newCollege + '</span>';
             }
         })
         .catch(error => {
             console.error('Erreur:', error);
-            collegeStatus.innerHTML = '<span style="color: #dc3545;"><i class="fas fa-exclamation-circle"></i> Erreur de connexion</span>';
+            collegeStatus.innerHTML = '<span style="color: #dc3545;"><i class="fas fa-exclamation-circle"></i> ' + SETUP_INITIAL_I18N.connectionError + '</span>';
             collegeSuggestions.style.display = 'none';
         });
     }
@@ -430,8 +442,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="suggestion-name">${college.name}</div>
                 <div class="suggestion-status">
                     ${college.has_config ? 
-                        '<i class="fas fa-check-circle" style="color: #28a745;"></i> Configuration disponible' : 
-                        '<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> Pas de configuration'
+                        '<i class="fas fa-check-circle" style="color: #28a745;"></i> ' + SETUP_INITIAL_I18N.configAvailable : 
+                        '<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> ' + SETUP_INITIAL_I18N.noConfig
                     }
                 </div>
             `;
@@ -450,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (college.has_config) {
             checkCollegeConfig(college.name);
         } else {
-            collegeStatus.innerHTML = '<span style="color: #ffc107;"><i class="fas fa-exclamation-triangle"></i> Ce collège existe mais n\'a pas de configuration complète</span>';
+            collegeStatus.innerHTML = '<span style="color: #ffc107;"><i class="fas fa-exclamation-triangle"></i> ' + SETUP_INITIAL_I18N.incompleteConfig + '</span>';
             copyInfo.style.display = 'none';
             setupSections.forEach(section => {
                 section.classList.remove('prefilled-section');
@@ -472,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.exists && data.has_config) {
-                collegeStatus.innerHTML = '<span style="color: #28a745;"><i class="fas fa-check-circle"></i> Configuration trouvée pour ce collège</span>';
+                collegeStatus.innerHTML = '<span style="color: #28a745;"><i class="fas fa-check-circle"></i> ' + SETUP_INITIAL_I18N.configFound + '</span>';
                 copyInfo.style.display = 'block';
                 setupSections.forEach(section => {
                     section.classList.add('prefilled-section');
@@ -499,7 +511,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Erreur:', error);
-            collegeStatus.innerHTML = '<span style="color: #dc3545;"><i class="fas fa-exclamation-circle"></i> Erreur de connexion</span>';
+            collegeStatus.innerHTML = '<span style="color: #dc3545;"><i class="fas fa-exclamation-circle"></i> ' + SETUP_INITIAL_I18N.connectionError + '</span>';
         });
     }
     

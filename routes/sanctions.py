@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask_babel import gettext as _gettext
 from flask_login import login_required, current_user
 from extensions import db
 from models.sanctions import SanctionTemplate, SanctionThreshold, SanctionOption, ClassroomSanctionImport
@@ -13,7 +14,7 @@ def index():
     """Page principale de gestion des sanctions"""
     # Vérifier que la configuration de base est complète
     if not current_user.setup_completed:
-        flash('Veuillez d\'abord compléter la configuration initiale.', 'warning')
+        flash(_gettext("Veuillez d'abord compléter la configuration initiale."), 'warning')
         return redirect(url_for('setup.initial_setup'))
     
     # Récupérer tous les modèles de sanctions de l'utilisateur
@@ -128,7 +129,7 @@ def save():
     data = request.get_json()
     
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     try:
         template_id = data.get('template_id')
@@ -137,10 +138,10 @@ def save():
         thresholds_data = data.get('thresholds', [])
         
         if not name:
-            return jsonify({'success': False, 'message': 'Le nom est obligatoire'}), 400
+            return jsonify({'success': False, 'message': _gettext('Le nom est obligatoire')}), 400
         
         if not thresholds_data:
-            return jsonify({'success': False, 'message': 'Au moins un seuil est requis'}), 400
+            return jsonify({'success': False, 'message': _gettext('Au moins un seuil est requis')}), 400
         
         # Créer ou mettre à jour le template
         if template_id:
@@ -149,7 +150,7 @@ def save():
                 user_id=current_user.id
             ).first()
             if not template:
-                return jsonify({'success': False, 'message': 'Modèle non trouvé'}), 404
+                return jsonify({'success': False, 'message': _gettext('Modèle non trouvé')}), 404
             template.updated_at = datetime.utcnow()
         else:
             template = SanctionTemplate(user_id=current_user.id)
@@ -208,7 +209,7 @@ def save():
         
         return jsonify({
             'success': True,
-            'message': 'Modèle sauvegardé avec succès',
+            'message': _gettext('Modèle sauvegardé avec succès'),
             'template_id': template.id
         })
         
@@ -227,7 +228,7 @@ def delete(template_id):
         ).first()
         
         if not template:
-            return jsonify({'success': False, 'message': 'Modèle non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Modèle non trouvé')}), 404
         
         # Compter les imports actifs et les compteurs d'élèves pour le message
         active_imports = ClassroomSanctionImport.query.filter_by(
@@ -262,14 +263,16 @@ def delete(template_id):
         db.session.delete(template)
         db.session.commit()
         
-        message = 'Modèle supprimé avec succès'
+        message = _gettext('Modèle supprimé avec succès')
         if active_imports > 0 or student_counts > 0:
             details = []
             if active_imports > 0:
-                details.append(f'{active_imports} classe(s)')
+                details.append(_gettext('%(count)s classe(s)', count=active_imports))
             if student_counts > 0:
-                details.append(f'{student_counts} compteur(s) d\'élève')
-            message += f' (supprimé de {" et ".join(details)})'
+                details.append(_gettext("%(count)s compteur(s) d'élève", count=student_counts))
+            joined = (_gettext('%(first)s et %(second)s', first=details[0], second=details[1])
+                      if len(details) == 2 else details[0])
+            message += ' ' + _gettext('(supprimé de %(details)s)', details=joined)
         
         return jsonify({'success': True, 'message': message})
         
@@ -288,16 +291,16 @@ def toggle_status(template_id):
         ).first()
         
         if not template:
-            return jsonify({'success': False, 'message': 'Modèle non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Modèle non trouvé')}), 404
         
         template.is_active = not template.is_active
         template.updated_at = datetime.utcnow()
         db.session.commit()
         
-        status = 'activé' if template.is_active else 'désactivé'
         return jsonify({
             'success': True, 
-            'message': f'Modèle {status} avec succès',
+            'message': (_gettext('Modèle activé avec succès') if template.is_active
+                        else _gettext('Modèle désactivé avec succès')),
             'is_active': template.is_active
         })
         
@@ -312,7 +315,7 @@ def import_to_class():
     data = request.get_json()
     
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     try:
         # Support pour un seul template_id (ancien format) ou plusieurs template_ids
@@ -323,7 +326,7 @@ def import_to_class():
         classroom_ids = data.get('classroom_ids', [])
         
         if not template_ids or not classroom_ids:
-            return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+            return jsonify({'success': False, 'message': _gettext('Données manquantes')}), 400
         
         # Vérifier que tous les templates appartiennent à l'utilisateur
         templates = SanctionTemplate.query.filter(
@@ -332,7 +335,7 @@ def import_to_class():
         ).all()
         
         if len(templates) != len(template_ids):
-            return jsonify({'success': False, 'message': 'Un ou plusieurs modèles non trouvés'}), 404
+            return jsonify({'success': False, 'message': _gettext('Un ou plusieurs modèles non trouvés')}), 404
         
         total_imported = 0
         total_already_imported = 0
@@ -377,12 +380,12 @@ def import_to_class():
         classes_count = len(classroom_ids)
         
         if templates_count == 1:
-            message = f'Modèle importé dans {classes_count} classe(s)'
+            message = _gettext('Modèle importé dans %(classes)s classe(s)', classes=classes_count)
         else:
-            message = f'{templates_count} modèles importés dans {classes_count} classe(s)'
+            message = _gettext('%(templates)s modèles importés dans %(classes)s classe(s)', templates=templates_count, classes=classes_count)
             
         if total_already_imported > 0:
-            message += f' ({total_already_imported} import(s) déjà existant(s))'
+            message += ' ' + _gettext('(%(count)s import(s) déjà existant(s))', count=total_already_imported)
         
         return jsonify({
             'success': True,
@@ -406,7 +409,7 @@ def get_template(template_id):
         ).first()
         
         if not template:
-            return jsonify({'success': False, 'message': 'Modèle non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Modèle non trouvé')}), 404
         
         # Récupérer les seuils avec leurs sanctions
         thresholds = []

@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_babel import gettext as _gettext
 from flask_login import login_required, current_user
 from extensions import db
 from models.evaluation import Evaluation, EvaluationGrade
@@ -99,7 +100,7 @@ def get_classroom_evaluations(classroom_id):
     try:
         # Vérifier que la classe est accessible par l'utilisateur
         if not user_can_access_classroom(current_user.id, classroom_id):
-            return jsonify({'success': False, 'message': 'Classe introuvable ou accès non autorisé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable ou accès non autorisé')}), 404
         
         # Récupérer toutes les évaluations avec leurs notes
         evaluations = Evaluation.query.filter_by(classroom_id=classroom_id).order_by(Evaluation.date.desc()).all()
@@ -144,7 +145,7 @@ def get_classroom_evaluations(classroom_id):
         })
         
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 @evaluations_bp.route('/create', methods=['POST'])
 @login_required
@@ -167,17 +168,17 @@ def create_evaluation():
             try:
                 classroom_id = int(classroom_id)
             except (TypeError, ValueError):
-                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+                return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
 
         # Validation
         if not all([classroom_id, title, date_str, max_points, eval_type]):
-            return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
+            return jsonify({'success': False, 'message': _gettext('Paramètres manquants')}), 400
         
         if eval_type not in ['significatif', 'ta']:
-            return jsonify({'success': False, 'message': 'Type d\'évaluation invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext("Type d'évaluation invalide")}), 400
         
         if eval_type == 'ta' and not ta_group_name:
-            return jsonify({'success': False, 'message': 'Nom du groupe TA requis'}), 400
+            return jsonify({'success': False, 'message': _gettext('Nom du groupe TA requis')}), 400
         
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
@@ -186,13 +187,13 @@ def create_evaluation():
         ).first()
         
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
         
         # Convertir la date
         try:
             date = datetime.strptime(date_str, '%Y-%m-%d').date()
         except ValueError:
-            return jsonify({'success': False, 'message': 'Format de date invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Format de date invalide')}), 400
         
         # Créer l'évaluation
         evaluation = Evaluation(
@@ -268,7 +269,7 @@ def create_evaluation():
         
         return jsonify({
             'success': True,
-            'message': 'Évaluation créée avec succès',
+            'message': _gettext('Évaluation créée avec succès'),
             'evaluation': {
                 'id': evaluation.id,
                 'title': evaluation.title,
@@ -279,7 +280,7 @@ def create_evaluation():
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 @evaluations_bp.route('/<int:evaluation_id>')
 @login_required
@@ -290,7 +291,7 @@ def get_evaluation(evaluation_id):
         evaluation = Evaluation.query.filter_by(id=evaluation_id).first()
         
         if not evaluation or not user_can_access_classroom(current_user.id, evaluation.classroom_id):
-            return jsonify({'success': False, 'message': 'Évaluation introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Évaluation introuvable')}), 404
         
         # Récupérer les notes
         grades = EvaluationGrade.query.filter_by(evaluation_id=evaluation_id).all()
@@ -323,7 +324,7 @@ def get_evaluation(evaluation_id):
         })
         
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 @evaluations_bp.route('/<int:evaluation_id>', methods=['PUT'])
 @login_required
@@ -334,7 +335,7 @@ def update_evaluation(evaluation_id):
         evaluation = Evaluation.query.filter_by(id=evaluation_id).first()
         
         if not evaluation or not user_can_access_classroom(current_user.id, evaluation.classroom_id):
-            return jsonify({'success': False, 'message': 'Évaluation introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Évaluation introuvable')}), 404
         
         data = request.get_json()
         
@@ -346,7 +347,7 @@ def update_evaluation(evaluation_id):
             try:
                 evaluation.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
             except ValueError:
-                return jsonify({'success': False, 'message': 'Format de date invalide'}), 400
+                return jsonify({'success': False, 'message': _gettext('Format de date invalide')}), 400
         
         if 'max_points' in data:
             evaluation.max_points = float(data['max_points'])
@@ -412,12 +413,12 @@ def update_evaluation(evaluation_id):
         
         return jsonify({
             'success': True,
-            'message': 'Évaluation modifiée avec succès'
+            'message': _gettext('Évaluation modifiée avec succès')
         })
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 @evaluations_bp.route('/<int:evaluation_id>', methods=['DELETE'])
 @login_required
@@ -428,7 +429,7 @@ def delete_evaluation(evaluation_id):
         evaluation = Evaluation.query.filter_by(id=evaluation_id).first()
         
         if not evaluation or not user_can_access_classroom(current_user.id, evaluation.classroom_id):
-            return jsonify({'success': False, 'message': 'Évaluation introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Évaluation introuvable')}), 404
         
         # Supprimer l'évaluation (les notes seront supprimées automatiquement via cascade)
         db.session.delete(evaluation)
@@ -436,12 +437,12 @@ def delete_evaluation(evaluation_id):
         
         return jsonify({
             'success': True,
-            'message': 'Évaluation supprimée avec succès'
+            'message': _gettext('Évaluation supprimée avec succès')
         })
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 # ---------------------------------------------------------------------------
 # Export des notes (PDF / CSV)
@@ -514,14 +515,14 @@ def export_grades(classroom_id, fmt):
         import io as _io
         buf = _io.StringIO()
         w = _csv.writer(buf, delimiter=';')
-        w.writerow(['Élève'] + [f"{e.title} ({e.date.strftime('%d.%m.%Y')})" for e in evaluations]
-                   + ['Moyenne'])
-        w.writerow([''] + [f"sur {fmt_val(e.max_points, 0)}" for e in evaluations] + [''])
+        w.writerow([_gettext('Élève')] + [f"{e.title} ({e.date.strftime('%d.%m.%Y')})" for e in evaluations]
+                   + [_gettext('Moyenne')])
+        w.writerow([''] + [_gettext('sur %(max)s', max=fmt_val(e.max_points, 0)) for e in evaluations] + [''])
         for s in students:
             w.writerow([s.full_name]
                        + [fmt_val(grades.get((e.id, s.id))) for e in evaluations]
                        + [fmt_val(student_average(s.id), 2)])
-        w.writerow(['Moyenne de classe']
+        w.writerow([_gettext('Moyenne de classe')]
                    + [fmt_val(e.get_average(), 2) for e in evaluations] + [''])
         # BOM pour qu'Excel ouvre l'UTF-8 correctement
         data = '\ufeff' + buf.getvalue()
@@ -541,21 +542,25 @@ def export_grades(classroom_id, fmt):
                             rightMargin=1.2 * cm, leftMargin=1.2 * cm,
                             topMargin=1.2 * cm, bottomMargin=1.2 * cm)
     styles = getSampleStyleSheet()
+    _now = datetime.now()
     elements = [
-        Paragraph(f"<b>Notes — {classroom.name} · {classroom.subject}</b>", styles['Title']),
-        Paragraph(f"Enseignant : {current_user.username} — généré le "
-                  f"{datetime.now().strftime('%d.%m.%Y à %H:%M')}", styles['Normal']),
+        Paragraph('<b>%s</b>' % _gettext('Notes — %(classroom)s · %(subject)s',
+                                         classroom=classroom.name, subject=classroom.subject),
+                  styles['Title']),
+        Paragraph(_gettext('Enseignant : %(teacher)s — généré le %(date)s', teacher=current_user.username,
+                           date=_gettext('%(date)s à %(time)s', date=_now.strftime('%d.%m.%Y'),
+                                         time=_now.strftime('%H:%M'))), styles['Normal']),
         Spacer(1, 0.5 * cm),
     ]
 
-    header = ['Élève'] + [f"{e.title}\n{e.date.strftime('%d.%m.%y')} · /{fmt_val(e.max_points, 0)}"
-                          for e in evaluations] + ['Moyenne']
+    header = [_gettext('Élève')] + [f"{e.title}\n{e.date.strftime('%d.%m.%y')} · /{fmt_val(e.max_points, 0)}"
+                                    for e in evaluations] + [_gettext('Moyenne')]
     rows = [header]
     for s in students:
         rows.append([s.full_name]
                     + [fmt_val(grades.get((e.id, s.id))) for e in evaluations]
                     + [fmt_val(student_average(s.id), 2)])
-    rows.append(['Moyenne de classe']
+    rows.append([_gettext('Moyenne de classe')]
                 + [fmt_val(e.get_average(), 2) for e in evaluations] + [''])
 
     first_col = 4.2 * cm

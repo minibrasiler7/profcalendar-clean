@@ -1,6 +1,7 @@
 from config import Config
 from flask import Flask, redirect, url_for, flash, render_template, session, request, g
 from flask_login import current_user, login_required
+from flask_babel import gettext as _gettext
 from extensions import db, login_manager, migrate, socketio
 import logging
 import stripe
@@ -52,6 +53,11 @@ def create_app(config_name='development'):
     }
 
     def get_locale():
+        # Hors requête (boucles de fond, commandes) : pas de session ni de
+        # navigateur. Les e-mails imposent la langue du compte avec force_locale.
+        from flask import has_request_context
+        if not has_request_context():
+            return 'fr'
         # 0) Locale imposée par l'URL (pages publiques /en, /es, /de, /it) :
         #    chaque langue a sa propre URL indexable par Google. Prioritaire sur
         #    la session et le navigateur pour que le crawler et un lien partagé
@@ -70,10 +76,20 @@ def create_app(config_name='development'):
     @app.context_processor
     def inject_i18n():
         from flask_babel import get_locale as _babel_get_locale
+        from utils.js_i18n import bundle_version
+        try:
+            js_version = bundle_version(app)
+        except Exception:
+            js_version = '0'
         return {
             'LANGUAGES': app.config['LANGUAGES'],
             'current_locale': str(_babel_get_locale() or 'fr'),
+            # Dictionnaire des textes de static/js (pcT), servi par /i18n/<langue>.js
+            'pc_js_i18n_version': js_version,
         }
+
+    from utils.js_i18n import register_js_i18n
+    register_js_i18n(app)
 
     @app.route('/set-language/<lang>')
     def set_language(lang):
@@ -81,6 +97,15 @@ def create_app(config_name='development'):
         (permanente) et revient à la page d'origine."""
         if lang in app.config['LANGUAGES']:
             session['lang'] = lang
+            # Langue mémorisée sur le compte : e-mails automatiques dans cette langue
+            try:
+                from models.user import User
+                if current_user.is_authenticated and isinstance(current_user._get_current_object(), User) \
+                        and not session.get('demo_mode') and current_user.locale != lang:
+                    current_user.locale = lang
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
         return redirect(request.referrer or url_for('index'))
 
     # Initialisation des extensions
@@ -1454,7 +1479,7 @@ def create_app(config_name='development'):
 
         # Vérifier l'accès premium
         if not current_user.has_premium_access():
-            flash('Cette fonctionnalité nécessite un abonnement Premium.', 'warning')
+            flash(_gettext('Cette fonctionnalité nécessite un abonnement Premium.'), 'warning')
             return redirect(url_for('subscription.pricing'))
 
     # Modèle payant dès l'inscription : contrôle d'accès par abonnement sur
@@ -1545,7 +1570,7 @@ def create_app(config_name='development'):
         from models.user import User
         from models.user_preferences import DashboardTask
         if not isinstance(current_user, User):
-            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+            return jsonify({'success': False, 'error': _gettext('Réservé aux enseignants')}), 403
         if request.method == 'GET':
             tasks = DashboardTask.query.filter_by(user_id=current_user.id)\
                 .order_by(DashboardTask.is_done.asc(), DashboardTask.position.asc(), DashboardTask.id.asc()).all()
@@ -1553,7 +1578,7 @@ def create_app(config_name='development'):
         data = request.get_json(silent=True) or {}
         title = (data.get('title') or '').strip()
         if not title:
-            return jsonify({'success': False, 'error': 'Titre vide'}), 400
+            return jsonify({'success': False, 'error': _gettext('Titre vide')}), 400
         max_pos = db.session.query(db.func.max(DashboardTask.position))\
             .filter_by(user_id=current_user.id).scalar() or 0
         task = DashboardTask(user_id=current_user.id, title=title[:300], position=max_pos + 1)
@@ -1578,9 +1603,9 @@ def create_app(config_name='development'):
                 try:
                     cid = int(cid)
                 except (TypeError, ValueError):
-                    return 'Classe invalide'
+                    return _gettext('Classe invalide')
                 if not Classroom.query.filter_by(id=cid, user_id=current_user.id).first():
-                    return 'Classe introuvable'
+                    return _gettext('Classe introuvable')
                 task.classroom_id = cid
         if 'color' in data:
             col = data.get('color')
@@ -1589,7 +1614,7 @@ def create_app(config_name='development'):
             elif isinstance(col, str) and _re.fullmatch(r'#[0-9A-Fa-f]{6}', col):
                 task.color = col.upper()
             else:
-                return 'Couleur invalide'
+                return _gettext('Couleur invalide')
         return None
 
     @app.route('/api/dashboard/tasks/reorder', methods=['POST'])
@@ -1600,13 +1625,13 @@ def create_app(config_name='development'):
         from models.user import User
         from models.user_preferences import DashboardTask
         if not isinstance(current_user, User):
-            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+            return jsonify({'success': False, 'error': _gettext('Réservé aux enseignants')}), 403
         data = request.get_json(silent=True) or {}
         order = data.get('order') or []
         try:
             ids = [int(x) for x in order]
         except (TypeError, ValueError):
-            return jsonify({'success': False, 'error': 'Ordre invalide'}), 400
+            return jsonify({'success': False, 'error': _gettext('Ordre invalide')}), 400
         tasks = {t.id: t for t in DashboardTask.query.filter_by(user_id=current_user.id).all()}
         pos = 0
         for tid in ids:
@@ -1627,10 +1652,10 @@ def create_app(config_name='development'):
         from models.user import User
         from models.user_preferences import DashboardTask
         if not isinstance(current_user, User):
-            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+            return jsonify({'success': False, 'error': _gettext('Réservé aux enseignants')}), 403
         task = DashboardTask.query.filter_by(id=task_id, user_id=current_user.id).first()
         if not task:
-            return jsonify({'success': False, 'error': 'Tâche introuvable'}), 404
+            return jsonify({'success': False, 'error': _gettext('Tâche introuvable')}), 404
         if request.method == 'DELETE':
             db.session.delete(task)
             db.session.commit()
@@ -1657,7 +1682,7 @@ def create_app(config_name='development'):
         from models.user import User
         from models.user_preferences import DashboardTask
         if not isinstance(current_user, User):
-            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+            return jsonify({'success': False, 'error': _gettext('Réservé aux enseignants')}), 403
         n = DashboardTask.query.filter_by(user_id=current_user.id, is_done=True).delete()
         db.session.commit()
         return jsonify({'success': True, 'deleted': n})
@@ -1699,7 +1724,7 @@ def create_app(config_name='development'):
         from models.user import User
         from models.user_preferences import DashboardLink
         if not isinstance(current_user, User):
-            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+            return jsonify({'success': False, 'error': _gettext('Réservé aux enseignants')}), 403
         if request.method == 'GET':
             links = DashboardLink.query.filter_by(user_id=current_user.id)\
                 .order_by(DashboardLink.position.asc(), DashboardLink.id.asc()).all()
@@ -1708,7 +1733,7 @@ def create_app(config_name='development'):
         data = request.get_json(silent=True) or {}
         url = _clean_dashboard_url(data.get('url'))
         if not url:
-            return jsonify({'success': False, 'error': 'Adresse invalide (http ou https attendu)'}), 400
+            return jsonify({'success': False, 'error': _gettext('Adresse invalide (http ou https attendu)')}), 400
         max_pos = db.session.query(db.func.max(DashboardLink.position))\
             .filter_by(user_id=current_user.id).scalar() or 0
         link = DashboardLink(
@@ -1729,10 +1754,10 @@ def create_app(config_name='development'):
         from models.user import User
         from models.user_preferences import DashboardLink
         if not isinstance(current_user, User):
-            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+            return jsonify({'success': False, 'error': _gettext('Réservé aux enseignants')}), 403
         link = DashboardLink.query.filter_by(id=link_id, user_id=current_user.id).first()
         if not link:
-            return jsonify({'success': False, 'error': 'Lien introuvable'}), 404
+            return jsonify({'success': False, 'error': _gettext('Lien introuvable')}), 404
         if request.method == 'DELETE':
             db.session.delete(link)
             db.session.commit()
@@ -1741,7 +1766,7 @@ def create_app(config_name='development'):
         if 'url' in data:
             url = _clean_dashboard_url(data.get('url'))
             if not url:
-                return jsonify({'success': False, 'error': 'Adresse invalide (http ou https attendu)'}), 400
+                return jsonify({'success': False, 'error': _gettext('Adresse invalide (http ou https attendu)')}), 400
             link.url = url
         if 'alias' in data:
             link.alias = (data.get('alias') or '').strip()[:120] or None
@@ -1765,7 +1790,7 @@ def create_app(config_name='development'):
         layout = (data.get('layout') or 'default').strip()
         if layout not in ('default', 'side-by-side', 'actions-focus', 'memos-focus',
                           'tasks-focus', 'compact', 'manual'):
-            return jsonify({'success': False, 'error': 'Disposition inconnue'}), 400
+            return jsonify({'success': False, 'error': _gettext('Disposition inconnue')}), 400
         prefs = UserPreferences.get_or_create_for_user(current_user.id)
         prefs.dashboard_layout = layout
 
@@ -2017,6 +2042,17 @@ def create_app(config_name='development'):
         except Exception:
             pass
         print(f"[schema-safety] colonnes parrainage: {e}", flush=True)
+
+    # --- Filet de sécurité schéma (langue du compte, pour les e-mails) ---
+    # Portable (Postgres en prod, SQLite en local) : on regarde les colonnes avant.
+    try:
+        from sqlalchemy import inspect as _sa_inspect, text as _sa_text
+        with app.app_context():
+            if 'locale' not in {c['name'] for c in _sa_inspect(db.engine).get_columns('users')}:
+                with db.engine.begin() as _cx:
+                    _cx.execute(_sa_text("ALTER TABLE users ADD COLUMN locale VARCHAR(5)"))
+    except Exception as e:
+        print(f"[schema-safety] colonne users.locale: {e}", flush=True)
 
     # --- Filet de sécurité schéma (journal des e-mails automatiques) ---
     try:

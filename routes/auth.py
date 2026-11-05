@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 # i18n : _ traduit immédiatement (flash, à l'exécution d'une requête) ;
 # _l est "paresseux" (libellés de formulaires définis au niveau du module,
 # évalués au rendu — sinon ils figeraient la langue du démarrage du serveur).
-from flask_babel import gettext as _, lazy_gettext as _l
+from flask_babel import gettext as _, lazy_gettext as _l, get_locale as _get_locale
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -60,6 +60,17 @@ def _unique_username_from_email(email):
         n += 1
         candidate = f"{base}{n}"
     return candidate
+
+def _remember_locale(user, force=False):
+    """Langue du compte = langue de la page (pour les e-mails automatiques)."""
+    try:
+        loc = str(_get_locale() or 'fr')[:5]
+        if force or not getattr(user, 'locale', None):
+            user.locale = loc
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
+
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -133,6 +144,7 @@ def login():
             session.clear()  # Nettoyer la session pour éviter les conflits
             session['user_type'] = 'teacher'  # Marquer comme enseignant dans la session
             login_user(user, remember=True)
+            _remember_locale(user)
             next_page = request.args.get('next')
             if not next_page or urlparse(next_page).netloc != '':
                 # Un seul chemin : le tableau de bord. Il complète lui-même les
@@ -179,6 +191,7 @@ def register():
         db.session.commit()
         # Récréation et pause de midi par défaut (il faut l'id du compte).
         try:
+            _remember_locale(user, force=True)
             if user.add_default_breaks():
                 db.session.commit()
         except Exception:
@@ -241,6 +254,7 @@ def verify_email():
             # Connecter l'utilisateur
             session['user_type'] = 'teacher'
             login_user(user, remember=True)
+            _remember_locale(user)
             # Nettoyer la session de vérification
             session.pop('pending_user_id', None)
             session.pop('pending_user_type', None)
@@ -326,6 +340,7 @@ def verify_totp():
             # Connecter l'utilisateur
             session['user_type'] = 'teacher'
             login_user(user, remember=True)
+            _remember_locale(user)
 
             if not next_page or urlparse(next_page).netloc != '':
                 next_page = url_for('planning.dashboard')
@@ -395,30 +410,41 @@ def _load_reset_user(token, max_age=3600):
 
 
 def _send_reset_email(user, link):
-    """E-mail de réinitialisation (français, comme les autres transactionnels)."""
-    from services.email_service import send_email
-    html = f"""
+    """E-mail de réinitialisation, dans la langue du compte (User.locale) ou,
+    à défaut, celle de la page courante."""
+    from flask_babel import gettext as _gettext
+    from services.email_service import send_email, email_language
+    with email_language(getattr(user, 'locale', None)):
+        t = {
+            'title': _gettext('Réinitialisation de votre mot de passe'),
+            'hello': _gettext('Bonjour %(name)s,', name=user.username),
+            'intro': _gettext('Vous avez demandé à réinitialiser le mot de passe de votre compte '
+                              'ProfCalendar. Cliquez sur le bouton ci-dessous pour en choisir un '
+                              'nouveau&nbsp;:'),
+            'cta': _gettext('Choisir un nouveau mot de passe'),
+            'validity': _gettext("Ce lien est valable <strong>1&nbsp;heure</strong> et ne peut être "
+                                 "utilisé qu'une seule fois."),
+            'ignore': _gettext("Si vous n'êtes pas à l'origine de cette demande, ignorez simplement "
+                               "cet e-mail — votre mot de passe restera inchangé."),
+        }
+        html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
-        <h2 style="color: #4F46E5;">Réinitialisation de votre mot de passe</h2>
-        <p>Bonjour {user.username},</p>
-        <p>Vous avez demandé à réinitialiser le mot de passe de votre compte
-           ProfCalendar. Cliquez sur le bouton ci-dessous pour en choisir un
-           nouveau&nbsp;:</p>
+        <h2 style="color: #4F46E5;">{t['title']}</h2>
+        <p>{t['hello']}</p>
+        <p>{t['intro']}</p>
         <p style="text-align: center; margin: 28px 0;">
             <a href="{link}" style="background: #4F46E5; color: #fff; text-decoration: none;
                padding: 12px 24px; border-radius: 8px; font-weight: 600; display: inline-block;">
-               Choisir un nouveau mot de passe</a>
+               {t['cta']}</a>
         </p>
-        <p style="color: #6B7280; font-size: 14px;">Ce lien est valable
-           <strong>1&nbsp;heure</strong> et ne peut être utilisé qu'une seule fois.</p>
-        <p style="color: #6B7280; font-size: 14px;">Si vous n'êtes pas à l'origine
-           de cette demande, ignorez simplement cet e-mail — votre mot de passe
-           restera inchangé.</p>
+        <p style="color: #6B7280; font-size: 14px;">{t['validity']}</p>
+        <p style="color: #6B7280; font-size: 14px;">{t['ignore']}</p>
         <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;">
         <p style="color: #9CA3AF; font-size: 12px;">ProfCalendar — profcalendar.org</p>
     </div>
     """
-    return send_email(user.email, 'Réinitialisation de votre mot de passe — ProfCalendar', html)
+        subject = _gettext('Réinitialisation de votre mot de passe — ProfCalendar')
+    return send_email(user.email, subject, html)
 
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])

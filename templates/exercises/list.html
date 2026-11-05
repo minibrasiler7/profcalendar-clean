@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Mes Exercices - ProfCalendar{% endblock %}
+{% block title %}{{ _('Mes Exercices') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/exercises_manager.css') }}?v={{ range(1000,9999) | random }}">
@@ -9,9 +9,9 @@
 {% block content %}
 <div class="exercises-container">
     <div class="exercises-header">
-        <h1><i class="fas fa-flask"></i> Mes Exercices</h1>
+        <h1><i class="fas fa-flask"></i> {{ _('Mes Exercices') }}</h1>
         <a href="{{ url_for('exercises.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Créer un exercice
+            <i class="fas fa-plus"></i> {{ _('Créer un exercice') }}
         </a>
     </div>
 
@@ -19,11 +19,11 @@
         <!-- LEFT PANEL: Exercises list -->
         <div class="exercises-panel" id="exercisesPanel">
             <div class="panel-header">
-                <h2><i class="fas fa-list"></i> Exercices non rangés</h2>
+                <h2><i class="fas fa-list"></i> {{ _('Exercices non rangés') }}</h2>
                 <div class="filters-bar">
-                    <button class="filter-chip active" onclick="filterExercises('all', this)">Tous</button>
-                    <button class="filter-chip" onclick="filterExercises('draft', this)">Brouillons</button>
-                    <button class="filter-chip" onclick="filterExercises('published', this)">Publiés</button>
+                    <button class="filter-chip active" onclick="filterExercises('all', this)">{{ _('Tous') }}</button>
+                    <button class="filter-chip" onclick="filterExercises('draft', this)">{{ _('Brouillons') }}</button>
+                    <button class="filter-chip" onclick="filterExercises('published', this)">{{ _('Publiés') }}</button>
                 </div>
             </div>
             <div class="exercises-list" id="exercisesList">
@@ -36,9 +36,9 @@
                         <div class="exercise-title-row">
                             <span class="exercise-title">{{ ex.title }}</span>
                             {% if ex.is_published %}
-                                <span class="status-badge published">Publié</span>
+                                <span class="status-badge published">{{ _('Publié') }}</span>
                             {% else %}
-                                <span class="status-badge draft">Brouillon</span>
+                                <span class="status-badge draft">{{ _('Brouillon') }}</span>
                             {% endif %}
                         </div>
                         {% if ex.description %}
@@ -52,20 +52,20 @@
                             <span class="meta-tag"><i class="fas fa-layer-group"></i> {{ ex.level }}</span>
                             {% endif %}
                             <span class="meta-tag"><i class="fas fa-star" style="color:#f59e0b;"></i> {{ ex.total_points }} XP</span>
-                            <span class="meta-tag"><i class="fas fa-puzzle-piece"></i> {{ ex.blocks.all()|length }} blocs</span>
+                            <span class="meta-tag"><i class="fas fa-puzzle-piece"></i> {{ _('%(n)s blocs', n=ex.blocks.all()|length) }}</span>
                         </div>
                     </div>
                     <div class="exercise-actions">
-                        <a href="{{ url_for('exercises.edit', exercise_id=ex.id) }}" class="action-btn" title="Modifier">
+                        <a href="{{ url_for('exercises.edit', exercise_id=ex.id) }}" class="action-btn" title="{{ _('Modifier') }}">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <button class="action-btn" onclick="duplicateExercise({{ ex.id }})" title="Dupliquer">
+                        <button class="action-btn" onclick="duplicateExercise({{ ex.id }})" title="{{ _('Dupliquer') }}">
                             <i class="fas fa-copy"></i>
                         </button>
-                        <button class="action-btn publish-btn" onclick="quickPublish({{ ex.id }})" title="Publier">
+                        <button class="action-btn publish-btn" onclick="quickPublish({{ ex.id }})" title="{{ _('Publier') }}">
                             <i class="fas fa-paper-plane"></i>
                         </button>
-                        <button class="action-btn danger" onclick="deleteExercise({{ ex.id }}, {{ 'true' if ex.is_published else 'false' }})" title="Supprimer">
+                        <button class="action-btn danger" onclick="deleteExercise({{ ex.id }}, {{ 'true' if ex.is_published else 'false' }})" title="{{ _('Supprimer') }}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -74,7 +74,7 @@
                 {% if not unorganized %}
                 <div class="empty-panel">
                     <i class="fas fa-check-circle"></i>
-                    <p>Tous les exercices sont rangés !</p>
+                    <p>{{ _('Tous les exercices sont rangés !') }}</p>
                 </div>
                 {% endif %}
             </div>
@@ -83,9 +83,9 @@
         <!-- RIGHT PANEL: Folders -->
         <div class="folders-panel" id="foldersPanel">
             <div class="panel-header">
-                <h2><i class="fas fa-folder-open"></i> Dossiers d'exercices</h2>
+                <h2><i class="fas fa-folder-open"></i> {{ _("Dossiers d'exercices") }}</h2>
                 <button class="btn btn-sm btn-primary" onclick="createRootFolder()">
-                    <i class="fas fa-folder-plus"></i> Nouveau dossier
+                    <i class="fas fa-folder-plus"></i> {{ _('Nouveau dossier') }}
                 </button>
             </div>
             <div class="folders-tree" id="foldersTree">
@@ -96,13 +96,13 @@
                         <i class="fas fa-folder folder-icon" style="color: {{ folder.color or '#667eea' }};"></i>
                         <span class="folder-name" ondblclick="renameFolder({{ folder.id }}, this)">{{ folder.name }}</span>
                         <div class="folder-actions">
-                            <button class="action-btn" onclick="createSubfolder({{ folder.id }})" title="Sous-dossier">
+                            <button class="action-btn" onclick="createSubfolder({{ folder.id }})" title="{{ _('Sous-dossier') }}">
                                 <i class="fas fa-folder-plus"></i>
                             </button>
-                            <button class="action-btn" onclick="renameFolder({{ folder.id }})" title="Renommer">
+                            <button class="action-btn" onclick="renameFolder({{ folder.id }})" title="{{ _('Renommer') }}">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="action-btn danger" onclick="deleteFolder({{ folder.id }})" title="Supprimer">
+                            <button class="action-btn danger" onclick="deleteFolder({{ folder.id }})" title="{{ _('Supprimer') }}">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -113,9 +113,9 @@
                 {% if not root_folders %}
                 <div class="empty-panel">
                     <i class="fas fa-folder-open"></i>
-                    <p>Aucun dossier créé</p>
+                    <p>{{ _('Aucun dossier créé') }}</p>
                     <button class="btn btn-sm btn-primary" onclick="createRootFolder()" style="margin-top: 0.5rem;">
-                        <i class="fas fa-plus"></i> Créer un dossier
+                        <i class="fas fa-plus"></i> {{ _('Créer un dossier') }}
                     </button>
                 </div>
                 {% endif %}
@@ -127,13 +127,13 @@
 <!-- Publish modal — Step 1: Choose class -->
 <div id="publish-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
     <div style="background:white;border-radius:12px;padding:1.5rem;width:90%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-        <h3 style="margin:0 0 0.5rem;font-size:1.1rem;"><i class="fas fa-paper-plane" style="color:#059669;"></i> Publier l'exercice</h3>
-        <p style="color:#6b7280;font-size:0.85rem;margin:0 0 1rem;">Sélectionnez la classe :</p>
+        <h3 style="margin:0 0 0.5rem;font-size:1.1rem;"><i class="fas fa-paper-plane" style="color:#059669;"></i> {{ _("Publier l'exercice") }}</h3>
+        <p style="color:#6b7280;font-size:0.85rem;margin:0 0 1rem;">{{ _('Sélectionnez la classe :') }}</p>
         <div id="publish-class-list" style="max-height:300px;overflow-y:auto;margin:0 0 1rem;"></div>
         <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
-            <button class="btn" onclick="closePublishModal()" style="background:#e5e7eb;color:#374151;">Annuler</button>
+            <button class="btn" onclick="closePublishModal()" style="background:#e5e7eb;color:#374151;">{{ _('Annuler') }}</button>
             <button class="btn" id="publish-confirm-btn" onclick="confirmPublish()" style="background:#059669;color:white;">
-                <i class="fas fa-arrow-right"></i> Suivant
+                <i class="fas fa-arrow-right"></i> {{ _('Suivant') }}
             </button>
         </div>
     </div>
@@ -143,7 +143,7 @@
 <div id="mode-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);justify-content:center;align-items:center;">
     <div style="background:white;border-radius:20px;padding:1.5rem;max-width:480px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
-            <h3 style="margin:0;font-size:1.05rem;"><i class="fas fa-rocket" style="color:#667eea;"></i> Lancer l'exercice</h3>
+            <h3 style="margin:0;font-size:1.05rem;"><i class="fas fa-rocket" style="color:#667eea;"></i> {{ _("Lancer l'exercice") }}</h3>
             <button onclick="closeModeModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9ca3af;"><i class="fas fa-times"></i></button>
         </div>
         <p id="mode-exercise-title" style="font-size:0.85rem;color:#6b7280;margin-bottom:1rem;"></p>
@@ -156,8 +156,8 @@
                     <i class="fas fa-book-open" style="color:white;font-size:1.2rem;"></i>
                 </div>
                 <div style="flex:1;">
-                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Classique</div>
-                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">Les élèves font l'exercice à leur rythme. Pas de suivi en direct.</div>
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">{{ _('Mode Classique') }}</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">{{ _("Les élèves font l'exercice à leur rythme. Pas de suivi en direct.") }}</div>
                 </div>
                 <i class="fas fa-check-circle" id="mode-classique-check" style="color:#10b981;font-size:1.2rem;display:none;"></i>
             </div>
@@ -171,8 +171,8 @@
                     <i class="fas fa-bolt" style="color:white;font-size:1.2rem;"></i>
                 </div>
                 <div style="flex:1;">
-                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Combat</div>
-                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">Mission en direct ! Suivez la progression de chaque élève en temps réel.</div>
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">{{ _('Mode Combat') }}</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">{{ _('Mission en direct ! Suivez la progression de chaque élève en temps réel.') }}</div>
                 </div>
                 <i class="fas fa-check-circle" id="mode-combat-check" style="color:#ef4444;font-size:1.2rem;display:none;"></i>
             </div>
@@ -180,7 +180,7 @@
 
         <button id="launch-exercise-btn" onclick="launchWithMode()" disabled
                 style="width:100%;padding:0.75rem;border:none;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;background:#d1d5db;color:white;transition:all 0.2s;">
-            <i class="fas fa-play"></i> Lancer la mission
+            <i class="fas fa-play"></i> {{ _('Lancer la mission') }}
         </button>
     </div>
 </div>
@@ -194,48 +194,103 @@
                 <p id="tracking-subtitle" style="margin:0;color:rgba(255,255,255,0.6);font-size:0.8rem;margin-top:0.2rem;"></p>
             </div>
             <button onclick="closeTrackingModal()" style="background:rgba(255,255,255,0.1);border:none;color:white;padding:0.5rem 0.8rem;border-radius:10px;cursor:pointer;font-size:0.85rem;">
-                <i class="fas fa-times"></i> Fermer
+                <i class="fas fa-times"></i> {{ _('Fermer') }}
             </button>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:1rem;">
             <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
                 <div id="track-total" style="color:white;font-size:1.5rem;font-weight:800;">0</div>
-                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Élèves</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">{{ _('Élèves') }}</div>
             </div>
             <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
                 <div id="track-started" style="color:#f59e0b;font-size:1.5rem;font-weight:800;">0</div>
-                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">En cours</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">{{ _('En cours') }}</div>
             </div>
             <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
                 <div id="track-completed" style="color:#10b981;font-size:1.5rem;font-weight:800;">0</div>
-                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Terminé</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">{{ _('Terminé') }}</div>
             </div>
             <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
                 <div id="track-avg" style="color:#667eea;font-size:1.5rem;font-weight:800;">—</div>
-                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Moyenne</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">{{ _('Moyenne') }}</div>
             </div>
         </div>
         <div id="tracking-students" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
         <div id="combat-arena-section" style="display:none;text-align:center;margin-bottom:1rem;">
             <div style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(220,38,38,0.15));border:1px solid rgba(239,68,68,0.3);border-radius:14px;padding:1rem;margin-bottom:0.5rem;">
                 <div style="color:white;font-size:0.85rem;margin-bottom:0.5rem;">
-                    <i class="fas fa-gamepad"></i> Combat RPG — <span id="combat-status-text">En attente</span>
+                    <i class="fas fa-gamepad"></i> {{ _('Combat RPG') }} — <span id="combat-status-text">{{ _('En attente') }}</span>
                     <span id="combat-participants-text" style="color:rgba(255,255,255,0.5);margin-left:0.5rem;"></span>
                 </div>
                 <button onclick="openCombatArena()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">
-                    <i class="fas fa-tv"></i> Ouvrir l'arène RPG (projecteur)
+                    <i class="fas fa-tv"></i> {{ _("Ouvrir l'arène RPG (projecteur)") }}
                 </button>
             </div>
         </div>
         <div style="text-align:center;margin-top:1.5rem;">
             <button onclick="stopMission()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.85rem;">
-                <i class="fas fa-stop-circle"></i> Arrêter la mission
+                <i class="fas fa-stop-circle"></i> {{ _('Arrêter la mission') }}
             </button>
         </div>
     </div>
 </div>
 
 <script>
+// Chaînes traduites pour le JS (échappées via |tojson) ; jetons {n}… remplacés en JS.
+const EXO_LIST_I18N = {
+    confirmDelete: {{ _('Supprimer cet exercice ?')|tojson }},
+    confirmDeletePublished: {{ _('Cet exercice a été publié dans une ou plusieurs classes.\n\nLe supprimer le retirera aussi des missions des élèves.\n\nÊtes-vous sûr ?')|tojson }},
+    deleted: {{ _('Exercice supprimé')|tojson }},
+    error: {{ _('Erreur')|tojson }},
+    deleteError: {{ _('Erreur lors de la suppression')|tojson }},
+    duplicated: {{ _('Exercice dupliqué')|tojson }},
+    newFolderName: {{ _('Nom du nouveau dossier :')|tojson }},
+    folderCreated: {{ _('Dossier créé')|tojson }},
+    subfolderName: {{ _('Nom du sous-dossier :')|tojson }},
+    subfolderCreated: {{ _('Sous-dossier créé')|tojson }},
+    newName: {{ _('Nouveau nom :')|tojson }},
+    folderRenamed: {{ _('Dossier renommé')|tojson }},
+    confirmDeleteFolder: {{ _('Supprimer ce dossier ? Les exercices seront déplacés à la racine.')|tojson }},
+    folderDeleted: {{ _('Dossier supprimé')|tojson }},
+    subfolder: {{ _('Sous-dossier')|tojson }},
+    rename: {{ _('Renommer')|tojson }},
+    del: {{ _('Supprimer')|tojson }},
+    edit: {{ _('Modifier')|tojson }},
+    published: {{ _('Publié')|tojson }},
+    draft: {{ _('Brouillon')|tojson }},
+    untitled: {{ _('Sans titre')|tojson }},
+    removeFromFolder: {{ _('Retirer du dossier')|tojson }},
+    emptyFolder: {{ _('Dossier vide — glissez des exercices ici')|tojson }},
+    loadError: {{ _('Erreur de chargement')|tojson }},
+    removedFromFolder: {{ _('Exercice retiré du dossier')|tojson }},
+    movedToFolder: {{ _('Exercice rangé dans le dossier')|tojson }},
+    allSorted: {{ _('Tous les exercices sont rangés !')|tojson }},
+    loading: {{ _('Chargement...')|tojson }},
+    noClasses: {{ _('Aucune classe disponible.')|tojson }},
+    selectClass: {{ _('Sélectionnez une classe')|tojson }},
+    exercise: {{ _('Exercice')|tojson }},
+    launchMission: {{ _('Lancer la mission')|tojson }},
+    publishAndLaunch: {{ _('Publier et lancer')|tojson }},
+    launchCombat: {{ _('Lancer le combat !')|tojson }},
+    launching: {{ _('Lancement...')|tojson }},
+    launched: {{ _('Exercice lancé !')|tojson }},
+    retry: {{ _('Réessayer')|tojson }},
+    connectionError: {{ _('Erreur de connexion')|tojson }},
+    noCombatSession: {{ _('Aucune session de combat active.')|tojson }},
+    nQuestions: {{ _('{n} questions')|tojson }},
+    modeCombat: {{ _('Mode Combat')|tojson }},
+    modeClassic: {{ _('Mode Classique')|tojson }},
+    notConnected: {{ _('Pas connecté')|tojson }},
+    waiting: {{ _('En attente')|tojson }},
+    xpCorrect: {{ _('+{xp} XP — {correct}/{total} correct')|tojson }},
+    confirmStop: {{ _('Arrêter la mission en direct ?')|tojson }},
+    missionStopped: {{ _('Mission arrêtée')|tojson }},
+};
+function exoListFmt(str, vars) {
+    return String(str).replace(/\{(\w+)\}/g, function (m, k) {
+        return (vars && Object.prototype.hasOwnProperty.call(vars, k)) ? String(vars[k]) : m;
+    });
+}
 const csrfToken = '{{ csrf_token() }}';
 
 // ============================================================
@@ -257,9 +312,9 @@ function filterExercises(status, btn) {
 // Exercise CRUD
 // ============================================================
 async function deleteExercise(id, isPublished) {
-    let msg = 'Supprimer cet exercice ?';
+    let msg = EXO_LIST_I18N.confirmDelete;
     if (isPublished) {
-        msg = 'Cet exercice a été publié dans une ou plusieurs classes.\n\nLe supprimer le retirera aussi des missions des élèves.\n\nÊtes-vous sûr ?';
+        msg = EXO_LIST_I18N.confirmDeletePublished;
     }
     if (!confirm(msg)) return;
     try {
@@ -274,11 +329,11 @@ async function deleteExercise(id, isPublished) {
             // Also remove from folder contents if present
             const folderEl = document.querySelector(`.folder-exercise-item[data-exercise-id="${id}"]`);
             if (folderEl) folderEl.remove();
-            showToast('Exercice supprimé', 'success');
+            showToast(EXO_LIST_I18N.deleted, 'success');
         } else {
-            showToast(data.message || 'Erreur', 'error');
+            showToast(data.message || EXO_LIST_I18N.error, 'error');
         }
-    } catch(e) { showToast('Erreur lors de la suppression', 'error'); }
+    } catch(e) { showToast(EXO_LIST_I18N.deleteError, 'error'); }
 }
 
 async function duplicateExercise(id) {
@@ -289,17 +344,17 @@ async function duplicateExercise(id) {
         });
         const data = await res.json();
         if (data.success) {
-            showToast('Exercice dupliqué', 'success');
+            showToast(EXO_LIST_I18N.duplicated, 'success');
             setTimeout(() => location.reload(), 500);
         }
-    } catch(e) { showToast('Erreur', 'error'); }
+    } catch(e) { showToast(EXO_LIST_I18N.error, 'error'); }
 }
 
 // ============================================================
 // Folder management
 // ============================================================
 async function createRootFolder() {
-    const name = prompt('Nom du nouveau dossier :');
+    const name = prompt(EXO_LIST_I18N.newFolderName);
     if (!name || !name.trim()) return;
     try {
         const res = await fetch('/exercises/manager/folder/create', {
@@ -309,16 +364,16 @@ async function createRootFolder() {
         });
         const data = await res.json();
         if (data.folder || data.id) {
-            showToast('Dossier créé', 'success');
+            showToast(EXO_LIST_I18N.folderCreated, 'success');
             location.reload();
         } else {
-            showToast(data.message || 'Erreur', 'error');
+            showToast(data.message || EXO_LIST_I18N.error, 'error');
         }
-    } catch(e) { showToast('Erreur', 'error'); }
+    } catch(e) { showToast(EXO_LIST_I18N.error, 'error'); }
 }
 
 async function createSubfolder(parentId) {
-    const name = prompt('Nom du sous-dossier :');
+    const name = prompt(EXO_LIST_I18N.subfolderName);
     if (!name || !name.trim()) return;
     try {
         const res = await fetch('/exercises/manager/folder/create', {
@@ -328,7 +383,7 @@ async function createSubfolder(parentId) {
         });
         const data = await res.json();
         if (data.folder || data.id) {
-            showToast('Sous-dossier créé', 'success');
+            showToast(EXO_LIST_I18N.subfolderCreated, 'success');
             // Reload folder contents
             const toggle = document.querySelector(`.folder-item[data-folder-id="${parentId}"] .folder-toggle`);
             if (toggle && toggle.classList.contains('open')) {
@@ -341,15 +396,15 @@ async function createSubfolder(parentId) {
                 location.reload();
             }
         } else {
-            showToast(data.message || 'Erreur', 'error');
+            showToast(data.message || EXO_LIST_I18N.error, 'error');
         }
-    } catch(e) { showToast('Erreur', 'error'); }
+    } catch(e) { showToast(EXO_LIST_I18N.error, 'error'); }
 }
 
 async function renameFolder(folderId) {
     const nameEl = document.querySelector(`.folder-item[data-folder-id="${folderId}"] .folder-name`);
     const currentName = nameEl ? nameEl.textContent.trim() : '';
-    const newName = prompt('Nouveau nom :', currentName);
+    const newName = prompt(EXO_LIST_I18N.newName, currentName);
     if (!newName || !newName.trim() || newName.trim() === currentName) return;
     try {
         const res = await fetch(`/exercises/manager/folder/${folderId}/rename`, {
@@ -360,15 +415,15 @@ async function renameFolder(folderId) {
         const data = await res.json();
         if (data.success) {
             if (nameEl) nameEl.textContent = newName.trim();
-            showToast('Dossier renommé', 'success');
+            showToast(EXO_LIST_I18N.folderRenamed, 'success');
         } else {
-            showToast(data.message || 'Erreur', 'error');
+            showToast(data.message || EXO_LIST_I18N.error, 'error');
         }
-    } catch(e) { showToast('Erreur', 'error'); }
+    } catch(e) { showToast(EXO_LIST_I18N.error, 'error'); }
 }
 
 async function deleteFolder(folderId) {
-    if (!confirm('Supprimer ce dossier ? Les exercices seront déplacés à la racine.')) return;
+    if (!confirm(EXO_LIST_I18N.confirmDeleteFolder)) return;
     try {
         const res = await fetch(`/exercises/manager/folder/${folderId}`, {
             method: 'DELETE',
@@ -376,12 +431,12 @@ async function deleteFolder(folderId) {
         });
         const data = await res.json();
         if (data.success) {
-            showToast('Dossier supprimé', 'success');
+            showToast(EXO_LIST_I18N.folderDeleted, 'success');
             location.reload();
         } else {
-            showToast(data.message || 'Erreur', 'error');
+            showToast(data.message || EXO_LIST_I18N.error, 'error');
         }
-    } catch(e) { showToast('Erreur', 'error'); }
+    } catch(e) { showToast(EXO_LIST_I18N.error, 'error'); }
 }
 
 // ============================================================
@@ -416,13 +471,13 @@ async function toggleExerciseFolder(folderId, toggleEl, forceReload) {
                         <i class="fas fa-folder folder-icon" style="color: ${f.color || '#667eea'};"></i>
                         <span class="folder-name" ondblclick="renameFolder(${f.id})">${f.name}</span>
                         <div class="folder-actions">
-                            <button class="action-btn" onclick="createSubfolder(${f.id})" title="Sous-dossier">
+                            <button class="action-btn" onclick="createSubfolder(${f.id})" title="${EXO_LIST_I18N.subfolder}">
                                 <i class="fas fa-folder-plus"></i>
                             </button>
-                            <button class="action-btn" onclick="renameFolder(${f.id})" title="Renommer">
+                            <button class="action-btn" onclick="renameFolder(${f.id})" title="${EXO_LIST_I18N.rename}">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="action-btn danger" onclick="deleteFolder(${f.id})" title="Supprimer">
+                            <button class="action-btn danger" onclick="deleteFolder(${f.id})" title="${EXO_LIST_I18N.del}">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -436,22 +491,22 @@ async function toggleExerciseFolder(folderId, toggleEl, forceReload) {
         if (data.exercises && data.exercises.length > 0) {
             data.exercises.forEach(ex => {
                 const statusClass = ex.is_published ? 'published' : 'draft';
-                const statusLabel = ex.is_published ? 'Publié' : 'Brouillon';
+                const statusLabel = ex.is_published ? EXO_LIST_I18N.published : EXO_LIST_I18N.draft;
                 html += `
                 <div class="folder-exercise-item" data-exercise-id="${ex.id}">
                     <i class="fas fa-flask exercise-icon"></i>
-                    <span class="folder-exercise-title">${ex.title || 'Sans titre'}</span>
+                    <span class="folder-exercise-title">${ex.title || EXO_LIST_I18N.untitled}</span>
                     <span class="status-badge ${statusClass}" style="font-size:0.65rem;padding:0.1rem 0.4rem;">${statusLabel}</span>
                     <div class="folder-exercise-actions">
-                        <a href="/exercises/${ex.id}/edit" class="action-btn" title="Modifier"><i class="fas fa-edit"></i></a>
-                        <button class="action-btn" onclick="removeFromFolder(${ex.id})" title="Retirer du dossier"><i class="fas fa-times"></i></button>
+                        <a href="/exercises/${ex.id}/edit" class="action-btn" title="${EXO_LIST_I18N.edit}"><i class="fas fa-edit"></i></a>
+                        <button class="action-btn" onclick="removeFromFolder(${ex.id})" title="${EXO_LIST_I18N.removeFromFolder}"><i class="fas fa-times"></i></button>
                     </div>
                 </div>`;
             });
         }
 
         if (!html) {
-            html = '<div class="folder-empty"><i class="fas fa-inbox"></i> Dossier vide — glissez des exercices ici</div>';
+            html = '<div class="folder-empty"><i class="fas fa-inbox"></i> ' + EXO_LIST_I18N.emptyFolder + '</div>';
         }
 
         childrenDiv.innerHTML = html;
@@ -463,7 +518,7 @@ async function toggleExerciseFolder(folderId, toggleEl, forceReload) {
 
     } catch(e) {
         console.error('Error loading folder contents:', e);
-        showToast('Erreur de chargement', 'error');
+        showToast(EXO_LIST_I18N.loadError, 'error');
     }
 }
 
@@ -479,12 +534,12 @@ async function removeFromFolder(exerciseId) {
         });
         const data = await res.json();
         if (data.success) {
-            showToast('Exercice retiré du dossier', 'success');
+            showToast(EXO_LIST_I18N.removedFromFolder, 'success');
             location.reload();
         } else {
-            showToast(data.error || 'Erreur', 'error');
+            showToast(data.error || EXO_LIST_I18N.error, 'error');
         }
-    } catch(e) { showToast('Erreur', 'error'); }
+    } catch(e) { showToast(EXO_LIST_I18N.error, 'error'); }
 }
 
 // ============================================================
@@ -575,7 +630,7 @@ async function moveExerciseToFolder(exerciseId, folderId) {
         });
         const data = await res.json();
         if (data.success) {
-            showToast('Exercice rangé dans le dossier', 'success');
+            showToast(EXO_LIST_I18N.movedToFolder, 'success');
             // Remove from left panel
             const el = document.querySelector(`#exercisesList .exercise-item[data-exercise-id="${exerciseId}"]`);
             if (el) el.remove();
@@ -589,10 +644,10 @@ async function moveExerciseToFolder(exerciseId, folderId) {
             // Check if left panel is empty
             checkEmptyPanels();
         } else {
-            showToast(data.error || 'Erreur', 'error');
+            showToast(data.error || EXO_LIST_I18N.error, 'error');
         }
     } catch(e) {
-        showToast('Erreur', 'error');
+        showToast(EXO_LIST_I18N.error, 'error');
         console.error(e);
     }
 }
@@ -602,7 +657,7 @@ function checkEmptyPanels() {
     const items = list.querySelectorAll('.exercise-item');
     const visibleItems = Array.from(items).filter(i => i.style.display !== 'none');
     if (visibleItems.length === 0 && !list.querySelector('.empty-panel')) {
-        list.innerHTML = '<div class="empty-panel"><i class="fas fa-check-circle"></i><p>Tous les exercices sont rangés !</p></div>';
+        list.innerHTML = '<div class="empty-panel"><i class="fas fa-check-circle"></i><p>' + EXO_LIST_I18N.allSorted + '</p></div>';
     }
 }
 
@@ -620,7 +675,7 @@ function quickPublish(id) {
     publishExerciseId = id;
     selectedClassroomId = null;
     const listEl = document.getElementById('publish-class-list');
-    listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+    listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> ' + EXO_LIST_I18N.loading + '</p>';
     document.getElementById('publish-modal').style.display = 'flex';
 
     fetch('/exercises/folders-and-classes')
@@ -628,7 +683,7 @@ function quickPublish(id) {
         .then(data => {
             const classes = data.classrooms || [];
             if (classes.length === 0) {
-                listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;">Aucune classe disponible.</p>';
+                listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;">' + EXO_LIST_I18N.noClasses + '</p>';
                 return;
             }
             listEl.innerHTML = classes.map(c => `
@@ -640,7 +695,7 @@ function quickPublish(id) {
                 </label>
             `).join('');
         })
-        .catch(() => { listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Erreur de chargement</p>'; });
+        .catch(() => { listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">' + EXO_LIST_I18N.loadError + '</p>'; });
 }
 
 function closePublishModal() {
@@ -651,11 +706,11 @@ function closePublishModal() {
 function confirmPublish() {
     if (!publishExerciseId) return;
     const selected = document.querySelector('#publish-class-list input[name="publish-class"]:checked');
-    if (!selected) { showToast('Sélectionnez une classe', 'error'); return; }
+    if (!selected) { showToast(EXO_LIST_I18N.selectClass, 'error'); return; }
     selectedClassroomId = parseInt(selected.value);
     const exerciseId = publishExerciseId;
     const card = document.querySelector(`.exercise-item[data-exercise-id="${exerciseId}"]`);
-    const title = card ? card.querySelector('.exercise-title').textContent : 'Exercice';
+    const title = card ? card.querySelector('.exercise-title').textContent : EXO_LIST_I18N.exercise;
     document.getElementById('publish-modal').style.display = 'none';
     showModeModal(exerciseId, title);
 }
@@ -673,7 +728,7 @@ function showModeModal(exerciseId, title) {
     const btn = document.getElementById('launch-exercise-btn');
     btn.disabled = true;
     btn.style.background = '#d1d5db';
-    btn.innerHTML = '<i class="fas fa-play"></i> Lancer la mission';
+    btn.innerHTML = '<i class="fas fa-play"></i> ' + EXO_LIST_I18N.launchMission;
     document.getElementById('mode-modal').style.display = 'flex';
     selectMode('classique');
 }
@@ -701,14 +756,14 @@ function selectMode(mode) {
         classiqueBtn.style.background = '#f0fdf4';
         combatBtn.style.background = 'white';
         launchBtn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
-        launchBtn.innerHTML = '<i class="fas fa-play"></i> Publier et lancer';
+        launchBtn.innerHTML = '<i class="fas fa-play"></i> ' + EXO_LIST_I18N.publishAndLaunch;
     } else {
         combatCheck.style.display = 'inline';
         combatBtn.style.borderColor = '#ef4444';
         combatBtn.style.background = '#fef2f2';
         classiqueBtn.style.background = 'white';
         launchBtn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
-        launchBtn.innerHTML = '<i class="fas fa-bolt"></i> Lancer le combat !';
+        launchBtn.innerHTML = '<i class="fas fa-bolt"></i> ' + EXO_LIST_I18N.launchCombat;
     }
     launchBtn.disabled = false;
 }
@@ -717,7 +772,7 @@ async function launchWithMode() {
     if (!publishExerciseId || !selectedMode || !selectedClassroomId) return;
     const launchBtn = document.getElementById('launch-exercise-btn');
     launchBtn.disabled = true;
-    launchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lancement...';
+    launchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + EXO_LIST_I18N.launching;
     try {
         const res = await fetch('/exercises/launch', {
             method: 'POST',
@@ -731,22 +786,22 @@ async function launchWithMode() {
             if (card) {
                 card.dataset.status = 'published';
                 const badge = card.querySelector('.status-badge');
-                if (badge) { badge.className = 'status-badge published'; badge.textContent = 'Publié'; }
+                if (badge) { badge.className = 'status-badge published'; badge.textContent = EXO_LIST_I18N.published; }
             }
-            showToast(data.message || 'Exercice lancé !', 'success');
+            showToast(data.message || EXO_LIST_I18N.launched, 'success');
             if (selectedMode === 'combat' && data.combat_session_id) {
                 window.open(`/combat/${data.combat_session_id}/arena`, '_blank');
             }
             openTracking(data.publication_id);
         } else {
-            showToast(data.error || data.message || 'Erreur', 'error');
+            showToast(data.error || data.message || EXO_LIST_I18N.error, 'error');
             launchBtn.disabled = false;
-            launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+            launchBtn.innerHTML = '<i class="fas fa-play"></i> ' + EXO_LIST_I18N.retry;
         }
     } catch(e) {
-        showToast('Erreur de connexion', 'error');
+        showToast(EXO_LIST_I18N.connectionError, 'error');
         launchBtn.disabled = false;
-        launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+        launchBtn.innerHTML = '<i class="fas fa-play"></i> ' + EXO_LIST_I18N.retry;
     }
 }
 
@@ -766,7 +821,7 @@ function openCombatArena() {
     if (currentCombatSessionId) {
         window.open(`/combat/${currentCombatSessionId}/arena`, '_blank');
     } else {
-        showToast('Aucune session de combat active.', 'error');
+        showToast(EXO_LIST_I18N.noCombatSession, 'error');
     }
 }
 
@@ -783,7 +838,7 @@ async function refreshTracking() {
         if (!data.success) return;
 
         document.getElementById('tracking-title').textContent = data.exercise_title;
-        document.getElementById('tracking-subtitle').textContent = `${data.blocks_count} questions — Mode ${data.mode}`;
+        document.getElementById('tracking-subtitle').textContent = exoListFmt(EXO_LIST_I18N.nQuestions, { n: data.blocks_count }) + ' — ' + (data.mode === 'combat' ? EXO_LIST_I18N.modeCombat : EXO_LIST_I18N.modeClassic);
         document.getElementById('track-total').textContent = data.total_students;
         document.getElementById('track-started').textContent = data.started;
         document.getElementById('track-completed').textContent = data.completed;
@@ -808,7 +863,7 @@ async function refreshTracking() {
                     statusText = `${ci.avatar_class} — ${ci.current_hp}/${ci.max_hp} HP`;
                     progressWidth = ci.max_hp > 0 ? Math.round((ci.current_hp / ci.max_hp) * 100) : 100;
                 } else {
-                    statusIcon = 'clock'; statusColor = '#6b7280'; statusText = 'Pas connecté'; progressWidth = 0;
+                    statusIcon = 'clock'; statusColor = '#6b7280'; statusText = EXO_LIST_I18N.notConnected; progressWidth = 0;
                 }
             } else {
                 if (s.status === 'completed') {
@@ -819,7 +874,7 @@ async function refreshTracking() {
                     statusText = `${s.answers_count}/${s.blocks_count}`;
                     progressWidth = s.blocks_count > 0 ? Math.round((s.answers_count / s.blocks_count) * 100) : 0;
                 } else {
-                    statusIcon = 'clock'; statusColor = '#6b7280'; statusText = 'En attente'; progressWidth = 0;
+                    statusIcon = 'clock'; statusColor = '#6b7280'; statusText = EXO_LIST_I18N.waiting; progressWidth = 0;
                 }
             }
             const hpBarColor = isCombat && s.in_combat
@@ -836,7 +891,7 @@ async function refreshTracking() {
                         <div style="width:100%;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
                             <div style="width:${progressWidth}%;height:100%;background:${hpBarColor};border-radius:2px;transition:width 0.5s ease;"></div>
                         </div>
-                        ${!isCombat && s.status === 'completed' ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.2rem;">+${s.xp_earned} XP — ${s.correct_count}/${s.blocks_count} correct</div>` : ''}
+                        ${!isCombat && s.status === 'completed' ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.2rem;">${exoListFmt(EXO_LIST_I18N.xpCorrect, { xp: s.xp_earned, correct: s.correct_count, total: s.blocks_count })}</div>` : ''}
                     </div>
                 </div>`;
         }).join('');
@@ -845,15 +900,15 @@ async function refreshTracking() {
 
 async function stopMission() {
     if (!currentPubId) return;
-    if (!confirm('Arrêter la mission en direct ?')) return;
+    if (!confirm(EXO_LIST_I18N.confirmStop)) return;
     try {
         await fetch(`/exercises/publication/${currentPubId}/toggle-active`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
         });
         closeTrackingModal();
-        showToast('Mission arrêtée', 'success');
-    } catch(e) { showToast('Erreur', 'error'); }
+        showToast(EXO_LIST_I18N.missionStopped, 'success');
+    } catch(e) { showToast(EXO_LIST_I18N.error, 'error'); }
 }
 
 // ============================================================

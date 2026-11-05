@@ -12,6 +12,7 @@ import os
 
 from flask import request, redirect, url_for, flash, jsonify, g, abort
 from flask_login import current_user
+from flask_babel import gettext as _gettext
 
 
 def _on(name):
@@ -178,6 +179,6 @@ def register_feature_gate(app):
                               or 'application/json' in (request.headers.get('Accept') or ''))
                 if wants_json:
                     return jsonify({'error': 'students_space_disabled',
-                                    'message': "Active l'espace élèves et parents dans Paramètres."}), 403
-                flash("Active d'abord l'espace élèves et parents dans Paramètres.", 'info')
+                                    'message': _gettext("Activez l'espace élèves et parents dans Paramètres.")}), 403
+                flash(_gettext("Activez d'abord l'espace élèves et parents dans Paramètres."), 'info')
                 return redirect(url_for('settings.students_space'))

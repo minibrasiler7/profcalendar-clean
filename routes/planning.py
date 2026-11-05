@@ -52,7 +52,7 @@ def can_edit_student(student_id, current_user):
     # Récupérer l'élève
     student = Student.query.get(student_id)
     if not student:
-        return False, "Élève non trouvé"
+        return False, _gettext("Élève non trouvé")
     
     classroom = student.classroom
     
@@ -74,9 +74,9 @@ def can_edit_student(student_id, current_user):
         
         if collaboration:
             # Enseignant spécialisé : ne peut pas modifier, seulement supprimer/ajouter
-            return False, "Les enseignants spécialisés ne peuvent pas modifier les élèves, seulement les supprimer ou en ajouter depuis la classe du maître"
+            return False, _gettext("Les enseignants spécialisés ne peuvent pas modifier les élèves, seulement les supprimer ou en ajouter depuis la classe du maître")
     
-    return False, "Accès non autorisé"
+    return False, _gettext("Accès non autorisé")
 
 def can_add_student_to_class(classroom_id, current_user):
     """Vérifier si l'utilisateur peut ajouter un élève à une classe"""
@@ -85,7 +85,7 @@ def can_add_student_to_class(classroom_id, current_user):
     classroom = Classroom.query.get(classroom_id)
     if not classroom:
         print(f"DEBUG can_add_student_to_class - Classroom {classroom_id} not found")
-        return False, "Classe non trouvée", None
+        return False, _gettext("Classe non trouvée"), None
     
     print(f"DEBUG can_add_student_to_class - Classroom owner: {classroom.user_id}, Current user: {current_user.id}")
     
@@ -117,7 +117,7 @@ def can_add_student_to_class(classroom_id, current_user):
         return True, None, None
     
     print("DEBUG can_add_student_to_class - Access denied")
-    return False, "Accès non autorisé", None
+    return False, _gettext("Accès non autorisé"), None
 
 def user_can_access_classroom(user_id, classroom_id):
     """Vérifie si un utilisateur peut accéder à une classe (directement ou via collaboration)"""
@@ -336,7 +336,7 @@ def get_day_plannings(date_str):
         print(f"❌ Erreur ValueError dans get_day_plannings: {e}")
         return jsonify({
             'success': False,
-            'error': 'Format de date invalide'
+            'error': _gettext('Format de date invalide')
         }), 400
     except Exception as e:
         print(f"❌ Erreur dans get_day_plannings: {e}")
@@ -880,11 +880,11 @@ def _school_weeks_list(user):
 def calendar_view():
     # Vérifier la configuration
     if not current_user.setup_completed:
-        flash('Veuillez d\'abord compléter la configuration initiale.', 'warning')
+        flash(_gettext('Veuillez d\'abord compléter la configuration initiale.'), 'warning')
         return redirect(url_for('setup.initial_setup'))
 
     if not current_user.schedule_completed:
-        flash('Veuillez d\'abord créer votre horaire type.', 'warning')
+        flash(_gettext('Veuillez d\'abord créer votre horaire type.'), 'warning')
         return redirect(url_for('schedule.weekly_schedule'))
 
     # Obtenir la semaine à afficher
@@ -1291,14 +1291,14 @@ def devoir_correct_page(submission_id):
     from models.devoir import Devoir, DevoirSubmission
     sub = DevoirSubmission.query.get(submission_id)
     if not sub:
-        flash("Rendu introuvable.", "error")
+        flash(_gettext("Rendu introuvable."), "error")
         return redirect(url_for('planning.calendar_view'))
     devoir = Devoir.query.get(sub.devoir_id)
     if not devoir or devoir.user_id != current_user.id:
-        flash("Accès refusé.", "error")
+        flash(_gettext("Accès refusé."), "error")
         return redirect(url_for('planning.calendar_view'))
     if not sub.pdf_filename:
-        flash("Aucun rendu à corriger.", "error")
+        flash(_gettext("Aucun rendu à corriger."), "error")
         return redirect(url_for('planning.devoir_submissions_page', devoir_id=devoir.id))
     return render_template('planning/devoir_correct.html', submission=sub, devoir=devoir,
                            student=sub.student)
@@ -1313,7 +1313,7 @@ def devoir_results_page(devoir_id):
     from models.devoir import Devoir
     devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
     if not devoir or devoir.devoir_type != 'exercise':
-        flash("Devoir introuvable.", "error")
+        flash(_gettext("Devoir introuvable."), "error")
         return redirect(url_for('planning.calendar_view'))
     return render_template('planning/devoir_results.html', devoir=devoir)
 
@@ -1326,7 +1326,7 @@ def devoir_submissions_page(devoir_id):
     from models.devoir import Devoir
     devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
     if not devoir:
-        flash("Devoir introuvable.", "error")
+        flash(_gettext("Devoir introuvable."), "error")
         return redirect(url_for('planning.calendar_view'))
     return render_template('planning/devoir_submissions.html', devoir=devoir)
 
@@ -1343,7 +1343,7 @@ def get_period_attendance():
         is_mixed_group = request.args.get('is_mixed_group') == 'true'
 
         if not date_str or not period_number:
-            return jsonify({'success': False, 'error': 'Date et période requis'}), 400
+            return jsonify({'success': False, 'error': _gettext('Date et période requises')}), 400
 
         date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
         period_num = int(period_number)
@@ -1353,7 +1353,7 @@ def get_period_attendance():
         today = now.date()
 
         if date_obj > today:
-            return jsonify({'success': False, 'error': 'Cette période n\'est pas encore passée'}), 400
+            return jsonify({'success': False, 'error': _gettext('Cette période n\'est pas encore passée')}), 400
 
         # Récupérer les élèves de la classe ou du groupe mixte
         students = []
@@ -1372,7 +1372,7 @@ def get_period_attendance():
                     students = classroom.get_students()
 
         if not students:
-            return jsonify({'success': False, 'error': 'Aucun élève trouvé'}), 404
+            return jsonify({'success': False, 'error': _gettext('Aucun élève trouvé')}), 404
 
         # Récupérer les présences pour cette période
         from models.attendance import Attendance
@@ -1456,7 +1456,7 @@ def check_day_planning(date, classroom_id):
             print(f"👥 Checking for mixed group: {mixed_group_id}")
         else:
             print(f"❌ Invalid classroom_id format: {classroom_id}")
-            return jsonify({'success': False, 'message': 'Format d\'ID invalide'})
+            return jsonify({'success': False, 'message': _gettext('Format d\'ID invalide')})
         
         # Vérifier s'il y a des planifications pour cette classe ce jour-là
         query = Planning.query.filter_by(
@@ -1744,7 +1744,7 @@ def save_planning():
     data = request.get_json()
 
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     try:
         date_str = data.get('date')
@@ -1779,12 +1779,12 @@ def save_planning():
         if classroom_id:
             classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
             if not classroom:
-                return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+                return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
         elif mixed_group_id:
             from models.mixed_group import MixedGroup
             mixed_group = MixedGroup.query.filter_by(id=mixed_group_id, teacher_id=current_user.id).first()
             if not mixed_group:
-                return jsonify({'success': False, 'message': 'Groupe mixte non trouvé'}), 404
+                return jsonify({'success': False, 'message': _gettext('Groupe mixte non trouvé')}), 404
 
         # Vérifier le groupe si spécifié
         if group_id:
@@ -1800,7 +1800,7 @@ def save_planning():
                 StudentGroup.user_id == current_user.id
             ).first()
             if not group:
-                return jsonify({'success': False, 'message': 'Groupe non trouvé'}), 404
+                return jsonify({'success': False, 'message': _gettext('Groupe non trouvé')}), 404
 
         # Chercher un planning existant
         existing = Planning.query.filter_by(
@@ -2508,7 +2508,7 @@ def get_class_resources(classroom_id):
                 teacher_id=current_user.id
             ).first()
             if not mixed_group:
-                return jsonify({'success': False, 'message': 'Groupe mixte introuvable'}), 404
+                return jsonify({'success': False, 'message': _gettext('Groupe mixte introuvable')}), 404
             class_name = mixed_group.name
             if mixed_group.auto_classroom_id:
                 actual_classroom_id = mixed_group.auto_classroom_id
@@ -2523,7 +2523,7 @@ def get_class_resources(classroom_id):
         ).first()
 
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
 
         if not class_name:
             class_name = classroom.name
@@ -2556,7 +2556,7 @@ def get_class_resources(classroom_id):
         current_app.logger.error(f"get_class_resources error: {e}\n{tb}")
         return jsonify({
             'success': False,
-            'message': 'Erreur lors de la récupération des ressources',
+            'message': _gettext('Erreur lors de la récupération des ressources'),
             'error_detail': str(e),
             'traceback': tb
         }), 500
@@ -2573,7 +2573,7 @@ def toggle_pin_resource():
         file_id = data.get('file_id')
         
         if not file_id:
-            return jsonify({'success': False, 'message': 'ID de fichier manquant'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de fichier manquant')}), 400
         
         # D'abord chercher dans le nouveau système
         new_class_file = db.session.query(ClassFile).join(
@@ -2591,7 +2591,7 @@ def toggle_pin_resource():
             file_display_name = (
                 new_class_file.own_original_filename
                 or (new_class_file.user_file.original_filename if new_class_file.user_file else None)
-                or 'Fichier supprimé'
+                or _gettext('Fichier supprimé')
             )
 
             if new_class_file.is_pinned:
@@ -2601,11 +2601,11 @@ def toggle_pin_resource():
                     ClassFile.is_pinned == True
                 ).scalar() or 0
                 new_class_file.pin_order = max_pin_order + 1
-                message = f'Fichier "{file_display_name}" épinglé'
+                message = _gettext('Fichier "%(name)s" épinglé', name=file_display_name)
             else:
                 # Si on désépingle, remettre pin_order à 0
                 new_class_file.pin_order = 0
-                message = f'Fichier "{file_display_name}" désépinglé'
+                message = _gettext('Fichier "%(name)s" désépinglé', name=file_display_name)
             
             db.session.commit()
             
@@ -2626,7 +2626,7 @@ def toggle_pin_resource():
         ).first()
         
         if not class_file:
-            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Fichier introuvable')}), 404
         
         # Basculer l'état d'épinglage
         class_file.is_pinned = not class_file.is_pinned
@@ -2647,13 +2647,13 @@ def toggle_pin_resource():
         return jsonify({
             'success': True,
             'is_pinned': class_file.is_pinned,
-            'message': f'Fichier {"épinglé" if class_file.is_pinned else "désépinglé"}'
+            'message': _gettext('Fichier épinglé') if class_file.is_pinned else _gettext('Fichier désépinglé')
         })
         
     except Exception as e:
         db.session.rollback()
         print(f"Erreur lors de l'épinglage: {e}")
-        return jsonify({'success': False, 'message': 'Erreur lors de l\'épinglage'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur lors de l\'épinglage')}), 500
 
 # Ajoutez cette route après la route lesson_view dans votre fichier planning.py
 
@@ -2686,9 +2686,9 @@ def manage_classes():
         # Vérifier s'il y a des classes temporaires
         temp_classrooms = current_user.classrooms.filter_by(is_temporary=True).all()
         if temp_classrooms:
-            flash('Vos classes sont en attente d\'approbation par le maître de classe. Vous ne pouvez pas encore accéder à la gestion.', 'warning')
+            flash(_gettext('Vos classes sont en attente d\'approbation par le maître de classe. Vous ne pouvez pas encore accéder à la gestion.'), 'warning')
         else:
-            flash('Crée d\'abord une classe : c\'est la première étape du tableau de bord.', 'warning')
+            flash(_gettext("Créez d'abord une classe : c'est la première étape du tableau de bord."), 'warning')
         return redirect(url_for('planning.dashboard'))
     
     # Regrouper les classes par class_group
@@ -2748,7 +2748,7 @@ def manage_classes():
     # Trouver le groupe sélectionné
     selected_group = next((g for g in class_groups if g['name'] == selected_class_group), None)
     if not selected_group:
-        flash('Groupe de classe non trouvé.', 'error')
+        flash(_gettext('Groupe de classe non trouvé.'), 'error')
         return redirect(url_for('setup.manage_classrooms'))
 
     # Récupérer temporairement la première classe (sera redéfinie plus tard si mode centralisé)
@@ -3278,9 +3278,9 @@ def manage_classes():
                 # Pour le maître de classe, s'il n'a pas de matières spécifiques, donner un label général
                 display_subjects = subjects
                 if teacher.id == actual_class_master_id and not subjects:
-                    display_subjects = ['Maître de classe']
+                    display_subjects = [_gettext('Maître de classe')]
                 elif not subjects:
-                    display_subjects = ['Non spécifié']
+                    display_subjects = [_gettext('Non spécifié')]
                 
                 class_teachers.append({
                     'id': teacher.id,
@@ -3351,7 +3351,7 @@ def update_sanction_count():
     
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     try:
         student_id = data.get('student_id')
@@ -3359,7 +3359,7 @@ def update_sanction_count():
         new_count = data.get('count')
         
         if student_id is None or template_id is None or new_count is None:
-            return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+            return jsonify({'success': False, 'message': _gettext('Données manquantes')}), 400
         
         # Vérifier que l'élève appartient à une classe accessible par l'utilisateur
         from models.student import Student
@@ -3413,7 +3413,7 @@ def update_sanction_count():
                 student = None
         
         if not student:
-            return jsonify({'success': False, 'message': 'Élève non trouvé ou accès non autorisé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève non trouvé ou accès non autorisé')}), 404
         
         # Récupérer ou créer le compteur
         count_record = StudentSanctionCount.query.filter_by(
@@ -3435,7 +3435,7 @@ def update_sanction_count():
         
         return jsonify({
             'success': True,
-            'message': 'Compteur mis à jour',
+            'message': _gettext('Compteur mis à jour'),
             'new_count': count_record.check_count
         })
         
@@ -3462,17 +3462,17 @@ def update_sanction_display_preferences():
         try:
             classroom_id = int(classroom_id)
         except (ValueError, TypeError):
-            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
     
     print(f"DEBUG: update_sanction_display_preferences called")
     print(f"DEBUG: user_id={current_user.id}, username={current_user.username}")
     print(f"DEBUG: classroom_id={classroom_id}, display_mode={display_mode}, confirmed={confirmed}")
     
     if display_mode not in ['unified', 'separated', 'centralized']:
-        return jsonify({'success': False, 'message': 'Mode d\'affichage invalide'}), 400
+        return jsonify({'success': False, 'message': _gettext('Mode d\'affichage invalide')}), 400
     
     if not classroom_id:
-        return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
+        return jsonify({'success': False, 'message': _gettext('ID de classe manquant')}), 400
     
     try:
         # Récupérer les préférences pour cette classe
@@ -3483,11 +3483,11 @@ def update_sanction_display_preferences():
         
         # Vérifier si l'utilisateur peut changer le mode
         if not preferences.can_change_mode():
-            locked_by = preferences.locked_by_user.username if preferences.locked_by_user else "le maître de classe"
+            locked_by = preferences.locked_by_user.username if preferences.locked_by_user else _gettext("le maître de classe")
             print(f"DEBUG: Access denied - locked by {locked_by}")
             return jsonify({
                 'success': False, 
-                'message': f'Mode verrouillé par {locked_by}. Seul le maître de classe peut modifier ce paramètre.'
+                'message': _gettext('Mode verrouillé par %(name)s. Seul le maître de classe peut modifier ce paramètre.', name=locked_by)
             }), 403
         
         # Si mode centralisé, vérifier que l'utilisateur est maître de cette classe
@@ -3495,7 +3495,7 @@ def update_sanction_display_preferences():
             print(f"DEBUG: Access denied - not class master for centralized mode")
             return jsonify({
                 'success': False, 
-                'message': 'Seuls les maîtres de classe peuvent utiliser le mode centralisé'
+                'message': _gettext('Seuls les maîtres de classe peuvent utiliser le mode centralisé')
             }), 403
         
         # Si pas encore confirmé, demander confirmation (sauf si même mode)
@@ -3503,7 +3503,7 @@ def update_sanction_display_preferences():
             return jsonify({
                 'success': False, 
                 'requires_confirmation': True,
-                'message': 'Changer de mode remettra toutes les coches à zéro. Êtes-vous sûr ?'
+                'message': _gettext('Changer de mode remettra toutes les coches à zéro. Êtes-vous sûr ?')
             })
         
         # Récupérer l'ancien mode pour gérer les transitions
@@ -3526,13 +3526,13 @@ def update_sanction_display_preferences():
                 # Transition vers mode centralisé
                 UserSanctionPreferences.lock_classroom_for_centralized_mode(classroom_id, current_user.id)
                 UserSanctionPreferences.copy_sanction_templates_to_all_teachers(classroom_id, current_user.id)
-                message = 'Mode centralisé activé. Les modèles de sanctions ont été copiés vers tous les enseignants.'
+                message = _gettext('Mode centralisé activé. Les modèles de sanctions ont été copiés vers tous les enseignants.')
                 
             elif old_mode == 'centralized':
                 # Transition depuis mode centralisé
                 UserSanctionPreferences.unlock_classroom_from_centralized_mode(classroom_id, current_user.id)
                 UserSanctionPreferences.cleanup_after_centralized_mode(classroom_id, current_user.id)
-                message = 'Mode centralisé désactivé. Les autres enseignants peuvent maintenant modifier leurs préférences.'
+                message = _gettext('Mode centralisé désactivé. Les autres enseignants peuvent maintenant modifier leurs préférences.')
                 
             else:
                 # Transition entre modes non-centralisés (unified <-> separated)
@@ -3589,12 +3589,12 @@ def update_sanction_display_preferences():
                         db.session.commit()
                 
                 mode_names = {
-                    'unified': 'unifié',
-                    'separated': 'séparé par discipline'
+                    'unified': _gettext('unifié'),
+                    'separated': _gettext('séparé par discipline')
                 }
-                message = f'Mode {mode_names.get(display_mode, display_mode)} activé. Les coches ont été remises à zéro.'
+                message = _gettext('Mode « %(mode)s » activé. Les coches ont été remises à zéro.', mode=mode_names.get(display_mode, display_mode))
         else:
-            message = 'Préférences mises à jour avec succès'
+            message = _gettext('Préférences mises à jour avec succès')
         
         return jsonify({
             'success': True,
@@ -3604,7 +3604,7 @@ def update_sanction_display_preferences():
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur : %(error)s', error=str(e))}), 500
 
 @planning_bp.route('/reset-all-sanctions', methods=['POST'])
 @login_required
@@ -3615,16 +3615,16 @@ def reset_all_sanctions():
     
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     try:
         try:
             classroom_id = int(data.get('classroom_id')) if data.get('classroom_id') else None
         except (ValueError, TypeError):
-            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
         
         if not classroom_id:
-            return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe manquant')}), 400
         
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
@@ -3633,7 +3633,7 @@ def reset_all_sanctions():
         ).first()
         
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
         
         # Récupérer tous les élèves de la classe
         student_ids = [s.id for s in Student.query.filter_by(classroom_id=classroom_id).all()]
@@ -3648,7 +3648,7 @@ def reset_all_sanctions():
         
         return jsonify({
             'success': True,
-            'message': 'Toutes les coches ont été réinitialisées à zéro'
+            'message': _gettext('Toutes les coches ont été réinitialisées à zéro')
         })
         
     except Exception as e:
@@ -3665,16 +3665,16 @@ def add_student():
     data = request.get_json()
 
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     try:
         try:
             classroom_id = int(data.get('classroom_id')) if data.get('classroom_id') else None
         except (ValueError, TypeError):
-            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
             
         if not classroom_id:
-            return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe manquant')}), 400
         
         # Vérifier les permissions avec la nouvelle fonction
         can_add, error_message, original_classroom = can_add_student_to_class(classroom_id, current_user)
@@ -3689,7 +3689,7 @@ def add_student():
 
         # Validation du prénom obligatoire
         if not first_name:
-            return jsonify({'success': False, 'message': 'Le prénom est obligatoire'}), 400
+            return jsonify({'success': False, 'message': _gettext('Le prénom est obligatoire')}), 400
 
         # Si c'est un enseignant spécialisé, l'élève doit exister dans la classe du maître
         if original_classroom:
@@ -3703,7 +3703,7 @@ def add_student():
             if not original_student:
                 return jsonify({
                     'success': False,
-                    'message': f'L\'élève {first_name} {last_name or ""} n\'existe pas dans la classe du maître de classe. Vous ne pouvez ajouter que des élèves déjà présents dans la classe du maître.'
+                    'message': _gettext("L'élève %(name)s n'existe pas dans la classe du maître de classe. Vous ne pouvez ajouter que des élèves déjà présents dans la classe du maître.", name=f'{first_name} {last_name or ""}'.strip())
                 }), 400
 
         # Vérifier si un élève avec ce prénom existe déjà dans la classe
@@ -3716,7 +3716,7 @@ def add_student():
         if existing_student and not last_name:
             return jsonify({
                 'success': False,
-                'message': f'Un élève nommé {first_name} existe déjà dans cette classe. Veuillez ajouter un nom de famille pour les différencier.'
+                'message': _gettext('Un élève nommé %(name)s existe déjà dans cette classe. Veuillez ajouter un nom de famille pour les différencier.', name=first_name)
             }), 400
 
         # Créer le nouvel élève
@@ -3756,7 +3756,7 @@ def add_student():
 
         return jsonify({
             'success': True,
-            'message': f'{student.full_name} a été ajouté avec succès',
+            'message': _gettext('%(name)s a été ajouté avec succès', name=student.full_name),
             'student': {
                 'id': student.id,
                 'first_name': student.first_name,
@@ -3818,7 +3818,7 @@ def _parse_students_csv(raw_text, col_map=None):
     text = (raw_text or '').replace('\r\n', '\n').replace('\r', '\n').strip()
     empty_meta = {'has_header': False, 'n_columns': 0, 'columns': [], 'delimiter': ';'}
     if not text:
-        return [], [{'line': 0, 'reason': 'Aucune donnée fournie'}], empty_meta
+        return [], [{'line': 0, 'reason': _gettext('Aucune donnée fournie')}], empty_meta
 
     # Détection du séparateur sur les premières lignes non vides
     sample_lines = [l for l in text.split('\n') if l.strip()][:10]
@@ -3831,7 +3831,7 @@ def _parse_students_csv(raw_text, col_map=None):
     all_rows = [[(c or '').strip() for c in row] for row in reader]
     all_rows = [r for r in all_rows if any(c for c in r)]
     if not all_rows:
-        return [], [{'line': 0, 'reason': 'Aucune ligne exploitable'}], empty_meta
+        return [], [{'line': 0, 'reason': _gettext('Aucune ligne exploitable')}], empty_meta
 
     # En-têtes ? (si la 1re ligne contient des mots-clés de colonnes)
     header_words = ('nom', 'prenom', 'prénom', 'first', 'last', 'email', 'mail',
@@ -3912,12 +3912,12 @@ def _parse_students_csv(raw_text, col_map=None):
             if len(parts) >= 2:
                 entry['first_name'], entry['last_name'] = parts[0], ' '.join(parts[1:])
         if not entry['first_name']:
-            errors.append({'line': n, 'reason': 'Prénom manquant'})
+            errors.append({'line': n, 'reason': _gettext('Prénom manquant')})
             continue
         # Emails invalides -> ignorés avec avertissement (l'élève est quand même créé)
         for f in ('email', 'parent_email_mother', 'parent_email_father'):
             if entry[f] and not email_re.match(entry[f]):
-                entry['warnings'].append(f"Email invalide ignoré : {entry[f]}")
+                entry['warnings'].append(_gettext('Email invalide ignoré : %(email)s', email=entry[f]))
                 entry[f] = None
         rows.append(entry)
 
@@ -3937,14 +3937,14 @@ def import_students():
 
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     try:
         classroom_id = int(data.get('classroom_id')) if data.get('classroom_id') else None
     except (ValueError, TypeError):
-        return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+        return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
     if not classroom_id:
-        return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
+        return jsonify({'success': False, 'message': _gettext('ID de classe manquant')}), 400
 
     can_add, error_message, original_classroom = can_add_student_to_class(classroom_id, current_user)
     if not can_add:
@@ -3952,8 +3952,8 @@ def import_students():
     if original_classroom:
         return jsonify({
             'success': False,
-            'message': "L'import CSV se fait dans la classe du maître de classe. "
-                       "Les élèves apparaîtront ensuite dans votre classe liée."
+            'message': _gettext("L'import CSV se fait dans la classe du maître de classe. "
+                       "Les élèves apparaîtront ensuite dans votre classe liée.")
         }), 400
 
     dry_run = bool(data.get('dry_run', True))
@@ -3962,7 +3962,7 @@ def import_students():
 
     if len(rows) > 200:
         return jsonify({'success': False,
-                        'message': f'Trop de lignes ({len(rows)}). Maximum 200 élèves par import.'}), 400
+                        'message': _gettext('Trop de lignes (%(count)s). Maximum 200 élèves par import.', count=len(rows))}), 400
 
     # Doublons : dans la classe existante et à l'intérieur du fichier lui-même.
     # Les noms sont chiffrés en base (non requêtables) -> comparaison en Python.
@@ -3975,11 +3975,11 @@ def import_students():
         if key in existing:
             skipped.append({'line': r['line'],
                             'name': f"{r['first_name']} {r['last_name']}".strip(),
-                            'reason': 'Existe déjà dans la classe'})
+                            'reason': _gettext('Existe déjà dans la classe')})
         elif key in seen:
             skipped.append({'line': r['line'],
                             'name': f"{r['first_name']} {r['last_name']}".strip(),
-                            'reason': 'Doublon dans le fichier'})
+                            'reason': _gettext('Doublon dans le fichier')})
         else:
             seen.add(key)
             to_create.append(r)
@@ -4022,17 +4022,17 @@ def add_student_from_master():
     data = request.get_json()
 
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     try:
         try:
             classroom_id = int(data.get('classroom_id')) if data.get('classroom_id') else None
             master_student_id = int(data.get('master_student_id')) if data.get('master_student_id') else None
         except (ValueError, TypeError):
-            return jsonify({'success': False, 'message': 'IDs invalides'}), 400
+            return jsonify({'success': False, 'message': _gettext('IDs invalides')}), 400
         
         if not classroom_id or not master_student_id:
-            return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+            return jsonify({'success': False, 'message': _gettext('Données manquantes')}), 400
 
         # Debug : afficher les informations
         print(f"DEBUG add_student_from_master - User ID: {current_user.id}")
@@ -4045,7 +4045,7 @@ def add_student_from_master():
             return jsonify({'success': False, 'message': error_message}), 403
 
         if not original_classroom:
-            return jsonify({'success': False, 'message': 'Cette fonction est réservée aux enseignants spécialisés'}), 403
+            return jsonify({'success': False, 'message': _gettext('Cette fonction est réservée aux enseignants spécialisés')}), 403
 
         # Récupérer l'élève de la classe du maître
         master_student = Student.query.filter_by(
@@ -4054,7 +4054,7 @@ def add_student_from_master():
         ).first()
 
         if not master_student:
-            return jsonify({'success': False, 'message': 'Élève non trouvé dans la classe du maître'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève non trouvé dans la classe du maître')}), 404
 
         # Vérifier qu'il n'existe pas déjà dans la classe dérivée
         existing_student = Student.query.filter_by(
@@ -4064,7 +4064,7 @@ def add_student_from_master():
         ).first()
 
         if existing_student:
-            return jsonify({'success': False, 'message': 'Cet élève est déjà dans la classe'}), 400
+            return jsonify({'success': False, 'message': _gettext('Cet élève est déjà dans la classe')}), 400
 
         # Créer une copie de l'élève pour la classe dérivée
         derived_student = Student(
@@ -4101,7 +4101,7 @@ def add_student_from_master():
 
         return jsonify({
             'success': True,
-            'message': f'{derived_student.full_name} a été ajouté avec succès',
+            'message': _gettext('%(name)s a été ajouté avec succès', name=derived_student.full_name),
             'student': {
                 'id': derived_student.id,
                 'first_name': derived_student.first_name,
@@ -4132,7 +4132,7 @@ def delete_student(student_id):
         ).first()
 
         if not student:
-            return jsonify({'success': False, 'message': 'Élève non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève non trouvé')}), 404
 
         student_name = student.full_name
 
@@ -4175,7 +4175,7 @@ def delete_student(student_id):
 
         response_data = {
             'success': True,
-            'message': f'{student_name} a été supprimé avec succès'
+            'message': _gettext('%(name)s a été supprimé avec succès', name=student_name)
         }
         
         # Ajouter l'info de l'élève original si disponible
@@ -4199,14 +4199,14 @@ def generate_class_code(classroom_id):
 
         classroom = Classroom.query.get(classroom_id)
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
 
         class_master = ClassMaster.query.filter_by(classroom_id=classroom_id).first()
         is_class_master = class_master and class_master.master_teacher_id == current_user.id
         is_creator_no_master = (classroom.user_id == current_user.id and not class_master)
 
         if not (is_class_master or is_creator_no_master):
-            return jsonify({'success': False, 'message': 'Seul le maître de classe peut gérer les codes d\'accès'}), 403
+            return jsonify({'success': False, 'message': _gettext('Seul le maître de classe peut gérer les codes d\'accès')}), 403
 
         # Chercher un code existant et valide
         existing_code = ClassroomAccessCode.query.filter_by(classroom_id=classroom_id).first()
@@ -4216,7 +4216,7 @@ def generate_class_code(classroom_id):
                 'success': True,
                 'code': existing_code.code,
                 'classroom_name': f"{classroom.name} - {classroom.subject}",
-                'message': 'Code d\'accès existant'
+                'message': _gettext('Code d\'accès existant')
             })
 
         # Pas de code valide : en créer un nouveau
@@ -4245,7 +4245,7 @@ def generate_class_code(classroom_id):
             'success': True,
             'code': code,
             'classroom_name': f"{classroom.name} - {classroom.subject}",
-            'message': 'Code d\'accès généré avec succès'
+            'message': _gettext('Code d\'accès généré avec succès')
         })
 
     except Exception as e:
@@ -4263,14 +4263,14 @@ def get_parent_code(classroom_id):
 
         classroom = Classroom.query.get(classroom_id)
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
 
         class_master = ClassMaster.query.filter_by(classroom_id=classroom_id).first()
         is_class_master = class_master and class_master.master_teacher_id == current_user.id
         is_creator_no_master = (classroom.user_id == current_user.id and not class_master)
 
         if not (is_class_master or is_creator_no_master):
-            return jsonify({'success': False, 'message': 'Seul le maître de classe peut voir les codes parents'}), 403
+            return jsonify({'success': False, 'message': _gettext('Seul le maître de classe peut voir les codes parents')}), 403
 
         # Chercher un code existant
         parent_code = ClassCode.query.filter_by(classroom_id=classroom_id).first()
@@ -4314,7 +4314,7 @@ def update_student():
     student_id = data.get('student_id')
 
     if not data or not student_id:
-        return jsonify({'success': False, 'message': 'Données invalides'}), 400
+        return jsonify({'success': False, 'message': _gettext('Données invalides')}), 400
 
     try:
         # Vérifier les permissions avec la nouvelle fonction
@@ -4325,7 +4325,7 @@ def update_student():
         # Récupérer l'élève
         student = Student.query.get(student_id)
         if not student:
-            return jsonify({'success': False, 'message': 'Élève non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève non trouvé')}), 404
 
         # Récupérer les nouvelles valeurs
         first_name = data.get('first_name', '').strip()
@@ -4336,7 +4336,7 @@ def update_student():
 
         # Validation du prénom obligatoire
         if not first_name:
-            return jsonify({'success': False, 'message': 'Le prénom est obligatoire'}), 400
+            return jsonify({'success': False, 'message': _gettext('Le prénom est obligatoire')}), 400
 
         # Si le prénom change, vérifier les doublons
         if first_name != student.first_name:
@@ -4349,7 +4349,7 @@ def update_student():
             if existing_student and not last_name:
                 return jsonify({
                     'success': False,
-                    'message': f'Un autre élève nommé {first_name} existe déjà dans cette classe. Veuillez ajouter un nom de famille pour les différencier.'
+                    'message': _gettext('Un autre élève nommé %(name)s existe déjà dans cette classe. Veuillez ajouter un nom de famille pour les différencier.', name=first_name)
                 }), 400
 
         # Mettre à jour l'élève
@@ -4363,7 +4363,7 @@ def update_student():
 
         return jsonify({
             'success': True,
-            'message': f'{student.full_name} a été modifié avec succès',
+            'message': _gettext('%(name)s a été modifié avec succès', name=student.full_name),
             'student': {
                 'id': student.id,
                 'first_name': student.first_name,
@@ -4395,7 +4395,7 @@ def get_student(student_id):
         ).first()
 
         if not student:
-            return jsonify({'success': False, 'message': 'Élève non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève non trouvé')}), 404
 
         return jsonify({
             'success': True,
@@ -4422,7 +4422,7 @@ def update_attendance():
     data = request.get_json()
 
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     try:
         student_id = data.get('student_id')
@@ -4439,7 +4439,7 @@ def update_attendance():
             if classroom_id:
                 classroom_id = int(classroom_id)
         except (ValueError, TypeError):
-            return jsonify({'success': False, 'message': 'IDs invalides'}), 400
+            return jsonify({'success': False, 'message': _gettext('IDs invalides')}), 400
 
         print(f"DEBUG update_attendance: student_id={student_id}, classroom_id={classroom_id}, date={date_str}, period={period_number}")
         
@@ -4487,11 +4487,11 @@ def update_attendance():
         print(f"DEBUG: Final classroom_id: {classroom_id}")
         
         if not student:
-            return jsonify({'success': False, 'message': 'Élève non trouvé ou non autorisé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève non trouvé ou non autorisé')}), 404
         
         # S'assurer qu'on a un classroom_id valide
         if not classroom_id:
-            return jsonify({'success': False, 'message': 'classroom_id manquant'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe manquant')}), 400
 
         # Chercher un enregistrement existant
         attendance = Attendance.query.filter_by(
@@ -4522,7 +4522,7 @@ def update_attendance():
 
         return jsonify({
             'success': True,
-            'message': 'Présence mise à jour',
+            'message': _gettext('Présence mise à jour'),
             'attendance': {
                 'student_id': student_id,
                 'status': status,
@@ -4578,7 +4578,7 @@ def save_lesson_planning():
     data = request.get_json()
 
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     try:
         date_str = data.get('date')
@@ -4604,7 +4604,7 @@ def save_lesson_planning():
         if classroom_id:
             classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
             if not classroom:
-                return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+                return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
 
         # Chercher un planning existant
         existing = Planning.query.filter_by(
@@ -4636,7 +4636,7 @@ def save_lesson_planning():
 
         return jsonify({
             'success': True,
-            'message': 'Planification enregistrée avec succès',
+            'message': _gettext('Planification enregistrée avec succès'),
             'planning': {
                 'title': title,
                 'description': description
@@ -4656,7 +4656,7 @@ def update_checklist_states():
     data = request.get_json()
 
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     try:
         date_str = data.get('date')
@@ -4680,12 +4680,12 @@ def update_checklist_states():
 
             return jsonify({
                 'success': True,
-                'message': 'États des checkboxes mis à jour'
+                'message': _gettext('États des checkboxes mis à jour')
             })
         else:
             return jsonify({
                 'success': False,
-                'message': 'Planification non trouvée'
+                'message': _gettext('Planification non trouvée')
             }), 404
 
     except Exception as e:
@@ -4755,7 +4755,7 @@ def save_file_annotations():
         print(f"[DEBUG] file_id={file_id}, nb_annotations={len(annotations)}")
         
         if not file_id:
-            return jsonify({'success': False, 'message': 'ID de fichier manquant'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de fichier manquant')}), 400
 
         # Les identifiants préfixés (« eph7 » pour un fichier éphémère) doivent
         # être redirigés vers l'API dédiée : ici file_id alimente des colonnes
@@ -4764,7 +4764,7 @@ def save_file_annotations():
         if not str(file_id).isdigit():
             return jsonify({
                 'success': False,
-                'message': "Type de fichier non géré par cette route ; utilisez /file_manager/api/save-annotations."
+                'message': _gettext("Type de fichier non géré par cette route ; utilisez /file_manager/api/save-annotations.")
             }), 400
 
         file_id = int(file_id)
@@ -4785,10 +4785,10 @@ def save_file_annotations():
                 print(f"[DEBUG] Fichier de classe trouvé: {class_file.original_filename}")
             else:
                 print(f"[DEBUG] Fichier non trouvé ou accès refusé")
-                return jsonify({'success': False, 'message': 'Fichier non trouvé'}), 404
+                return jsonify({'success': False, 'message': _gettext('Fichier non trouvé')}), 404
         
         if not file_found:
-            return jsonify({'success': False, 'message': 'Fichier non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Fichier non trouvé')}), 404
         
         print(f"[DEBUG] Fichier validé, suppression des anciennes annotations...")
         
@@ -4834,7 +4834,7 @@ def check_sanction_thresholds():
     
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     try:
         classroom_id = data.get('classroom_id')
@@ -4845,12 +4845,12 @@ def check_sanction_thresholds():
             try:
                 classroom_id = int(classroom_id)
             except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+                return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
         
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
         
         # Récupérer les sanctions importées dans cette classe
         # En mode centralisé, récupérer les modèles du maître de classe
@@ -4931,7 +4931,7 @@ def calculate_next_lesson_date():
     """Calculer la prochaine date de cours pour une classe après un délai minimum"""
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     try:
         classroom_id = data.get('classroom_id')
@@ -4943,7 +4943,7 @@ def calculate_next_lesson_date():
             try:
                 classroom_id = int(classroom_id)
             except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+                return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
         
         # Date minimale = date actuelle + nombre de jours minimum
         min_date = current_date + timedelta(days=min_days)
@@ -4958,7 +4958,7 @@ def calculate_next_lesson_date():
             return jsonify({
                 'success': True,
                 'next_date': None,
-                'message': 'Aucun cours programmé pour cette classe'
+                'message': _gettext('Aucun cours programmé pour cette classe')
             })
         
         # Chercher la prochaine date de cours
@@ -4989,7 +4989,7 @@ def calculate_next_lesson_date():
         return jsonify({
             'success': True,
             'next_date': None,
-            'message': 'Aucune date trouvée dans les 365 prochains jours'
+            'message': _gettext('Aucune date trouvée dans les 365 prochains jours')
         })
         
     except Exception as e:
@@ -5001,7 +5001,7 @@ def add_sanction_to_planning():
     """Ajouter une sanction à récupérer dans la planification d'un cours"""
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     try:
         date_str = data.get('date')
@@ -5015,7 +5015,7 @@ def add_sanction_to_planning():
             try:
                 classroom_id = int(classroom_id)
             except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+                return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
         
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         
@@ -5051,7 +5051,7 @@ def add_sanction_to_planning():
         
         return jsonify({
             'success': True,
-            'message': 'Sanction ajoutée à la planification'
+            'message': _gettext('Sanction ajoutée à la planification')
         })
         
     except Exception as e:
@@ -5081,10 +5081,10 @@ def get_file_annotations(file_id):
                 print(f"[DEBUG] Fichier de classe trouvé: {class_file.original_filename}")
             else:
                 print(f"[DEBUG] Fichier non trouvé ou accès refusé")
-                return jsonify({'success': False, 'message': 'Fichier non trouvé'}), 404
+                return jsonify({'success': False, 'message': _gettext('Fichier non trouvé')}), 404
         
         if not file_found:
-            return jsonify({'success': False, 'message': 'Fichier non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Fichier non trouvé')}), 404
         
         print(f"[DEBUG] Recherche des annotations...")
         
@@ -5127,7 +5127,7 @@ def check_master_plan_available(classroom_param):
         # Vérifier si c'est un nom de groupe mixte avec emoji
         if classroom_param.startswith('🔀 '):
             # Classe mixte - le bouton ne doit PAS apparaître pour les classes mixtes
-            return jsonify({'show_button': False, 'message': 'Bouton non disponible pour les classes mixtes'})
+            return jsonify({'show_button': False, 'message': _gettext('Bouton non disponible pour les classes mixtes')})
         else:
             # Classe normale - chercher par nom
             classroom = Classroom.query.filter_by(
@@ -5138,7 +5138,7 @@ def check_master_plan_available(classroom_param):
                 classroom_id = classroom.id
 
         if not classroom or not classroom_id:
-            return jsonify({'show_button': False, 'message': 'Classe non trouvée'})
+            return jsonify({'show_button': False, 'message': _gettext('Classe non trouvée')})
 
         # Déterminer le groupe de classe
         group_name = classroom.class_group or classroom.name
@@ -5159,11 +5159,11 @@ def check_master_plan_available(classroom_param):
         
         # Si pas de maître de classe trouvé, le bouton ne doit pas être affiché
         if not class_master:
-            return jsonify({'show_button': False, 'message': 'Aucun maître de classe trouvé'})
+            return jsonify({'show_button': False, 'message': _gettext('Aucun maître de classe trouvé')})
         
         # Si l'utilisateur actuel est le maître de classe, le bouton ne doit pas être affiché
         if class_master.master_teacher_id == current_user.id:
-            return jsonify({'show_button': False, 'message': 'Vous êtes le maître de classe'})
+            return jsonify({'show_button': False, 'message': _gettext('Vous êtes le maître de classe')})
         
         # Vérifier si le maître de classe a un plan de classe
         master_plan = SeatingPlan.query.filter_by(
@@ -5173,7 +5173,7 @@ def check_master_plan_available(classroom_param):
         ).first()
         
         if not master_plan:
-            return jsonify({'show_button': False, 'message': 'Le maître de classe n\'a pas de plan'})
+            return jsonify({'show_button': False, 'message': _gettext('Le maître de classe n\'a pas de plan')})
         
         # Vérifier si l'utilisateur actuel a déjà un plan
         current_plan = SeatingPlan.query.filter_by(
@@ -5239,7 +5239,7 @@ def load_master_seating_plan(classroom_param):
                 classroom_id = classroom.id
 
         if not classroom or not classroom_id:
-            return jsonify({'success': False, 'message': 'Classe non trouvée'})
+            return jsonify({'success': False, 'message': _gettext('Classe non trouvée')})
 
         # Déterminer le groupe de classe
         group_name = classroom.class_group or classroom.name
@@ -5259,10 +5259,10 @@ def load_master_seating_plan(classroom_param):
                 break
         
         if not class_master:
-            return jsonify({'success': False, 'message': 'Aucun maître de classe trouvé'})
+            return jsonify({'success': False, 'message': _gettext('Aucun maître de classe trouvé')})
         
         if class_master.master_teacher_id == current_user.id:
-            return jsonify({'success': False, 'message': 'Vous êtes le maître de classe'})
+            return jsonify({'success': False, 'message': _gettext('Vous êtes le maître de classe')})
         
         # Récupérer le plan du maître de classe
         master_plan = SeatingPlan.query.filter_by(
@@ -5272,7 +5272,7 @@ def load_master_seating_plan(classroom_param):
         ).first()
         
         if not master_plan:
-            return jsonify({'success': False, 'message': 'Le maître de classe n\'a pas de plan'})
+            return jsonify({'success': False, 'message': _gettext('Le maître de classe n\'a pas de plan')})
         
         # Retourner les données du plan
         plan_data = json.loads(master_plan.plan_data)
@@ -5280,7 +5280,7 @@ def load_master_seating_plan(classroom_param):
         return jsonify({
             'success': True,
             'plan_data': plan_data,
-            'message': 'Plan du maître de classe chargé'
+            'message': _gettext('Plan du maître de classe chargé')
         })
         
     except Exception as e:
@@ -5299,7 +5299,7 @@ def save_seating_plan():
     
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     try:
         classroom_param = data.get('classroom_id')
@@ -5309,7 +5309,7 @@ def save_seating_plan():
         print(f"DEBUG save_seating_plan: classroom_param={classroom_param}, user_id={current_user.id}")
         
         if not classroom_param or not plan_data:
-            return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+            return jsonify({'success': False, 'message': _gettext('Données manquantes')}), 400
         
         # Déterminer l'ID de classroom selon le format du paramètre
         classroom_id = None
@@ -5383,7 +5383,7 @@ def save_seating_plan():
         
         if not classroom or not classroom_id:
             print(f"DEBUG save_seating_plan: FAILED - classroom={classroom}, classroom_id={classroom_id}")
-            return jsonify({'success': False, 'message': 'Classe non trouvée ou accès non autorisé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe non trouvée ou accès non autorisé')}), 404
         
         # Un seul plan actif par (classe, enseignant) : on le met à jour EN PLACE.
         # Avant, chaque sauvegarde insérait une nouvelle ligne (désactivant les
@@ -5415,7 +5415,7 @@ def save_seating_plan():
         
         return jsonify({
             'success': True,
-            'message': 'Plan de classe sauvegardé avec succès',
+            'message': _gettext('Plan de classe sauvegardé avec succès'),
             'plan_id': seating_plan.id
         })
         
@@ -5492,7 +5492,7 @@ def load_seating_plan(classroom_param):
                     classroom_id = classroom.id
 
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
         
         # Récupérer le plan actif (le plus récent s'il en existe plusieurs)
         seating_plan = SeatingPlan.query.filter_by(
@@ -5512,7 +5512,7 @@ def load_seating_plan(classroom_param):
             return jsonify({
                 'success': True,
                 'plan_data': None,
-                'message': 'Aucun plan sauvegardé pour cette classe'
+                'message': _gettext('Aucun plan sauvegardé pour cette classe')
             })
         
     except Exception as e:
@@ -5560,7 +5560,7 @@ def get_groups(classroom_param):
                 if classroom:
                     classroom_id = classroom.id
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
         
         # Récupérer les groupes de cette classe. Une classe enseignée dans
         # PLUSIEURS disciplines est stockée comme plusieurs Classroom (même
@@ -5616,7 +5616,7 @@ def get_group(group_id):
         # Vérifier que le groupe appartient à l'utilisateur
         group = StudentGroup.query.filter_by(id=group_id, user_id=current_user.id).first()
         if not group:
-            return jsonify({'success': False, 'message': 'Groupe non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Groupe non trouvé')}), 404
         
         # Récupérer les IDs des élèves de ce groupe
         student_ids = [membership.student_id for membership in group.memberships]
@@ -5645,7 +5645,7 @@ def create_group():
         
         data = request.get_json()
         if not data:
-            return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+            return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
         
         name = data.get('name', '').strip()
         description = data.get('description', '').strip()
@@ -5654,7 +5654,7 @@ def create_group():
         student_ids = data.get('student_ids', [])
         
         if not name:
-            return jsonify({'success': False, 'message': 'Le nom du groupe est obligatoire'}), 400
+            return jsonify({'success': False, 'message': _gettext('Le nom du groupe est obligatoire')}), 400
         
         # Déterminer la classe selon le format du paramètre (ID numérique ou nom)
         classroom = None
@@ -5691,9 +5691,9 @@ def create_group():
                             actual_classroom_id = classroom.id
                 
                 if not classroom:
-                    return jsonify({'success': False, 'message': f'Classe non trouvée: {classroom_id}'}), 404
+                    return jsonify({'success': False, 'message': _gettext('Classe non trouvée : %(id)s', id=classroom_id)}), 404
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
         
         # Vérifier que tous les élèves appartiennent à cette classe
         if student_ids:
@@ -5701,7 +5701,7 @@ def create_group():
             try:
                 student_ids = [int(sid) for sid in student_ids]
             except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'IDs d\'élèves invalides'}), 400
+                return jsonify({'success': False, 'message': _gettext('IDs d\'élèves invalides')}), 400
             
             # Les élèves d'une classe multi-disciplines ne sont stockés que sur
             # UNE des Classroom du groupe : valider sur tout le groupe.
@@ -5710,7 +5710,7 @@ def create_group():
                 Student.classroom_id.in_(classroom.get_group_classroom_ids())
             ).count()
             if valid_students != len(student_ids):
-                return jsonify({'success': False, 'message': 'Certains élèves ne sont pas valides'}), 400
+                return jsonify({'success': False, 'message': _gettext('Certains élèves ne sont pas valides')}), 400
         
         # Créer le groupe
         group = StudentGroup(
@@ -5735,7 +5735,7 @@ def create_group():
         
         return jsonify({
             'success': True,
-            'message': f'Groupe "{name}" créé avec succès',
+            'message': _gettext('Groupe "%(name)s" créé avec succès', name=name),
             'group_id': group.id
         })
         
@@ -5753,12 +5753,12 @@ def update_group(group_id):
         
         data = request.get_json()
         if not data:
-            return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+            return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
         
         # Vérifier que le groupe appartient à l'utilisateur
         group = StudentGroup.query.filter_by(id=group_id, user_id=current_user.id).first()
         if not group:
-            return jsonify({'success': False, 'message': 'Groupe non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Groupe non trouvé')}), 404
         
         name = data.get('name', '').strip()
         description = data.get('description', '').strip()
@@ -5766,7 +5766,7 @@ def update_group(group_id):
         student_ids = data.get('student_ids', [])
         
         if not name:
-            return jsonify({'success': False, 'message': 'Le nom du groupe est obligatoire'}), 400
+            return jsonify({'success': False, 'message': _gettext('Le nom du groupe est obligatoire')}), 400
         
         # Vérifier que tous les élèves appartiennent à cette classe (toutes
         # disciplines confondues : les élèves ne sont stockés que sur une des
@@ -5778,7 +5778,7 @@ def update_group(group_id):
                 Student.classroom_id.in_(_allowed_ids)
             ).count()
             if valid_students != len(student_ids):
-                return jsonify({'success': False, 'message': 'Certains élèves ne sont pas valides'}), 400
+                return jsonify({'success': False, 'message': _gettext('Certains élèves ne sont pas valides')}), 400
         
         # Mettre à jour le groupe
         group.name = name
@@ -5800,7 +5800,7 @@ def update_group(group_id):
         
         return jsonify({
             'success': True,
-            'message': f'Groupe "{name}" mis à jour avec succès'
+            'message': _gettext('Groupe "%(name)s" mis à jour avec succès', name=name)
         })
         
     except Exception as e:
@@ -5817,7 +5817,7 @@ def delete_group(group_id):
         # Vérifier que le groupe appartient à l'utilisateur
         group = StudentGroup.query.filter_by(id=group_id, user_id=current_user.id).first()
         if not group:
-            return jsonify({'success': False, 'message': 'Groupe non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Groupe non trouvé')}), 404
         
         group_name = group.name
         db.session.delete(group)  # Les memberships seront supprimés automatiquement (cascade)
@@ -5825,7 +5825,7 @@ def delete_group(group_id):
         
         return jsonify({
             'success': True,
-            'message': f'Groupe "{group_name}" supprimé avec succès'
+            'message': _gettext('Groupe "%(name)s" supprimé avec succès', name=group_name)
         })
         
     except Exception as e:
@@ -5839,7 +5839,7 @@ def apply_group_pattern():
     data = request.get_json()
     
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     try:
         from models.student_group import StudentGroup
@@ -5860,9 +5860,9 @@ def apply_group_pattern():
         current_app.logger.info(f"apply-group-pattern: classroom_id={classroom_id}, period={period_number}, group_id={selected_group_id}, pattern={pattern_type}")
 
         if not classroom_id:
-            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
         if not period_number:
-            return jsonify({'success': False, 'message': 'Numéro de période invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Numéro de période invalide')}), 400
 
         # Convertir la date de début
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
@@ -5871,7 +5871,7 @@ def apply_group_pattern():
         # Vérifier la classe
         classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
         
         # Vérifier que cette classe a cours à cette période ce jour de la semaine
         schedule = Schedule.query.filter_by(
@@ -5882,7 +5882,7 @@ def apply_group_pattern():
         ).first()
         
         if not schedule:
-            return jsonify({'success': False, 'message': 'Aucun cours programmé pour cette classe à cette période'}), 400
+            return jsonify({'success': False, 'message': _gettext('Aucun cours programmé pour cette classe à cette période')}), 400
         
         # Récupérer tous les groupes de la classe pour l'alternance
         all_groups = []
@@ -5894,7 +5894,7 @@ def apply_group_pattern():
             all_groups = [group.id for group in groups]
             
             if not all_groups:
-                return jsonify({'success': False, 'message': 'Aucun groupe trouvé pour cette classe'}), 400
+                return jsonify({'success': False, 'message': _gettext('Aucun groupe trouvé pour cette classe')}), 400
         
         # Calculer toutes les dates à partir de la SEMAINE SUIVANTE jusqu'à la fin de l'année scolaire
         # La semaine actuelle est déjà sauvegardée par saveDaySlot
@@ -5958,7 +5958,7 @@ def apply_group_pattern():
         
         return jsonify({
             'success': True,
-            'message': f'{created_count} planifications créées/mises à jour avec succès',
+            'message': _gettext('%(count)s planifications créées/mises à jour avec succès', count=created_count),
             'created_count': created_count
         })
         
@@ -6107,7 +6107,7 @@ def get_student_accommodations(classroom_param):
             ).first()
             
             if not mixed_group:
-                return jsonify({'success': False, 'message': 'Groupe mixte non trouvé'}), 404
+                return jsonify({'success': False, 'message': _gettext('Groupe mixte non trouvé')}), 404
                 
             # Pour les groupes mixtes, récupérer les élèves via get_students()
             students = mixed_group.get_students()
@@ -6123,7 +6123,7 @@ def get_student_accommodations(classroom_param):
                 classroom_id = int(classroom_param)
                 classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
                 if not classroom:
-                    return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+                    return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
                 # Appliquer la préférence de tri de l'utilisateur
                 if current_user.student_sort_pref == 'first_name':
                     students = Student.query.filter_by(classroom_id=classroom_id).order_by(Student.first_name, Student.last_name).all()
@@ -6145,7 +6145,7 @@ def get_student_accommodations(classroom_param):
                 print(f"DEBUG: Skipping collaboration logic for now")
                 
                 if not classrooms:
-                    return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+                    return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
                     
                 # Récupérer les élèves de toutes les classrooms du groupe avec déduplication
                 print(f"DEBUG: Processing {len(classrooms)} classrooms for students")
@@ -6215,7 +6215,7 @@ def add_student_accommodation():
         
         data = request.get_json()
         if not data:
-            return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+            return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
         
         student_id = data.get('student_id')
         accommodation_type = data.get('accommodation_type')  # 'template' ou 'custom'
@@ -6225,7 +6225,7 @@ def add_student_accommodation():
         student = user_can_access_student(current_user.id, student_id)
         
         if not student:
-            return jsonify({'success': False, 'message': 'Élève non trouvé ou accès non autorisé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève non trouvé ou accès non autorisé')}), 404
         
         # Créer l'aménagement selon le type
         if accommodation_type == 'template':
@@ -6236,7 +6236,7 @@ def add_student_accommodation():
             ).first()
             
             if not template:
-                return jsonify({'success': False, 'message': 'Modèle d\'aménagement non trouvé'}), 404
+                return jsonify({'success': False, 'message': _gettext('Modèle d\'aménagement non trouvé')}), 404
             
             accommodation = StudentAccommodation(
                 student_id=student_id,
@@ -6251,7 +6251,7 @@ def add_student_accommodation():
             time_multiplier = data.get('custom_time_multiplier')
             
             if not name:
-                return jsonify({'success': False, 'message': 'Le nom de l\'aménagement est obligatoire'}), 400
+                return jsonify({'success': False, 'message': _gettext('Le nom de l\'aménagement est obligatoire')}), 400
             
             accommodation = StudentAccommodation(
                 student_id=student_id,
@@ -6268,7 +6268,7 @@ def add_student_accommodation():
         
         return jsonify({
             'success': True,
-            'message': 'Aménagement ajouté avec succès',
+            'message': _gettext('Aménagement ajouté avec succès'),
             'accommodation_id': accommodation.id
         })
         
@@ -6288,12 +6288,12 @@ def delete_student_accommodation(accommodation_id):
         accommodation = StudentAccommodation.query.filter_by(id=accommodation_id).first()
         
         if not accommodation:
-            return jsonify({'success': False, 'message': 'Aménagement non trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Aménagement non trouvé')}), 404
         
         # Vérifier que l'utilisateur peut accéder à cet élève
         student = user_can_access_student(current_user.id, accommodation.student_id)
         if not student:
-            return jsonify({'success': False, 'message': 'Accès non autorisé'}), 403
+            return jsonify({'success': False, 'message': _gettext('Accès non autorisé')}), 403
         
         # Vérifier que c'est bien son aménagement (pour les enseignants spécialisés)
         if accommodation.template_id:
@@ -6307,14 +6307,14 @@ def delete_student_accommodation(accommodation_id):
                 ).first() is not None
                 
                 if not is_class_master:
-                    return jsonify({'success': False, 'message': 'Vous ne pouvez supprimer que vos propres aménagements'}), 403
+                    return jsonify({'success': False, 'message': _gettext('Vous ne pouvez supprimer que vos propres aménagements')}), 403
         
         db.session.delete(accommodation)
         db.session.commit()
         
         return jsonify({
             'success': True,
-            'message': 'Aménagement supprimé avec succès'
+            'message': _gettext('Aménagement supprimé avec succès')
         })
         
     except Exception as e:
@@ -6339,7 +6339,7 @@ def get_slot_data(date_str, period):
         period_info = next((p for p in periods if p['number'] == period), None)
 
         if not period_info:
-            return jsonify({'success': False, 'message': 'Période invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Période invalide')}), 400
 
         # Chercher un planning existant (filtrer par classroom_id si fourni)
         query = Planning.query.filter_by(
@@ -6436,7 +6436,7 @@ def get_classroom_students(classroom_id):
         ).first()
         
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
         
         # Récupérer les élèves de la classe
         students = Student.query.filter_by(
@@ -6473,7 +6473,7 @@ def get_student_report_info(student_id):
         
         if not student:
             print(f"DEBUG get_student_report_info: access denied, returning 404")
-            return jsonify({'success': False, 'message': 'Élève introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève introuvable')}), 404
         
         # Récupérer les groupes de l'élève
         groups = db.session.query(StudentGroup).join(
@@ -6515,7 +6515,7 @@ def get_student_report_accommodations(student_id):
         # Vérifier l'accès à l'élève
         student = user_can_access_student(current_user.id, student_id)
         if not student:
-            return jsonify({'success': False, 'message': 'Élève introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève introuvable')}), 404
         
         # Vérifier si l'utilisateur actuel est maître de classe pour cette classe
         is_class_master = ClassMaster.query.filter_by(
@@ -6534,17 +6534,17 @@ def get_student_report_accommodations(student_id):
         if is_class_master:
             # Maître de classe : voir tous les aménagements avec attribution
             for acc in accommodations:
-                teacher_name = "Inconnu"
+                teacher_name = _gettext("Inconnu")
                 is_own = False
                 
                 if acc.template_id and acc.template:
                     # Aménagement prédéfini
                     template_user = User.query.filter_by(id=acc.template.user_id).first()
-                    teacher_name = template_user.username if template_user else "Inconnu"
+                    teacher_name = template_user.username if template_user else _gettext("Inconnu")
                     is_own = acc.template.user_id == current_user.id
                 else:
                     # Aménagement personnalisé - pour l'instant, on ne peut pas identifier l'auteur
-                    teacher_name = "Aménagement personnalisé"
+                    teacher_name = _gettext("Aménagement personnalisé")
                     is_own = False  # On ne peut pas déterminer l'auteur pour les aménagements personnalisés
                 
                 valid_accommodations.append({
@@ -6595,7 +6595,7 @@ def get_student_report_grades(student_id):
         # Vérifier d'abord l'accès à l'élève
         student = user_can_access_student(current_user.id, student_id)
         if not student:
-            return jsonify({'success': False, 'message': 'Élève introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève introuvable')}), 404
         
         from models.evaluation import EvaluationGrade, Evaluation
         from models.classroom import Classroom
@@ -6725,7 +6725,7 @@ def get_student_report_sanctions(student_id):
         # Vérifier d'abord l'accès à l'élève
         student = user_can_access_student(current_user.id, student_id)
         if not student:
-            return jsonify({'success': False, 'message': 'Élève introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève introuvable')}), 404
         
         # Vérifier si l'utilisateur actuel est maître de classe pour cette classe
         is_class_master = ClassMaster.query.filter_by(
@@ -6853,7 +6853,7 @@ def get_student_report_attendance(student_id):
         # Vérifier d'abord l'accès à l'élève
         student = user_can_access_student(current_user.id, student_id)
         if not student:
-            return jsonify({'success': False, 'message': 'Élève introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève introuvable')}), 404
         
         # Vérifier si l'utilisateur actuel est maître de classe pour cette classe
         is_class_master = ClassMaster.query.filter_by(
@@ -6944,13 +6944,13 @@ def student_report_additional_info(student_id):
         student = user_can_access_student(current_user.id, student_id)
         
         if not student:
-            return jsonify({'success': False, 'message': 'Élève introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève introuvable')}), 404
         
         data = request.get_json()
         additional_info = data.get('additional_info', '').strip()
         
         if not additional_info:
-            return jsonify({'success': False, 'message': 'Aucune information fournie'}), 400
+            return jsonify({'success': False, 'message': _gettext('Aucune information fournie')}), 400
         
         # Créer un nouvel enregistrement dans l'historique
         info_history = StudentInfoHistory(
@@ -6963,7 +6963,7 @@ def student_report_additional_info(student_id):
         
         return jsonify({
             'success': True,
-            'message': 'Informations sauvegardées'
+            'message': _gettext('Informations sauvegardées')
         })
             
     except Exception as e:
@@ -6981,7 +6981,7 @@ def get_student_additional_info(student_id):
         student = user_can_access_student(current_user.id, student_id)
         
         if not student:
-            return jsonify({'success': False, 'message': 'Élève introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève introuvable')}), 404
         
         # Récupérer la dernière information supplémentaire ajoutée par l'utilisateur actuel
         latest_info = StudentInfoHistory.query.filter_by(
@@ -7015,7 +7015,7 @@ def get_student_info_history(student_id):
         student = user_can_access_student(current_user.id, student_id)
         
         if not student:
-            return jsonify({'success': False, 'message': 'Élève introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève introuvable')}), 404
         
         # Vérifier si l'utilisateur actuel est maître de classe pour cette classe
         is_class_master = ClassMaster.query.filter_by(
@@ -7036,7 +7036,7 @@ def get_student_info_history(student_id):
                         'id': info.id,
                         'content': info.content,
                         'created_at': info.created_at.strftime('%d/%m/%Y à %H:%M'),
-                        'teacher_name': info.user.username if info.user else "Enseignant inconnu",
+                        'teacher_name': info.user.username if info.user else _gettext("Enseignant inconnu"),
                         'is_own': info.user_id == current_user.id
                     }
                     for info in history
@@ -7056,7 +7056,7 @@ def get_student_info_history(student_id):
                         'id': info.id,
                         'content': info.content,
                         'created_at': info.created_at.strftime('%d/%m/%Y à %H:%M'),
-                        'teacher_name': info.user.username if info.user else "Vous",
+                        'teacher_name': info.user.username if info.user else _gettext("Vous"),
                         'is_own': True
                     }
                     for info in history
@@ -7087,7 +7087,7 @@ def get_student_behavior_summary(student_id):
         # Vérifier d'abord l'accès à l'élève
         student = user_can_access_student(current_user.id, student_id)
         if not student:
-            return jsonify({'success': False, 'message': 'Élève introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève introuvable')}), 404
         
         # Vérifier si l'utilisateur actuel est maître de classe pour cette classe
         is_class_master = ClassMaster.query.filter_by(
@@ -7284,7 +7284,7 @@ def get_student_behavior_summary(student_id):
                     date_entry['periods_details'].append({
                         'period_range': period_text,
                         'status': status,
-                        'status_text': 'Absent' if status == 'absent' else 'Retard',
+                        'status_text': _gettext('Absent') if status == 'absent' else _gettext('Retard'),
                         'teacher_name': last_teacher['teacher_name'],
                         'teacher_id': last_teacher['teacher_id'],
                         'is_own': last_teacher['teacher_id'] == current_user.id,
@@ -7362,7 +7362,7 @@ def upload_student_report_file():
         files = request.files.getlist('files')
         
         if not student_id or not files:
-            return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+            return jsonify({'success': False, 'message': _gettext('Données manquantes')}), 400
         
         # Vérifier que l'élève appartient à l'utilisateur
         from models.student import Student
@@ -7372,7 +7372,7 @@ def upload_student_report_file():
         ).first()
         
         if not student:
-            return jsonify({'success': False, 'message': 'Élève introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Élève introuvable')}), 404
         
         uploaded_files = []
         upload_dir = os.path.join(current_app.root_path, 'uploads', 'student_files', str(student_id))
@@ -7403,7 +7403,7 @@ def upload_student_report_file():
         
         return jsonify({
             'success': True,
-            'message': f'{len(uploaded_files)} fichier(s) uploadé(s)',
+            'message': _gettext('%(count)s fichier(s) envoyé(s)', count=len(uploaded_files)),
             'files': uploaded_files
         })
         
@@ -7425,7 +7425,7 @@ def download_student_report_file(file_id):
         ).first()
         
         if not student_file:
-            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Fichier introuvable')}), 404
         
         return send_file(
             student_file.file_path,
@@ -7450,7 +7450,7 @@ def delete_student_report_file(file_id):
         ).first()
         
         if not student_file:
-            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Fichier introuvable')}), 404
         
         # Supprimer le fichier physique
         if os.path.exists(student_file.file_path):
@@ -7462,7 +7462,7 @@ def delete_student_report_file(file_id):
         
         return jsonify({
             'success': True,
-            'message': 'Fichier supprimé'
+            'message': _gettext('Fichier supprimé')
         })
         
     except Exception as e:
@@ -7478,28 +7478,28 @@ def update_justification_status():
     
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     try:
         justification_id = data.get('justification_id')
         status = data.get('status')
         
         if not justification_id or not status:
-            return jsonify({'success': False, 'message': 'ID de justification et statut requis'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de justification et statut requis')}), 400
         
         if status not in ['pending', 'approved', 'rejected']:
-            return jsonify({'success': False, 'message': 'Statut invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Statut invalide')}), 400
         
         # Récupérer la justification
         justification = AbsenceJustification.query.get(justification_id)
         if not justification:
-            return jsonify({'success': False, 'message': 'Justification non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Justification non trouvée')}), 404
         
         # Vérifier que l'enseignant a le droit de modifier cette justification
         # (l'élève doit être dans une de ses classes)
         student_classroom = justification.student.classroom
         if not student_classroom or student_classroom.user_id != current_user.id:
-            return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+            return jsonify({'success': False, 'message': _gettext('Non autorisé')}), 403
         
         # Mettre à jour le statut
         justification.status = status
@@ -7508,7 +7508,7 @@ def update_justification_status():
         
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'Statut mis à jour avec succès'})
+        return jsonify({'success': True, 'message': _gettext('Statut mis à jour avec succès')})
         
     except Exception as e:
         db.session.rollback()
@@ -7522,31 +7522,31 @@ def update_teacher_response():
     
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     try:
         justification_id = data.get('justification_id')
         teacher_response = data.get('teacher_response', '')
         
         if not justification_id:
-            return jsonify({'success': False, 'message': 'ID de justification requis'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de justification requis')}), 400
         
         # Récupérer la justification
         justification = AbsenceJustification.query.get(justification_id)
         if not justification:
-            return jsonify({'success': False, 'message': 'Justification non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Justification non trouvée')}), 404
         
         # Vérifier que l'enseignant a le droit de modifier cette justification
         student_classroom = justification.student.classroom
         if not student_classroom or student_classroom.user_id != current_user.id:
-            return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+            return jsonify({'success': False, 'message': _gettext('Non autorisé')}), 403
         
         # Mettre à jour la réponse
         justification.teacher_response = teacher_response.strip() if teacher_response else None
         
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'Note sauvegardée avec succès'})
+        return jsonify({'success': True, 'message': _gettext('Note sauvegardée avec succès')})
         
     except Exception as e:
         db.session.rollback()
@@ -7575,12 +7575,12 @@ def get_mixed_group_available_students():
             # Extraire le nom du groupe mixte
             parts = classroom_param.split('_')
             if len(parts) < 4:
-                return jsonify({'success': False, 'message': 'Format de classe mixte invalide'})
+                return jsonify({'success': False, 'message': _gettext('Format de classe mixte invalide')})
             
             mixed_group_name = '_'.join(parts[1:-2])
             print(f"DEBUG: Extracted mixed group name from MIXED format: '{mixed_group_name}'")
         else:
-            return jsonify({'success': False, 'message': 'Paramètre de classe invalide - doit être un groupe mixte'})
+            return jsonify({'success': False, 'message': _gettext('Paramètre de classe invalide - doit être un groupe mixte')})
         
         # Trouver le groupe mixte
         mixed_group = MixedGroup.query.filter_by(
@@ -7589,7 +7589,7 @@ def get_mixed_group_available_students():
         ).first()
         
         if not mixed_group:
-            return jsonify({'success': False, 'message': 'Groupe mixte non trouvé'})
+            return jsonify({'success': False, 'message': _gettext('Groupe mixte non trouvé')})
         
         # Récupérer les élèves déjà dans le groupe mixte
         existing_student_ids = set()
@@ -7775,7 +7775,7 @@ def get_mixed_group_available_students():
                     available_students.append({
                         'id': student.id,
                         'full_name': student.full_name,
-                        'source_class_name': invitation.target_classroom.name if invitation.target_classroom else 'Classe inconnue',
+                        'source_class_name': invitation.target_classroom.name if invitation.target_classroom else _gettext('Classe inconnue'),
                         'source_type': 'invitation'
                     })
                     added_student_ids.add(student.id)
@@ -7807,7 +7807,7 @@ def add_mixed_group_students():
         student_ids = data.get('student_ids', [])
         
         if not student_ids:
-            return jsonify({'success': False, 'message': 'Aucun élève sélectionné'})
+            return jsonify({'success': False, 'message': _gettext('Aucun élève sélectionné')})
         
         # Vérifier si c'est un nom de groupe mixte avec emoji
         if classroom_param.startswith('🔀 '):
@@ -7817,10 +7817,10 @@ def add_mixed_group_students():
             # Format ancien - extraire le nom du groupe mixte depuis le paramètre
             parts = classroom_param.split('_')
             if len(parts) < 4:
-                return jsonify({'success': False, 'message': 'Format de classe mixte invalide'})
+                return jsonify({'success': False, 'message': _gettext('Format de classe mixte invalide')})
             mixed_group_name = '_'.join(parts[1:-2])
         else:
-            return jsonify({'success': False, 'message': 'Paramètre de classe invalide'})
+            return jsonify({'success': False, 'message': _gettext('Paramètre de classe invalide')})
         
         # Trouver le groupe mixte
         mixed_group = MixedGroup.query.filter_by(
@@ -7829,7 +7829,7 @@ def add_mixed_group_students():
         ).first()
         
         if not mixed_group:
-            return jsonify({'success': False, 'message': 'Groupe mixte non trouvé'})
+            return jsonify({'success': False, 'message': _gettext('Groupe mixte non trouvé')})
         
         added_count = 0
         
@@ -7874,7 +7874,7 @@ def add_mixed_group_students():
         
         return jsonify({
             'success': True,
-            'message': f'{added_count} élève(s) ajouté(s) avec succès',
+            'message': _gettext('%(count)s élève(s) ajouté(s) avec succès', count=added_count),
             'added_count': added_count
         })
         
@@ -7896,7 +7896,7 @@ def delete_mixed_group_student():
         student_id = data.get('student_id')
         
         if not student_id:
-            return jsonify({'success': False, 'message': 'ID élève manquant'})
+            return jsonify({'success': False, 'message': _gettext('ID élève manquant')})
         
         # Vérifier si c'est un nom de groupe mixte avec emoji
         if classroom_param.startswith('🔀 '):
@@ -7906,10 +7906,10 @@ def delete_mixed_group_student():
             # Format ancien - extraire le nom du groupe mixte depuis le paramètre
             parts = classroom_param.split('_')
             if len(parts) < 4:
-                return jsonify({'success': False, 'message': 'Format de classe mixte invalide'})
+                return jsonify({'success': False, 'message': _gettext('Format de classe mixte invalide')})
             mixed_group_name = '_'.join(parts[1:-2])
         else:
-            return jsonify({'success': False, 'message': 'Paramètre de classe invalide'})
+            return jsonify({'success': False, 'message': _gettext('Paramètre de classe invalide')})
         
         # Trouver le groupe mixte
         mixed_group = MixedGroup.query.filter_by(
@@ -7918,7 +7918,7 @@ def delete_mixed_group_student():
         ).first()
         
         if not mixed_group:
-            return jsonify({'success': False, 'message': 'Groupe mixte non trouvé'})
+            return jsonify({'success': False, 'message': _gettext('Groupe mixte non trouvé')})
         
         # Trouver l'élève dans le groupe mixte
         mixed_student_link = MixedGroupStudent.query.filter_by(
@@ -7927,7 +7927,7 @@ def delete_mixed_group_student():
         ).first()
         
         if not mixed_student_link:
-            return jsonify({'success': False, 'message': 'Élève non trouvé dans le groupe mixte'})
+            return jsonify({'success': False, 'message': _gettext('Élève non trouvé dans le groupe mixte')})
         
         # Supprimer l'élève du groupe mixte
         db.session.delete(mixed_student_link)
@@ -7950,7 +7950,7 @@ def delete_mixed_group_student():
         
         return jsonify({
             'success': True,
-            'message': 'Élève supprimé du groupe mixte avec succès'
+            'message': _gettext('Élève supprimé du groupe mixte avec succès')
         })
         
     except Exception as e:
@@ -7991,7 +7991,7 @@ def create_lesson_memo():
 
         if not content:
             print("DEBUG - ERROR: Content is empty!")
-            return jsonify({'success': False, 'error': 'Contenu requis'}), 400
+            return jsonify({'success': False, 'error': _gettext('Contenu requis')}), 400
 
         # Si appelé depuis le dashboard, source_date_str peut être None
         if source_date_str:
@@ -8148,7 +8148,7 @@ def create_student_remark():
 
         if not student_id or not content:
             print("DEBUG - ERROR: student_id or content is missing!")
-            return jsonify({'success': False, 'error': 'Données manquantes'}), 400
+            return jsonify({'success': False, 'error': _gettext('Données manquantes')}), 400
 
         source_date = datetime.strptime(source_date_str, '%Y-%m-%d').date()
         print(f"DEBUG - source_date parsed: {source_date}")
@@ -8269,7 +8269,7 @@ def update_lesson_memo(memo_id):
         memo = LessonMemo.query.get_or_404(memo_id)
 
         if memo.user_id != current_user.id:
-            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+            return jsonify({'success': False, 'error': _gettext('Non autorisé')}), 403
 
         data = request.get_json()
 
@@ -8377,7 +8377,7 @@ def delete_lesson_memo(memo_id):
         memo = LessonMemo.query.get_or_404(memo_id)
         
         if memo.user_id != current_user.id:
-            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+            return jsonify({'success': False, 'error': _gettext('Non autorisé')}), 403
         
         db.session.delete(memo)
         db.session.commit()
@@ -8397,7 +8397,7 @@ def update_student_remark(remark_id):
         remark = StudentRemark.query.get_or_404(remark_id)
         
         if remark.user_id != current_user.id:
-            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+            return jsonify({'success': False, 'error': _gettext('Non autorisé')}), 403
         
         data = request.get_json()
         if 'content' in data:
@@ -8420,7 +8420,7 @@ def delete_student_remark(remark_id):
         remark = StudentRemark.query.get_or_404(remark_id)
 
         if remark.user_id != current_user.id:
-            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+            return jsonify({'success': False, 'error': _gettext('Non autorisé')}), 403
 
         db.session.delete(remark)
         db.session.commit()
@@ -8450,18 +8450,18 @@ def mark_remark_read(remark_id):
             ).first()
 
             if not has_access:
-                return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+                return jsonify({'success': False, 'error': _gettext('Non autorisé')}), 403
 
             remark.is_viewed_by_parent = True
 
         elif isinstance(current_user, Student):
             # Vérifier que c'est bien l'élève concerné
             if current_user.id != remark.student_id:
-                return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+                return jsonify({'success': False, 'error': _gettext('Non autorisé')}), 403
 
             remark.is_viewed_by_student = True
         else:
-            return jsonify({'success': False, 'error': 'Type d\'utilisateur non autorisé'}), 403
+            return jsonify({'success': False, 'error': _gettext('Type d\'utilisateur non autorisé')}), 403
 
         db.session.commit()
         return jsonify({'success': True})
@@ -8487,7 +8487,7 @@ def list_blank_sheets():
         classroom_id = request.args.get('classroom_id', type=int)
 
         if not lesson_date_str or not period_number:
-            return jsonify({'success': False, 'message': 'Date et période requises'}), 400
+            return jsonify({'success': False, 'message': _gettext('Date et période requises')}), 400
 
         # Convertir la date
         lesson_date = datetime.strptime(lesson_date_str, '%Y-%m-%d').date()
@@ -8527,7 +8527,7 @@ def get_blank_sheet(sheet_id):
         ).first()
 
         if not sheet:
-            return jsonify({'success': False, 'message': 'Feuille non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Feuille non trouvée')}), 404
 
         return jsonify({
             'success': True,
@@ -8564,7 +8564,7 @@ def save_blank_sheet():
         sheet_data = data.get('sheet_data')
 
         if not lesson_date_str or not period_number or not sheet_data:
-            return jsonify({'success': False, 'message': 'Données incomplètes'}), 400
+            return jsonify({'success': False, 'message': _gettext('Données incomplètes')}), 400
 
         lesson_date = datetime.strptime(lesson_date_str, '%Y-%m-%d').date()
 
@@ -8576,7 +8576,7 @@ def save_blank_sheet():
             ).first()
 
             if not sheet:
-                return jsonify({'success': False, 'message': 'Feuille non trouvée'}), 404
+                return jsonify({'success': False, 'message': _gettext('Feuille non trouvée')}), 404
 
             sheet.title = title
             sheet.sheet_data = sheet_data
@@ -8619,7 +8619,7 @@ def delete_blank_sheet(sheet_id):
         ).first()
 
         if not sheet:
-            return jsonify({'success': False, 'message': 'Feuille non trouvée'}), 404
+            return jsonify({'success': False, 'message': _gettext('Feuille non trouvée')}), 404
 
         db.session.delete(sheet)
         db.session.commit()
@@ -8682,7 +8682,7 @@ def create_decoupage():
     subject = data.get('subject', '').strip()
 
     if not name or not subject:
-        return jsonify({'success': False, 'message': 'Nom et discipline requis'}), 400
+        return jsonify({'success': False, 'message': _gettext('Nom et discipline requis')}), 400
 
     mode = data.get('mode') if data.get('mode') in ('duration', 'weeks') else 'duration'
 
@@ -8698,7 +8698,7 @@ def create_decoupage():
 
         return jsonify({
             'success': True,
-            'message': 'Découpage créé',
+            'message': _gettext('Découpage créé'),
             'data': decoupage.to_dict()
         })
     except Exception as e:
@@ -8716,7 +8716,7 @@ def get_decoupage(decoupage_id):
     decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
 
     if not decoupage:
-        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Découpage non trouvé')}), 404
 
     return jsonify({
         'success': True,
@@ -8734,7 +8734,7 @@ def update_decoupage(decoupage_id):
     decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
 
     if not decoupage:
-        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Découpage non trouvé')}), 404
 
     data = request.get_json()
 
@@ -8747,7 +8747,7 @@ def update_decoupage(decoupage_id):
         db.session.commit()
         return jsonify({
             'success': True,
-            'message': 'Découpage mis à jour',
+            'message': _gettext('Découpage mis à jour'),
             'data': decoupage.to_dict()
         })
     except Exception as e:
@@ -8765,7 +8765,7 @@ def delete_decoupage(decoupage_id):
     decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
 
     if not decoupage:
-        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Découpage non trouvé')}), 404
 
     try:
         # Les affectations du découpage aux classes référencent decoupage_id (FK
@@ -8776,7 +8776,7 @@ def delete_decoupage(decoupage_id):
         db.session.commit()
         return jsonify({
             'success': True,
-            'message': 'Découpage supprimé'
+            'message': _gettext('Découpage supprimé')
         })
     except Exception as e:
         db.session.rollback()
@@ -8793,7 +8793,7 @@ def add_period(decoupage_id):
     decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
 
     if not decoupage:
-        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Découpage non trouvé')}), 404
 
     data = request.get_json()
 
@@ -8807,14 +8807,14 @@ def add_period(decoupage_id):
         duration = 1
 
     if not name or duration is None:
-        return jsonify({'success': False, 'message': 'Nom et durée requis'}), 400
+        return jsonify({'success': False, 'message': _gettext('Nom et durée requis')}), 400
 
     try:
         duration = float(duration)
         if duration <= 0:
-            return jsonify({'success': False, 'message': 'La durée doit être positive'}), 400
+            return jsonify({'success': False, 'message': _gettext('La durée doit être positive')}), 400
     except (ValueError, TypeError):
-        return jsonify({'success': False, 'message': 'Durée invalide'}), 400
+        return jsonify({'success': False, 'message': _gettext('Durée invalide')}), 400
 
     # Calculer l'ordre (ajouter à la fin)
     max_order = db.session.query(db.func.max(DecoupagePeriod.order)).filter_by(decoupage_id=decoupage_id).scalar() or 0
@@ -8833,7 +8833,7 @@ def add_period(decoupage_id):
 
         return jsonify({
             'success': True,
-            'message': 'Période ajoutée',
+            'message': _gettext('Période ajoutée'),
             'data': period.to_dict()
         })
     except Exception as e:
@@ -8851,12 +8851,12 @@ def update_period(decoupage_id, period_id):
     decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
 
     if not decoupage:
-        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Découpage non trouvé')}), 404
 
     period = DecoupagePeriod.query.filter_by(id=period_id, decoupage_id=decoupage_id).first()
 
     if not period:
-        return jsonify({'success': False, 'message': 'Période non trouvée'}), 404
+        return jsonify({'success': False, 'message': _gettext('Période non trouvée')}), 404
 
     data = request.get_json()
 
@@ -8866,10 +8866,10 @@ def update_period(decoupage_id, period_id):
         try:
             duration = float(data['duration'])
             if duration <= 0:
-                return jsonify({'success': False, 'message': 'La durée doit être positive'}), 400
+                return jsonify({'success': False, 'message': _gettext('La durée doit être positive')}), 400
             period.duration = duration
         except (ValueError, TypeError):
-            return jsonify({'success': False, 'message': 'Durée invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Durée invalide')}), 400
     if 'color' in data:
         period.color = data['color']
     if 'objectives' in data:
@@ -8881,7 +8881,7 @@ def update_period(decoupage_id, period_id):
         db.session.commit()
         return jsonify({
             'success': True,
-            'message': 'Période mise à jour',
+            'message': _gettext('Période mise à jour'),
             'data': period.to_dict()
         })
     except Exception as e:
@@ -8899,12 +8899,12 @@ def delete_period(decoupage_id, period_id):
     decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
 
     if not decoupage:
-        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Découpage non trouvé')}), 404
 
     period = DecoupagePeriod.query.filter_by(id=period_id, decoupage_id=decoupage_id).first()
 
     if not period:
-        return jsonify({'success': False, 'message': 'Période non trouvée'}), 404
+        return jsonify({'success': False, 'message': _gettext('Période non trouvée')}), 404
 
     deleted_order = period.order
 
@@ -8923,7 +8923,7 @@ def delete_period(decoupage_id, period_id):
         db.session.commit()
         return jsonify({
             'success': True,
-            'message': 'Période supprimée'
+            'message': _gettext('Période supprimée')
         })
     except Exception as e:
         db.session.rollback()
@@ -8940,13 +8940,13 @@ def reorder_periods(decoupage_id):
     decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
 
     if not decoupage:
-        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Découpage non trouvé')}), 404
 
     data = request.get_json()
     period_ids = data.get('period_ids', [])
 
     if not period_ids:
-        return jsonify({'success': False, 'message': 'Liste des périodes requise'}), 400
+        return jsonify({'success': False, 'message': _gettext('Liste des périodes requise')}), 400
 
     try:
         for idx, period_id in enumerate(period_ids):
@@ -8957,7 +8957,7 @@ def reorder_periods(decoupage_id):
         db.session.commit()
         return jsonify({
             'success': True,
-            'message': 'Périodes réordonnées'
+            'message': _gettext('Périodes réordonnées')
         })
     except Exception as e:
         db.session.rollback()
@@ -8975,19 +8975,19 @@ def assign_decoupage(decoupage_id):
     decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
 
     if not decoupage:
-        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Découpage non trouvé')}), 404
 
     data = request.get_json()
     classroom_id = data.get('classroom_id')
     start_week = data.get('start_week', 1)
 
     if not classroom_id:
-        return jsonify({'success': False, 'message': 'Classe requise'}), 400
+        return jsonify({'success': False, 'message': _gettext('Classe requise')}), 400
 
     # Vérifier que la classe appartient à l'utilisateur
     classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
     if not classroom:
-        return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+        return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
 
     # Vérifier qu'il n'y a pas déjà une assignation
     existing = DecoupageAssignment.query.filter_by(
@@ -8996,7 +8996,7 @@ def assign_decoupage(decoupage_id):
     ).first()
 
     if existing:
-        return jsonify({'success': False, 'message': 'Ce découpage est déjà assigné à cette classe'}), 400
+        return jsonify({'success': False, 'message': _gettext('Ce découpage est déjà assigné à cette classe')}), 400
 
     try:
         assignment = DecoupageAssignment(
@@ -9009,7 +9009,7 @@ def assign_decoupage(decoupage_id):
 
         return jsonify({
             'success': True,
-            'message': 'Découpage assigné à la classe',
+            'message': _gettext('Découpage assigné à la classe'),
             'data': assignment.to_dict()
         })
     except Exception as e:
@@ -9027,7 +9027,7 @@ def unassign_decoupage(decoupage_id, classroom_id):
     decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
 
     if not decoupage:
-        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Découpage non trouvé')}), 404
 
     assignment = DecoupageAssignment.query.filter_by(
         decoupage_id=decoupage_id,
@@ -9035,14 +9035,14 @@ def unassign_decoupage(decoupage_id, classroom_id):
     ).first()
 
     if not assignment:
-        return jsonify({'success': False, 'message': 'Assignation non trouvée'}), 404
+        return jsonify({'success': False, 'message': _gettext('Assignation non trouvée')}), 404
 
     try:
         db.session.delete(assignment)
         db.session.commit()
         return jsonify({
             'success': True,
-            'message': 'Découpage retiré de la classe'
+            'message': _gettext('Découpage retiré de la classe')
         })
     except Exception as e:
         db.session.rollback()
@@ -9059,12 +9059,12 @@ def update_assignment(decoupage_id, assignment_id):
     decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
 
     if not decoupage:
-        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Découpage non trouvé')}), 404
 
     assignment = DecoupageAssignment.query.filter_by(id=assignment_id, decoupage_id=decoupage_id).first()
 
     if not assignment:
-        return jsonify({'success': False, 'message': 'Assignation non trouvée'}), 404
+        return jsonify({'success': False, 'message': _gettext('Assignation non trouvée')}), 404
 
     data = request.get_json()
 
@@ -9072,16 +9072,16 @@ def update_assignment(decoupage_id, assignment_id):
         try:
             start_week = int(data['start_week'])
             if start_week < 1 or start_week > 52:
-                return jsonify({'success': False, 'message': 'Semaine invalide (1-52)'}), 400
+                return jsonify({'success': False, 'message': _gettext('Semaine invalide (1-52)')}), 400
             assignment.start_week = start_week
         except (ValueError, TypeError):
-            return jsonify({'success': False, 'message': 'Semaine invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Semaine invalide')}), 400
 
     try:
         db.session.commit()
         return jsonify({
             'success': True,
-            'message': 'Assignation mise à jour',
+            'message': _gettext('Assignation mise à jour'),
             'data': assignment.to_dict()
         })
     except Exception as e:
@@ -9100,7 +9100,7 @@ def get_classroom_decoupages(classroom_id):
     # Vérifier que la classe appartient à l'utilisateur
     classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
     if not classroom:
-        return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+        return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
 
     assignments = DecoupageAssignment.query.filter_by(classroom_id=classroom_id).all()
 
@@ -9141,12 +9141,12 @@ def add_resource():
         try:
             slot_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
         except (TypeError, ValueError):
-            return jsonify({'success': False, 'error': 'Créneau invalide'}), 400
+            return jsonify({'success': False, 'error': _gettext('Créneau invalide')}), 400
         slot_period = extract_numeric_id(data.get('period_number'))
         slot_classroom_id = extract_numeric_id(data.get('classroom_id'))
         slot_mixed_group_id = extract_numeric_id(data.get('mixed_group_id'))
         if not slot_period:
-            return jsonify({'success': False, 'error': 'Créneau invalide'}), 400
+            return jsonify({'success': False, 'error': _gettext('Créneau invalide')}), 400
         query = Planning.query.filter_by(
             user_id=current_user.id, date=slot_date, period_number=slot_period)
         if slot_classroom_id:
@@ -9170,7 +9170,7 @@ def add_resource():
     else:
         planning = Planning.query.filter_by(id=planning_id, user_id=current_user.id).first()
     if not planning:
-        return jsonify({'success': False, 'error': 'Planification introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Planification introuvable')}), 404
 
     try:
         # Déterminer l'icône en fonction du type
@@ -9201,7 +9201,7 @@ def add_resource():
 
         return jsonify({
             'success': True,
-            'message': f'Ressource "{display_name}" ajoutée',
+            'message': _gettext('Ressource "%(name)s" ajoutée', name=display_name),
             'resource_id': resource.id,
             'planning_id': planning_id
         })
@@ -9228,16 +9228,16 @@ def publish_resource():
     # Vérifier la ressource
     resource = PlanningResource.query.get(resource_id)
     if not resource:
-        return jsonify({'success': False, 'error': 'Ressource introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Ressource introuvable')}), 404
 
     # Vérifier que la planification appartient à l'utilisateur
     if resource.planning.user_id != current_user.id:
-        return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
+        return jsonify({'success': False, 'error': _gettext('Accès non autorisé')}), 403
 
     # Vérifier l'exercice
     exercise = Exercise.query.get(exercise_id)
     if not exercise or exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'error': 'Exercice introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Exercice introuvable')}), 404
 
     try:
         # Publier l'exercice (logique similaire à launch_exercise)
@@ -9275,7 +9275,7 @@ def publish_resource():
 
         result = {
             'success': True,
-            'message': f'Exercice publié en mode {mode}',
+            'message': _gettext('Exercice publié en mode combat') if mode == 'combat' else _gettext('Exercice publié en mode classique'),
             'publication_id': pub_obj.id
         }
 
@@ -9313,10 +9313,10 @@ def delete_resource():
 
     resource = PlanningResource.query.get(resource_id)
     if not resource:
-        return jsonify({'success': False, 'error': 'Ressource introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Ressource introuvable')}), 404
 
     if resource.planning.user_id != current_user.id:
-        return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
+        return jsonify({'success': False, 'error': _gettext('Accès non autorisé')}), 403
 
     try:
         # Fichier éphémère : supprimer aussi le fichier lui-même (R2 + base)
@@ -9357,7 +9357,7 @@ def update_decoupage_weeks(decoupage_id):
 
     decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
     if not decoupage:
-        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Découpage non trouvé')}), 404
 
     data = request.get_json(silent=True) or {}
     assignments = data.get('assignments') or {}
@@ -9383,7 +9383,7 @@ def update_decoupage_weeks(decoupage_id):
                     clean.append({'week': w, 'part': part})
             period.set_weeks(clean)
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Semaines enregistrées',
+        return jsonify({'success': True, 'message': _gettext('Semaines enregistrées'),
                         'data': decoupage.to_dict()})
     except Exception as e:
         db.session.rollback()
@@ -9403,10 +9403,10 @@ def upload_ephemeral_file():
     from models.planning import PlanningResource, EphemeralFile
 
     if 'file' not in request.files:
-        return jsonify({'success': False, 'error': 'Aucun fichier'}), 400
+        return jsonify({'success': False, 'error': _gettext('Aucun fichier')}), 400
     up = request.files['file']
     if not up.filename:
-        return jsonify({'success': False, 'error': 'Nom de fichier vide'}), 400
+        return jsonify({'success': False, 'error': _gettext('Nom de fichier vide')}), 400
 
     planning = None
     planning_id = extract_numeric_id(request.form.get('planning_id'))
@@ -9416,12 +9416,12 @@ def upload_ephemeral_file():
         try:
             slot_date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
         except (TypeError, ValueError):
-            return jsonify({'success': False, 'error': 'Créneau invalide'}), 400
+            return jsonify({'success': False, 'error': _gettext('Créneau invalide')}), 400
         slot_period = extract_numeric_id(request.form.get('period_number'))
         slot_classroom_id = extract_numeric_id(request.form.get('classroom_id'))
         slot_mixed_group_id = extract_numeric_id(request.form.get('mixed_group_id'))
         if not slot_period:
-            return jsonify({'success': False, 'error': 'Créneau invalide'}), 400
+            return jsonify({'success': False, 'error': _gettext('Créneau invalide')}), 400
         query = Planning.query.filter_by(
             user_id=current_user.id, date=slot_date, period_number=slot_period)
         if slot_classroom_id:
@@ -9437,14 +9437,14 @@ def upload_ephemeral_file():
             db.session.add(planning)
             db.session.flush()
     if not planning:
-        return jsonify({'success': False, 'error': 'Planification introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Planification introuvable')}), 404
 
     ext = up.filename.rsplit('.', 1)[-1].lower() if '.' in up.filename else ''
     if ext not in {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'}:
-        return jsonify({'success': False, 'error': 'Type de fichier non autorisé (PDF ou image)'}), 400
+        return jsonify({'success': False, 'error': _gettext('Type de fichier non autorisé (PDF ou image)')}), 400
     data_bytes = up.read()
     if len(data_bytes) > 50 * 1024 * 1024:
-        return jsonify({'success': False, 'error': 'Fichier trop volumineux (max 50 MB)'}), 400
+        return jsonify({'success': False, 'error': _gettext('Fichier trop volumineux (max 50 MB)')}), 400
 
     expires_on = planning.date + timedelta(days=1)
     eph = EphemeralFile(

@@ -13,7 +13,7 @@ import logging
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
-from flask_babel import lazy_gettext as _l
+from flask_babel import gettext as _gettext, lazy_gettext as _l
 from utils.http_headers import content_disposition
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ def _check_student_email_verified_session():
         session['pending_user_id'] = student.id
         session['pending_user_type'] = 'student'
         session['verification_email'] = student.email
-        flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+        flash(_gettext('Veuillez vérifier votre adresse email avant de continuer.'), 'info')
         return redirect(url_for('student_auth.verify_email_code'))
     return None
 
@@ -71,7 +71,7 @@ def check_student_email_verified():
             session['verification_email'] = current_user.email
             logout_user()
             session.pop('user_type', None)
-            flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+            flash(_gettext('Veuillez vérifier votre adresse email avant de continuer.'), 'info')
             return redirect(url_for('student_auth.verify_email_code'))
 
     # Vérification pour les routes basées sur session['student_id']
@@ -149,9 +149,9 @@ def login():
                 session['pending_user_type'] = 'student'
                 session['verification_email'] = student.email
                 if email_sent:
-                    flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                    flash(_gettext('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.'), 'info')
                 else:
-                    flash('Impossible d\'envoyer le code de vérification. Veuillez réessayer.', 'error')
+                    flash(_gettext('Impossible d\'envoyer le code de vérification. Veuillez réessayer.'), 'error')
                 return redirect(url_for('student_auth.verify_email_code'))
 
             # Mettre à jour la dernière connexion
@@ -161,10 +161,10 @@ def login():
             # Connexion de l'élève via Flask-Login
             session['user_type'] = 'student'
             login_user(student, remember=True)
-            flash('Connexion réussie !', 'success')
+            flash(_gettext('Connexion réussie !'), 'success')
             return redirect(url_for('student_auth.dashboard'))
         else:
-            flash('Email ou mot de passe incorrect.', 'error')
+            flash(_gettext('Email ou mot de passe incorrect.'), 'error')
     
     return render_template('student/login.html', form=form)
 
@@ -179,7 +179,7 @@ def register():
         code = ClassroomAccessCode.query.filter_by(code=form.access_code.data.upper()).first()
         
         if not code or not code.is_valid():
-            flash('Code d\'accès invalide ou expiré.', 'error')
+            flash(_gettext('Code d\'accès invalide ou expiré.'), 'error')
             return render_template('student/register.html', form=form)
         
         # Chercher l'élève dans la classe associée au code (par email_hash car email est chiffré)
@@ -210,7 +210,7 @@ def register():
                     break
         
         if not student:
-            flash('Aucun élève trouvé avec cet email dans cette classe. Vérifiez avec votre enseignant.', 'error')
+            flash(_gettext('Aucun élève trouvé avec cet email dans cette classe. Vérifiez avec votre enseignant.'), 'error')
             return render_template('student/register.html', form=form)
         
         # Vérifier que l'élève n'a pas déjà un compte
@@ -224,11 +224,11 @@ def register():
                     session['pending_user_id'] = student.id
                     session['pending_user_type'] = 'student'
                     session['verification_email'] = student.email
-                    flash('Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.', 'info')
+                    flash(_gettext('Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.'), 'info')
                     return redirect(url_for('student_auth.verify_email_code'))
                 except Exception:
                     pass
-            flash('Un compte existe déjà pour cet élève.', 'error')
+            flash(_gettext('Un compte existe déjà pour cet élève.'), 'error')
             return render_template('student/register.html', form=form)
         
         # Créer le compte
@@ -248,13 +248,13 @@ def register():
             session['verification_email'] = student.email
 
             if email_sent:
-                flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+                flash(_gettext('Un code de vérification a été envoyé à votre adresse email.'), 'info')
             else:
-                flash('Compte créé, mais impossible d\'envoyer le code. Veuillez réessayer.', 'error')
+                flash(_gettext('Compte créé, mais impossible d\'envoyer le code. Veuillez réessayer.'), 'error')
             return redirect(url_for('student_auth.verify_email_code'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Erreur lors de la création du compte : {str(e)}', 'error')
+            flash(_gettext('Erreur lors de la création du compte : %(error)s', error=str(e)), 'error')
 
     return render_template('student/register.html', form=form)
 
@@ -294,19 +294,19 @@ def verify_code():
                     session['pending_user_id'] = student.id
                     session['pending_user_type'] = 'student'
                     session['verification_email'] = student.email
-                    flash('Code d\'accès validé ! Veuillez maintenant vérifier votre email.', 'info')
+                    flash(_gettext('Code d\'accès validé ! Veuillez maintenant vérifier votre email.'), 'info')
                     return redirect(url_for('student_auth.verify_email_code'))
 
                 # Connexion via Flask-Login
                 session['user_type'] = 'student'
                 login_user(student, remember=True)
-                flash('Code validé avec succès !', 'success')
+                flash(_gettext('Code validé avec succès !'), 'success')
                 return redirect(url_for('student_auth.dashboard'))
             except Exception as e:
                 db.session.rollback()
-                flash(f'Erreur : {str(e)}', 'error')
+                flash(_gettext('Erreur : %(error)s', error=str(e)), 'error')
         else:
-            flash('Code invalide ou expiré.', 'error')
+            flash(_gettext('Code invalide ou expiré.'), 'error')
     
     return render_template('student/verify_code.html', form=form, student=student)
 
@@ -343,10 +343,10 @@ def verify_email_code():
             session['user_type'] = 'student'
             login_user(student, remember=True)
 
-            flash('Email vérifié avec succès ! Bienvenue.', 'success')
+            flash(_gettext('Email vérifié avec succès ! Bienvenue.'), 'success')
             return redirect(url_for('student_auth.dashboard'))
         else:
-            flash('Code invalide ou expiré.', 'error')
+            flash(_gettext('Code invalide ou expiré.'), 'error')
 
     return render_template('student/verify_email.html', email=student.email)
 
@@ -366,7 +366,7 @@ def resend_code():
     if last_sent:
         elapsed = (datetime.utcnow() - datetime.fromisoformat(last_sent)).total_seconds()
         if elapsed < 60:
-            flash(f'Veuillez attendre {int(60 - elapsed)} secondes avant de renvoyer un code.', 'error')
+            flash(_gettext('Veuillez attendre %(sec)d secondes avant de renvoyer un code.', sec=int(60 - elapsed)), 'error')
             return redirect(url_for('student_auth.verify_email_code'))
 
     verification = EmailVerification.create_verification(student.email, 'student')
@@ -376,9 +376,9 @@ def resend_code():
 
     email_sent = send_verification_code(student.email, verification.code, 'student')
     if email_sent:
-        flash('Un nouveau code a été envoyé.', 'success')
+        flash(_gettext('Un nouveau code a été envoyé.'), 'success')
     else:
-        flash('Impossible d\'envoyer le code. Veuillez réessayer.', 'error')
+        flash(_gettext('Impossible d\'envoyer le code. Veuillez réessayer.'), 'error')
     return redirect(url_for('student_auth.verify_email_code'))
 
 @student_auth_bp.route('/dashboard')
@@ -406,7 +406,7 @@ def dashboard():
         session['verification_email'] = student.email
         logout_user()
         session.pop('user_type', None)
-        flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+        flash(_gettext('Veuillez vérifier votre adresse email avant de continuer.'), 'info')
         return redirect(url_for('student_auth.verify_email_code'))
     
     # Récupérer toutes les copies de l'élève dans les classes dérivées
@@ -498,7 +498,7 @@ def logout():
     """Déconnexion de l'élève"""
     logout_user()
     session.pop('user_type', None)
-    flash('Vous avez été déconnecté.', 'info')
+    flash(_gettext('Vous avez été déconnecté.'), 'info')
     return redirect(url_for('student_auth.login'))
 
 @student_auth_bp.route('/grades')
@@ -663,7 +663,7 @@ def download_file(file_id):
         ).first()
         
         if not file_share:
-            flash('Fichier introuvable ou non autorisé.', 'error')
+            flash(_gettext('Fichier introuvable ou non autorisé.'), 'error')
             return redirect(url_for('student_auth.files'))
         
         share, class_file = file_share
@@ -672,7 +672,7 @@ def download_file(file_id):
         share.mark_as_viewed()
 
         if not class_file.user_file:
-            flash('Fichier source introuvable.', 'error')
+            flash(_gettext('Fichier source introuvable.'), 'error')
             return redirect(url_for('student_auth.files'))
 
         user_file = class_file.user_file
@@ -693,7 +693,7 @@ def download_file(file_id):
         file_path = os.path.join(current_app.root_path, user_file.get_file_path())
 
         if not os.path.exists(file_path):
-            flash('Fichier physique introuvable.', 'error')
+            flash(_gettext('Fichier physique introuvable.'), 'error')
             return redirect(url_for('student_auth.files'))
 
         return send_file(
@@ -703,7 +703,7 @@ def download_file(file_id):
         )
 
     except Exception as e:
-        flash(f'Erreur lors du téléchargement: {str(e)}', 'error')
+        flash(_gettext('Erreur lors du téléchargement: %(error)s', error=str(e)), 'error')
         return redirect(url_for('student_auth.files'))
 
 @student_auth_bp.route('/preview/<int:file_id>')
@@ -753,7 +753,7 @@ def preview_file(file_id):
         ).first()
 
         if not file_share:
-            flash('Fichier introuvable ou non autorisé.', 'error')
+            flash(_gettext('Fichier introuvable ou non autorisé.'), 'error')
             return redirect(url_for('student_auth.files'))
 
         share, class_file = file_share
@@ -762,7 +762,7 @@ def preview_file(file_id):
         share.mark_as_viewed()
 
         if not class_file.user_file:
-            flash('Fichier source introuvable.', 'error')
+            flash(_gettext('Fichier source introuvable.'), 'error')
             return redirect(url_for('student_auth.files'))
 
         user_file = class_file.user_file
@@ -783,14 +783,14 @@ def preview_file(file_id):
         file_path = os.path.join(current_app.root_path, user_file.get_file_path())
 
         if not os.path.exists(file_path):
-            flash('Fichier physique introuvable.', 'error')
+            flash(_gettext('Fichier physique introuvable.'), 'error')
             return redirect(url_for('student_auth.files'))
 
         # Envoyer le fichier pour affichage dans le navigateur (pas en téléchargement)
         return send_file(file_path, mimetype=mimetype)
         
     except Exception as e:
-        flash(f'Erreur lors de la prévisualisation: {str(e)}', 'error')
+        flash(_gettext('Erreur lors de la prévisualisation: %(error)s', error=str(e)), 'error')
         return redirect(url_for('student_auth.files'))
 
 @student_auth_bp.route('/teachers')
@@ -845,7 +845,7 @@ def teachers():
         return render_template('student/teachers.html', student=student, teachers=teachers_list)
         
     except Exception as e:
-        flash(f'Erreur lors du chargement des enseignants: {str(e)}', 'error')
+        flash(_gettext('Erreur lors du chargement des enseignants: %(error)s', error=str(e)), 'error')
         return redirect(url_for('student_auth.dashboard'))
 
 
@@ -945,7 +945,7 @@ def solve_exercise(exercise_id):
         classroom_id=student.classroom_id
     ).first()
     if not pub:
-        flash('Exercice non disponible.', 'error')
+        flash(_gettext('Exercice non disponible.'), 'error')
         return redirect(url_for('student_auth.missions'))
 
     # Vérifier si déjà complété
@@ -963,7 +963,7 @@ def solve_exercise(exercise_id):
             remaining = int(24 * 3600 - elapsed)
             hours = remaining // 3600
             minutes = (remaining % 3600) // 60
-            flash(f'Tu dois attendre encore {hours}h{minutes:02d} avant de refaire cette mission !', 'warning')
+            flash(_gettext('Tu dois attendre encore %(hours)sh%(minutes)02d avant de refaire cette mission !', hours=hours, minutes=minutes), 'warning')
             return redirect(url_for('student_auth.missions'))
 
     return render_template('student/exercise_solve.html',
@@ -979,21 +979,21 @@ def solve_exercise(exercise_id):
 def check_block_answer(exercise_id):
     """Vérifier la réponse d'un seul bloc (feedback immédiat)"""
     if not isinstance(current_user, Student):
-        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Non autorisé')}), 403
 
     from models.exercise import Exercise, ExerciseBlock
 
     exercise = Exercise.query.get_or_404(exercise_id)
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+        return jsonify({'success': False, 'message': _gettext('Données manquantes')}), 400
 
     block_id = data.get('block_id')
     answer = data.get('answer', {})
 
     block = ExerciseBlock.query.get(block_id)
     if not block or block.exercise_id != exercise.id:
-        return jsonify({'success': False, 'message': 'Bloc non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Bloc non trouvé')}), 404
 
     accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
     is_correct, points_earned = grade_block(block, answer, accept_typos=accept_typos)
@@ -1021,7 +1021,7 @@ def api_version():
 def submit_exercise(exercise_id):
     """Soumettre les réponses d'un exercice"""
     if not isinstance(current_user, Student):
-        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Non autorisé')}), 403
 
     student = current_user
     from models.exercise import Exercise, ExerciseBlock
@@ -1030,7 +1030,7 @@ def submit_exercise(exercise_id):
 
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+        return jsonify({'success': False, 'message': _gettext('Données manquantes')}), 400
 
     exercise = Exercise.query.get_or_404(exercise_id)
 
@@ -1040,7 +1040,7 @@ def submit_exercise(exercise_id):
         classroom_id=student.classroom_id
     ).first()
     if not pub:
-        return jsonify({'success': False, 'message': 'Exercice non disponible'}), 403
+        return jsonify({'success': False, 'message': _gettext('Exercice non disponible')}), 403
 
     try:
         # Créer la tentative
@@ -1199,7 +1199,7 @@ def update_avatar():
                     return jsonify({
                         'success': False,
                         'needs_confirmation': True,
-                        'message': 'Changer de classe réinitialisera ton niveau, équipement et or.',
+                        'message': _gettext('Changer de classe réinitialisera ton niveau, équipement et or.'),
                     })
                 rpg.reset_for_class_change()
             rpg.avatar_class = new_class
@@ -1797,38 +1797,38 @@ def submit_devoir(devoir_id):
     from services.r2_storage import upload_file_to_r2, delete_file_from_r2, is_r2_enabled
 
     if not isinstance(current_user, Student):
-        return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'error': _gettext('Non autorisé')}), 403
     student = current_user
 
     devoir = Devoir.query.get(devoir_id)
     if not devoir or devoir.devoir_type != 'submission':
-        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Devoir introuvable')}), 404
     if devoir.classroom_id not in _student_group_classroom_ids(student):
-        return jsonify({'success': False, 'error': 'Ce devoir ne vous concerne pas'}), 403
+        return jsonify({'success': False, 'error': _gettext('Ce devoir ne vous concerne pas')}), 403
 
     files = [f for f in request.files.getlist('photos') if f and f.filename]
     if not files:
-        return jsonify({'success': False, 'error': 'Aucune photo envoyée'}), 400
+        return jsonify({'success': False, 'error': _gettext('Aucune photo envoyée')}), 400
 
     # Photos -> un seul PDF (pour annotation par le prof au lecteur PDF)
     try:
         images = [Image.open(f.stream).convert('RGB') for f in files[:20]]
         if not images:
-            return jsonify({'success': False, 'error': 'Images illisibles'}), 400
+            return jsonify({'success': False, 'error': _gettext('Images illisibles')}), 400
         buf = io.BytesIO()
         images[0].save(buf, format='PDF', save_all=True, append_images=images[1:])
         pdf_bytes = buf.getvalue()
     except Exception:
-        return jsonify({'success': False, 'error': "Impossible de traiter les photos"}), 400
+        return jsonify({'success': False, 'error': _gettext("Impossible de traiter les photos")}), 400
 
     if not is_r2_enabled():
-        return jsonify({'success': False, 'error': 'Stockage indisponible'}), 503
+        return jsonify({'success': False, 'error': _gettext('Stockage indisponible')}), 503
 
     # Stocké sous l'espace de l'enseignant -> il pourra le récupérer/annoter.
     teacher_id = devoir.user_id
     filename = f"devoir{devoir_id}_eleve{student.id}_{uuid.uuid4().hex[:8]}.pdf"
     if not upload_file_to_r2(pdf_bytes, teacher_id, filename, 'application/pdf'):
-        return jsonify({'success': False, 'error': "Échec de l'envoi"}), 500
+        return jsonify({'success': False, 'error': _gettext("Échec de l'envoi")}), 500
 
     sub = DevoirSubmission.query.filter_by(devoir_id=devoir_id, student_id=student.id).first()
     if sub:

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Gestion des pauses - ProfCalendar{% endblock %}
+{% block title %}{{ _('Gestion des pauses') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -184,18 +184,18 @@
     <!-- Information -->
     <div class="info-box">
         <i class="fas fa-info-circle"></i>
-        <p>Définissez vos grandes pauses (comme la pause de midi). Si une période se termine au début d'une grande pause, la pause intercours ne sera pas comptée.</p>
+        <p>{{ _("Définissez vos grandes pauses (comme la pause de midi). Si une période se termine au début d'une grande pause, la pause intercours ne sera pas comptée.") }}</p>
     </div>
 
     <!-- Formulaire d'ajout de pause -->
     <div class="add-classroom-section">
-        <h2><i class="fas fa-coffee"></i> Ajouter une pause</h2>
+        <h2><i class="fas fa-coffee"></i> {{ _('Ajouter une pause') }}</h2>
         <form method="POST" action="{{ url_for('setup.manage_breaks') }}">
             {{ form.hidden_tag() }}
 
             <div class="form-group">
                 {{ form.name.label(class="form-label") }}
-                {{ form.name(class="form-control", placeholder="Ex: Pause de midi") }}
+                {{ form.name(class="form-control", placeholder=_('Ex: Pause de midi')) }}
                 {% if form.name.errors %}
                     <div class="form-error">
                         {% for error in form.name.errors %}
@@ -206,10 +206,10 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">Horaire de la pause</label>
+                <label class="form-label">{{ _('Horaire de la pause') }}</label>
                 <div class="time-input-wrapper">
                     {{ form.start_time(class="form-control", type="time") }}
-                    <span class="time-separator">à</span>
+                    <span class="time-separator">{{ _('à') }}</span>
                     {{ form.end_time(class="form-control", type="time") }}
                 </div>
                 {% if form.start_time.errors %}
@@ -234,14 +234,14 @@
             </div>
 
             <button type="submit" class="btn btn-primary" style="margin-top: 1.5rem;">
-                <i class="fas fa-plus"></i> Ajouter la pause
+                <i class="fas fa-plus"></i> {{ _('Ajouter la pause') }}
             </button>
         </form>
     </div>
 
     <!-- Liste des pauses -->
     <div class="classrooms-list">
-        <h2><i class="fas fa-mug-hot"></i> Mes pauses</h2>
+        <h2><i class="fas fa-mug-hot"></i> {{ _('Mes pauses') }}</h2>
 
         {% if breaks %}
             {% for break in breaks %}
@@ -254,15 +254,15 @@
                         <h3>
                             {{ break.name }}
                             {% if break.is_major_break %}
-                            <span class="major-break-badge">Grande pause</span>
+                            <span class="major-break-badge">{{ _('Grande pause') }}</span>
                             {% endif %}
                         </h3>
-                        <p>De {{ break.start_time.strftime('%H:%M') }} à {{ break.end_time.strftime('%H:%M') }}</p>
+                        <p>{{ _('De %(start)s à %(end)s', start=break.start_time.strftime('%H:%M'), end=break.end_time.strftime('%H:%M')) }}</p>
                     </div>
                 </div>
 
                 <form method="POST" action="{{ url_for('setup.delete_break', id=break.id) }}" style="margin: 0;">
-                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette pause ?');">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick='return confirm({{ _("Êtes-vous sûr de vouloir supprimer cette pause ?")|tojson }});'>
                         <i class="fas fa-trash"></i>
                     </button>
                 </form>
@@ -271,8 +271,8 @@
         {% else %}
             <div class="empty-state">
                 <i class="fas fa-coffee"></i>
-                <p>Aucune pause ajoutée.</p>
-                <p>Vous pouvez passer cette étape si vous n'avez pas de grandes pauses.</p>
+                <p>{{ _('Aucune pause ajoutée.') }}</p>
+                <p>{{ _("Vous pouvez passer cette étape si vous n'avez pas de grandes pauses.") }}</p>
             </div>
         {% endif %}
     </div>
@@ -280,11 +280,11 @@
     <!-- Boutons de navigation -->
     <div class="action-buttons" style="margin-top: 2rem;">
         <a href="{{ url_for('settings.index') }}" class="btn btn-outline">
-            <i class="fas fa-arrow-left"></i> Retour aux paramètres
+            <i class="fas fa-arrow-left"></i> {{ _('Retour aux paramètres') }}
         </a>
 
         <a href="{{ url_for('planning.dashboard') }}" class="btn btn-primary">
-            <i class="fas fa-home"></i> Tableau de bord
+            <i class="fas fa-home"></i> {{ _('Tableau de bord') }}
         </a>
     </div>
 </div>

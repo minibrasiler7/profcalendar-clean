@@ -13,6 +13,8 @@
  *
  * Point d'entrée : window.pcTutorial.open()  — window.pcTutorial.play(i)
  */
+// Traductions : pcT(texte FR) est défini dans base.html ; repli si absent.
+if (typeof window.pcT !== 'function') { window.pcT = function (s, v) { return v ? String(s).replace(/\{(\w+)\}/g, function (m, k) { return (k in v) ? String(v[k]) : m; }) : s; }; }
 (function () {
     'use strict';
 
@@ -121,13 +123,13 @@
             const chapters = this.chapters;
             const doneCount = chapters.filter(c => this.done[c.id]).length;
             this.dialog.innerHTML = `
-                <div class="pt-menu" role="dialog" aria-label="Tutoriel">
+                <div class="pt-menu" role="dialog" aria-label="${pcT('Tutoriel')}">
                     <div class="pt-menu-head">
                         <div>
-                            <h2>Bienvenue sur ProfCalendar</h2>
-                            <p>Choisis un tutoriel : l'écran te montre comment faire, tout seul.</p>
+                            <h2>${pcT('Bienvenue sur ProfCalendar')}</h2>
+                            <p>${pcT('Choisissez un tutoriel : l\'écran vous montre comment faire, tout seul.')}</p>
                         </div>
-                        <button type="button" class="pt-menu-close" title="Fermer" aria-label="Fermer">&times;</button>
+                        <button type="button" class="pt-menu-close" title="${pcT('Fermer')}" aria-label="${pcT('Fermer')}">&times;</button>
                     </div>
                     <div class="pt-menu-grid">
                         ${chapters.map((c, i) => `
@@ -138,19 +140,19 @@
                                     <h3>${esc(c.title)}</h3>
                                     <p>${esc(c.desc)}</p>
                                     <span class="pt-chap-meta">
-                                        ${c.reco ? '<span class="pt-badge reco">Recommandé</span>' : ''}
-                                        ${c.id === this.suggested ? '<span class="pt-badge page"><i class="fas fa-location-arrow"></i> Cette page</span>' : ''}
-                                        ${this.done[c.id] ? '<span class="pt-badge done"><i class="fas fa-check"></i> Vu</span>' : ''}
+                                        ${c.reco ? '<span class="pt-badge reco">' + pcT('Recommandé') + '</span>' : ''}
+                                        ${c.id === this.suggested ? '<span class="pt-badge page"><i class="fas fa-location-arrow"></i> ' + pcT('Cette page') + '</span>' : ''}
+                                        ${this.done[c.id] ? '<span class="pt-badge done"><i class="fas fa-check"></i> ' + pcT('Vu') + '</span>' : ''}
                                         <span><i class="far fa-clock"></i> ≈ ${c.seconds >= 60 ? Math.floor(c.seconds / 60) + ' min' + (c.seconds % 60 ? ' ' + (c.seconds % 60) : '') : c.seconds + ' s'}</span>
                                     </span>
                                 </span>
                             </button>`).join('')}
                     </div>
                     <div class="pt-menu-foot">
-                        <small>${doneCount}/${chapters.length} chapitres vus · tu retrouves ce menu dans ton profil, « Revoir le tutoriel ».</small>
+                        <small>${pcT('{done}/{total} chapitres vus · vous retrouvez ce menu dans votre profil, « Revoir le tutoriel ».', { done: doneCount, total: chapters.length })}</small>
                         <div style="display:flex;gap:8px;">
-                            <button type="button" class="pt-btn" data-act="later">Plus tard</button>
-                            <button type="button" class="pt-btn primary" data-act="start"><i class="fas fa-play"></i> Commencer</button>
+                            <button type="button" class="pt-btn" data-act="later">${pcT('Plus tard')}</button>
+                            <button type="button" class="pt-btn primary" data-act="start"><i class="fas fa-play"></i> ${pcT('Commencer')}</button>
                         </div>
                     </div>
                 </div>`;
@@ -178,12 +180,12 @@
                     <div class="pt-topbar">
                         <div class="pt-title"><span class="n">${i + 1}/${this.chapters.length}</span> <span class="t">${esc(c.title)}</span></div>
                         <div class="pt-actions">
-                            <button type="button" class="pt-ib pt-speed" data-act="speed" title="Vitesse de lecture">×1</button>
-                            <button type="button" class="pt-ib" data-act="pause" title="Pause"><i class="fas fa-pause"></i></button>
-                            <button type="button" class="pt-ib" data-act="replay" title="Rejouer ce chapitre"><i class="fas fa-redo"></i></button>
-                            <button type="button" class="pt-ib" data-act="next" title="Chapitre suivant"><i class="fas fa-forward"></i></button>
-                            <button type="button" class="pt-ib" data-act="menu" title="Tous les chapitres"><i class="fas fa-th-large"></i></button>
-                            <button type="button" class="pt-ib" data-act="close" title="Fermer"><i class="fas fa-times"></i></button>
+                            <button type="button" class="pt-ib pt-speed" data-act="speed" title="${pcT('Vitesse de lecture')}">×1</button>
+                            <button type="button" class="pt-ib" data-act="pause" title="${pcT('Mettre en pause')}"><i class="fas fa-pause"></i></button>
+                            <button type="button" class="pt-ib" data-act="replay" title="${pcT('Rejouer ce chapitre')}"><i class="fas fa-redo"></i></button>
+                            <button type="button" class="pt-ib" data-act="next" title="${pcT('Chapitre suivant')}"><i class="fas fa-forward"></i></button>
+                            <button type="button" class="pt-ib" data-act="menu" title="${pcT('Tous les chapitres')}"><i class="fas fa-th-large"></i></button>
+                            <button type="button" class="pt-ib" data-act="close" title="${pcT('Fermer')}"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
                     <div class="pt-frame">
@@ -232,7 +234,7 @@
         renderSpeed(btn) {
             const s = this.speed;
             btn.textContent = s < 1 ? '×0.7' : (s > 1 ? '×1.5' : '×1');
-            btn.title = s < 1 ? 'Plus lent (cliquer pour changer)' : (s > 1 ? 'Plus rapide (cliquer pour changer)' : 'Vitesse normale (cliquer pour changer)');
+            btn.title = s < 1 ? pcT('Plus lent (cliquer pour changer)') : (s > 1 ? pcT('Plus rapide (cliquer pour changer)') : pcT('Vitesse normale (cliquer pour changer)'));
         }
         cycleSpeed(btn) {
             const order = [1, 0.7, 1.5];
@@ -269,7 +271,7 @@
         togglePause(btn) {
             this.paused = !this.paused;
             btn.innerHTML = this.paused ? '<i class="fas fa-play"></i>' : '<i class="fas fa-pause"></i>';
-            btn.title = this.paused ? 'Reprendre' : 'Pause';
+            btn.title = this.paused ? pcT('Reprendre') : pcT('Mettre en pause');
         }
 
         stop() {
@@ -310,12 +312,12 @@
             end.innerHTML = `
                 <div class="pt-end-card">
                     <div class="ok"><i class="fas ${failed ? 'fa-exclamation' : 'fa-check'}"></i></div>
-                    <h3>${failed ? 'Oups, ce chapitre s\'est interrompu' : 'Chapitre terminé'}</h3>
-                    <p>${last ? 'Tu as fait le tour. Bon enseignement !' : 'On continue ?'}</p>
+                    <h3>${failed ? pcT('Oups, ce chapitre s\'est interrompu') : pcT('Chapitre terminé')}</h3>
+                    <p>${last ? pcT('Vous avez fait le tour. Bon enseignement !') : pcT('On continue ?')}</p>
                     <div class="row">
-                        <button type="button" class="pt-btn" data-act="replay"><i class="fas fa-redo"></i> Rejouer</button>
-                        <button type="button" class="pt-btn" data-act="menu"><i class="fas fa-th-large"></i> Menu</button>
-                        ${last ? '' : '<button type="button" class="pt-btn primary" data-act="next">Chapitre suivant <i class="fas fa-arrow-right"></i></button>'}
+                        <button type="button" class="pt-btn" data-act="replay"><i class="fas fa-redo"></i> ${pcT('Rejouer')}</button>
+                        <button type="button" class="pt-btn" data-act="menu"><i class="fas fa-th-large"></i> ${pcT('Menu')}</button>
+                        ${last ? '' : '<button type="button" class="pt-btn primary" data-act="next">' + pcT('Chapitre suivant') + ' <i class="fas fa-arrow-right"></i></button>'}
                     </div>
                 </div>`;
             end.querySelector('[data-act="replay"]').onclick = () => this.play(i);

@@ -4,6 +4,7 @@ Blueprint : /api/v1/
 """
 
 from flask import Blueprint, request, jsonify, current_app, send_file
+from flask_babel import gettext as _gettext
 from extensions import db
 from functools import wraps
 from datetime import datetime, timedelta
@@ -46,13 +47,13 @@ def jwt_required(user_type=None):
         def wrapper(*args, **kwargs):
             auth_header = request.headers.get('Authorization', '')
             if not auth_header.startswith('Bearer '):
-                return jsonify({'error': 'Token manquant'}), 401
+                return jsonify({'error': _gettext('Token manquant')}), 401
             token = auth_header.split(' ', 1)[1]
             payload = decode_token(token)
             if payload is None:
-                return jsonify({'error': 'Token invalide ou expiré'}), 401
+                return jsonify({'error': _gettext('Token invalide ou expiré')}), 401
             if user_type and payload.get('user_type') != user_type:
-                return jsonify({'error': 'Accès non autorisé'}), 403
+                return jsonify({'error': _gettext('Accès non autorisé')}), 403
             request.jwt_payload = payload
             return f(*args, **kwargs)
         return wrapper
@@ -103,7 +104,7 @@ def student_login():
     password = data.get('password', '').strip()
 
     if not email or not password:
-        return jsonify({'error': 'Email et mot de passe requis'}), 400
+        return jsonify({'error': _gettext('Email et mot de passe requis')}), 400
 
     from utils.encryption import encryption_engine
     from models.student import Student
@@ -125,13 +126,13 @@ def student_login():
                 break
 
     if not student or not student.password_hash:
-        return jsonify({'error': 'Email ou mot de passe incorrect'}), 401
+        return jsonify({'error': _gettext('Email ou mot de passe incorrect')}), 401
 
     if not check_password_hash(student.password_hash, password):
-        return jsonify({'error': 'Email ou mot de passe incorrect'}), 401
+        return jsonify({'error': _gettext('Email ou mot de passe incorrect')}), 401
 
     if not student.is_authenticated:
-        return jsonify({'error': 'Compte non activé. Validez votre code d\'accès via le site web.'}), 403
+        return jsonify({'error': _gettext("Compte non activé. Validez votre code d'accès via le site web.")}), 403
 
     if not student.email_verified:
         # Envoyer un nouveau code de vérification
@@ -141,7 +142,7 @@ def student_login():
         db.session.commit()
         send_verification_code(student.email, verification.code, 'student')
         return jsonify({
-            'error': 'Email non vérifié',
+            'error': _gettext('Email non vérifié'),
             'needs_verification': True,
             'student_id': student.id
         }), 403
@@ -171,9 +172,9 @@ def student_register():
     access_code = data.get('access_code', '').strip().upper()
 
     if not email or not password or not access_code:
-        return jsonify({'error': 'Email, mot de passe et code d\'accès requis'}), 400
+        return jsonify({'error': _gettext("Email, mot de passe et code d'accès requis")}), 400
     if len(password) < 8:
-        return jsonify({'error': 'Le mot de passe doit contenir au moins 8 caractères'}), 400
+        return jsonify({'error': _gettext('Le mot de passe doit contenir au moins 8 caractères')}), 400
 
     from models.classroom_access_code import ClassroomAccessCode
     from models.student import Student
@@ -182,7 +183,7 @@ def student_register():
 
     code = ClassroomAccessCode.query.filter_by(code=access_code).first()
     if not code or not code.is_valid():
-        return jsonify({'error': 'Code d\'accès invalide ou expiré'}), 400
+        return jsonify({'error': _gettext("Code d'accès invalide ou expiré")}), 400
 
     email_hash = encryption_engine.hash_email(email)
 
@@ -203,7 +204,7 @@ def student_register():
                 break
 
     if not student:
-        return jsonify({'error': 'Aucun élève trouvé avec cet email dans cette classe.'}), 404
+        return jsonify({'error': _gettext('Aucun élève trouvé avec cet email dans cette classe.')}), 404
 
     if student.password_hash:
         # Si l'email n'est pas vérifié, renvoyer un code et rediriger vers vérification
@@ -216,13 +217,13 @@ def student_register():
                 send_verification_code(student.email, verification.code, 'student')
                 return jsonify({
                     'success': True,
-                    'message': 'Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.',
+                    'message': _gettext("Un compte existe déjà mais l'email n'est pas vérifié. Un nouveau code vous a été envoyé."),
                     'needs_verification': True,
                     'student_id': student.id
                 })
             except Exception:
                 pass
-        return jsonify({'error': 'Un compte existe déjà pour cet élève.'}), 409
+        return jsonify({'error': _gettext('Un compte existe déjà pour cet élève.')}), 409
 
     student.password_hash = generate_password_hash(password)
     student.is_authenticated = True
@@ -236,13 +237,13 @@ def student_register():
 
         return jsonify({
             'success': True,
-            'message': 'Compte créé. Un code de vérification a été envoyé par email.',
+            'message': _gettext('Compte créé. Un code de vérification a été envoyé par email.'),
             'needs_verification': True,
             'student_id': student.id
         })
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': 'Erreur lors de la création du compte'}), 500
+        return jsonify({'error': _gettext('Erreur lors de la création du compte')}), 500
 
 
 @api_bp.route('/auth/student/verify-email', methods=['POST'])
@@ -253,14 +254,14 @@ def student_verify_email():
     code = data.get('code', '').strip()
 
     if not student_id or not code:
-        return jsonify({'error': 'ID élève et code requis'}), 400
+        return jsonify({'error': _gettext('ID élève et code requis')}), 400
 
     from models.student import Student
     from models.email_verification import EmailVerification
 
     student = Student.query.get(student_id)
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     verification = EmailVerification.query.filter_by(
         email=student.email,
@@ -270,7 +271,7 @@ def student_verify_email():
     ).first()
 
     if not verification or not verification.is_valid():
-        return jsonify({'error': 'Code invalide ou expiré'}), 400
+        return jsonify({'error': _gettext('Code invalide ou expiré')}), 400
 
     verification.is_used = True
     student.email_verified = True
@@ -296,7 +297,7 @@ def student_resend_code():
     data = request.get_json(silent=True) or {}
     student_id = data.get('student_id')
     if not student_id:
-        return jsonify({'error': 'ID élève requis'}), 400
+        return jsonify({'error': _gettext('ID élève requis')}), 400
 
     from models.student import Student
     from models.email_verification import EmailVerification
@@ -304,20 +305,20 @@ def student_resend_code():
 
     student = Student.query.get(student_id)
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     last = EmailVerification.query.filter_by(
         email=student.email, user_type='student'
     ).order_by(EmailVerification.created_at.desc()).first()
 
     if last and (datetime.utcnow() - last.created_at) < timedelta(minutes=1):
-        return jsonify({'error': 'Veuillez attendre 1 minute avant de renvoyer un code.'}), 429
+        return jsonify({'error': _gettext('Veuillez attendre 1 minute avant de renvoyer un code.')}), 429
 
     verification = EmailVerification.create_verification(student.email, 'student')
     db.session.commit()
     email_sent = send_verification_code(student.email, verification.code, 'student')
 
-    return jsonify({'success': email_sent, 'message': 'Code envoyé' if email_sent else 'Échec d\'envoi'})
+    return jsonify({'success': email_sent, 'message': _gettext('Code envoyé') if email_sent else _gettext("Échec d'envoi")})
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -332,7 +333,7 @@ def parent_login():
     password = data.get('password', '').strip()
 
     if not email or not password:
-        return jsonify({'error': 'Email et mot de passe requis'}), 400
+        return jsonify({'error': _gettext('Email et mot de passe requis')}), 400
 
     from utils.encryption import encryption_engine
     from models.parent import Parent
@@ -353,7 +354,7 @@ def parent_login():
                 break
 
     if not parent or not parent.check_password(password):
-        return jsonify({'error': 'Email ou mot de passe incorrect'}), 401
+        return jsonify({'error': _gettext('Email ou mot de passe incorrect')}), 401
 
     if not parent.email_verified:
         from models.email_verification import EmailVerification
@@ -362,7 +363,7 @@ def parent_login():
         db.session.commit()
         send_verification_code(email, verification.code, 'parent')
         return jsonify({
-            'error': 'Email non vérifié',
+            'error': _gettext('Email non vérifié'),
             'needs_verification': True,
             'parent_id': parent.id
         }), 403
@@ -393,13 +394,13 @@ def parent_register():
     last_name = data.get('last_name', '').strip()
 
     if not email or not password:
-        return jsonify({'error': 'Email et mot de passe requis'}), 400
+        return jsonify({'error': _gettext('Email et mot de passe requis')}), 400
     if len(password) < 6:
-        return jsonify({'error': 'Le mot de passe doit contenir au moins 8 caractères (avec une majuscule et un chiffre)'}), 400
+        return jsonify({'error': _gettext('Le mot de passe doit contenir au moins 8 caractères (avec une majuscule et un chiffre)')}), 400
 
     import re
     if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-        return jsonify({'error': 'Format d\'email invalide'}), 400
+        return jsonify({'error': _gettext("Format d'email invalide")}), 400
 
     from utils.encryption import encryption_engine
     from models.parent import Parent
@@ -416,13 +417,13 @@ def parent_register():
                 send_verification_code(email, verification.code, 'parent')
                 return jsonify({
                     'success': True,
-                    'message': 'Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.',
+                    'message': _gettext("Un compte existe déjà mais l'email n'est pas vérifié. Un nouveau code vous a été envoyé."),
                     'needs_verification': True,
                     'parent_id': existing_parent.id
                 })
             except Exception:
                 pass
-        return jsonify({'error': 'Un compte avec cet email existe déjà'}), 409
+        return jsonify({'error': _gettext('Un compte avec cet email existe déjà')}), 409
 
     try:
         parent = Parent(email=email, first_name=first_name, last_name=last_name)
@@ -438,13 +439,13 @@ def parent_register():
 
         return jsonify({
             'success': True,
-            'message': 'Compte créé. Un code de vérification a été envoyé.',
+            'message': _gettext('Compte créé. Un code de vérification a été envoyé.'),
             'needs_verification': True,
             'parent_id': parent.id
         })
     except Exception:
         db.session.rollback()
-        return jsonify({'error': 'Erreur lors de la création du compte'}), 500
+        return jsonify({'error': _gettext('Erreur lors de la création du compte')}), 500
 
 
 @api_bp.route('/auth/parent/verify-email', methods=['POST'])
@@ -455,14 +456,14 @@ def parent_verify_email():
     code = data.get('code', '').strip()
 
     if not parent_id or not code:
-        return jsonify({'error': 'ID parent et code requis'}), 400
+        return jsonify({'error': _gettext('ID parent et code requis')}), 400
 
     from models.parent import Parent
     from models.email_verification import EmailVerification
 
     parent = Parent.query.get(parent_id)
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     verification = EmailVerification.query.filter_by(
         email=parent.email,
@@ -472,7 +473,7 @@ def parent_verify_email():
     ).first()
 
     if not verification or not verification.is_valid():
-        return jsonify({'error': 'Code invalide ou expiré'}), 400
+        return jsonify({'error': _gettext('Code invalide ou expiré')}), 400
 
     verification.is_used = True
     parent.email_verified = True
@@ -498,7 +499,7 @@ def parent_resend_code():
     data = request.get_json(silent=True) or {}
     parent_id = data.get('parent_id')
     if not parent_id:
-        return jsonify({'error': 'ID parent requis'}), 400
+        return jsonify({'error': _gettext('ID parent requis')}), 400
 
     from models.parent import Parent
     from models.email_verification import EmailVerification
@@ -506,20 +507,20 @@ def parent_resend_code():
 
     parent = Parent.query.get(parent_id)
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     last = EmailVerification.query.filter_by(
         email=parent.email, user_type='parent'
     ).order_by(EmailVerification.created_at.desc()).first()
 
     if last and (datetime.utcnow() - last.created_at) < timedelta(minutes=1):
-        return jsonify({'error': 'Veuillez attendre 1 minute.'}), 429
+        return jsonify({'error': _gettext('Veuillez attendre 1 minute.')}), 429
 
     verification = EmailVerification.create_verification(parent.email, 'parent')
     db.session.commit()
     email_sent = send_verification_code(parent.email, verification.code, 'parent')
 
-    return jsonify({'success': email_sent, 'message': 'Code envoyé' if email_sent else 'Échec d\'envoi'})
+    return jsonify({'success': email_sent, 'message': _gettext('Code envoyé') if email_sent else _gettext("Échec d'envoi")})
 
 
 @api_bp.route('/auth/parent/link-child', methods=['POST'])
@@ -528,26 +529,26 @@ def parent_link_child():
     """Lier un parent à un enseignant/classe via teacher_name + class_code."""
     parent = _get_current_parent()
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     data = request.get_json(silent=True) or {}
     teacher_name = data.get('teacher_name', '').strip()
     class_code = data.get('class_code', '').strip().upper()
 
     if not teacher_name or not class_code:
-        return jsonify({'error': 'Nom de l\'enseignant et code de classe requis'}), 400
+        return jsonify({'error': _gettext("Nom de l'enseignant et code de classe requis")}), 400
 
     from models.parent import ClassCode, ParentChild
     from models.student import Student
 
     code_obj = ClassCode.query.filter_by(code=class_code, is_active=True).first()
     if not code_obj:
-        return jsonify({'error': 'Code de classe introuvable'}), 404
+        return jsonify({'error': _gettext('Code de classe introuvable')}), 404
 
     teacher = code_obj.user
     tname = teacher_name.lower()
     if tname != teacher.username.lower() and tname != teacher.email.lower():
-        return jsonify({'error': f'Le nom de l\'enseignant ne correspond pas.'}), 400
+        return jsonify({'error': _gettext("Le nom de l'enseignant ne correspond pas.")}), 400
 
     # Première liaison : définir le teacher_id
     if not parent.teacher_id:
@@ -564,7 +565,8 @@ def parent_link_child():
 
     db.session.commit()
 
-    msg = f'{children_linked} enfant(s) trouvé(s) et lié(s).' if children_linked > 0 else 'Aucun enfant trouvé avec votre email dans cette classe.'
+    msg = (_gettext('%(count)s enfant(s) trouvé(s) et lié(s).', count=children_linked) if children_linked > 0
+           else _gettext('Aucun enfant trouvé avec votre email dans cette classe.'))
 
     return jsonify({'success': True, 'message': msg, 'children_linked': children_linked})
 
@@ -578,12 +580,12 @@ def student_delete_account():
     from werkzeug.security import check_password_hash
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Compte introuvable'}), 404
+        return jsonify({'error': _gettext('Compte introuvable')}), 404
 
     data = request.get_json(silent=True) or {}
     password = data.get('password', '')
     if not student.password_hash or not check_password_hash(student.password_hash, password):
-        return jsonify({'error': 'Mot de passe incorrect'}), 403
+        return jsonify({'error': _gettext('Mot de passe incorrect')}), 403
 
     student.email = None
     student.email_hash = None
@@ -593,7 +595,7 @@ def student_delete_account():
     student.last_login = None
     db.session.commit()
 
-    return jsonify({'success': True, 'message': 'Votre compte a été supprimé.'}), 200
+    return jsonify({'success': True, 'message': _gettext('Votre compte a été supprimé.')}), 200
 
 
 @api_bp.route('/auth/parent/delete-account', methods=['POST'])
@@ -603,19 +605,19 @@ def parent_delete_account():
     supprime le parent et ses liens enfants (ParentChild)."""
     parent = _get_current_parent()
     if not parent:
-        return jsonify({'error': 'Compte introuvable'}), 404
+        return jsonify({'error': _gettext('Compte introuvable')}), 404
 
     data = request.get_json(silent=True) or {}
     password = data.get('password', '')
     if not parent.check_password(password):
-        return jsonify({'error': 'Mot de passe incorrect'}), 403
+        return jsonify({'error': _gettext('Mot de passe incorrect')}), 403
 
     from models.parent import ParentChild
     ParentChild.query.filter_by(parent_id=parent.id).delete(synchronize_session='fetch')
     db.session.delete(parent)
     db.session.commit()
 
-    return jsonify({'success': True, 'message': 'Votre compte a été supprimé.'}), 200
+    return jsonify({'success': True, 'message': _gettext('Votre compte a été supprimé.')}), 200
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -628,7 +630,7 @@ def student_dashboard():
     """Résumé du dashboard élève : notes récentes, fichiers, remarques."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     all_ids = _get_all_student_ids(student)
 
@@ -664,7 +666,7 @@ def student_dashboard():
 
     files_data = [{
         'id': f.id,
-        'filename': f.user_file.original_filename if f.user_file else 'Fichier inconnu',
+        'filename': f.user_file.original_filename if f.user_file else _gettext('Fichier inconnu'),
         'file_type': f.user_file.file_type if f.user_file else None,
         'shared_at': s.shared_at.isoformat(),
         'message': s.message
@@ -713,7 +715,7 @@ def student_grades():
     """Notes détaillées par matière pour l'élève."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     all_ids = _get_all_student_ids(student)
 
@@ -790,7 +792,7 @@ def student_files():
     """Fichiers partagés avec l'élève."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     all_ids = _get_all_student_ids(student)
 
@@ -806,7 +808,7 @@ def student_files():
 
     files_data = [{
         'id': f.id,
-        'filename': f.user_file.original_filename if f.user_file else 'Fichier inconnu',
+        'filename': f.user_file.original_filename if f.user_file else _gettext('Fichier inconnu'),
         'file_type': f.user_file.file_type if f.user_file else None,
         'file_size': f.user_file.file_size if f.user_file else None,
         'shared_at': s.shared_at.isoformat(),
@@ -823,7 +825,7 @@ def student_download_file(file_id):
     """Télécharger un fichier partagé."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     all_ids = _get_all_student_ids(student)
 
@@ -839,13 +841,13 @@ def student_download_file(file_id):
     ).first()
 
     if not result:
-        return jsonify({'error': 'Fichier non trouvé'}), 404
+        return jsonify({'error': _gettext('Fichier non trouvé')}), 404
 
     share, class_file = result
     share.mark_as_viewed()
 
     if not class_file.user_file:
-        return jsonify({'error': 'Fichier source introuvable'}), 404
+        return jsonify({'error': _gettext('Fichier source introuvable')}), 404
 
     user_file = class_file.user_file
 
@@ -865,7 +867,7 @@ def student_download_file(file_id):
     file_path = os.path.join(current_app.root_path, user_file.get_file_path())
 
     if not os.path.exists(file_path):
-        return jsonify({'error': 'Fichier physique introuvable'}), 404
+        return jsonify({'error': _gettext('Fichier physique introuvable')}), 404
 
     return send_file(file_path, as_attachment=True, download_name=user_file.original_filename)
 
@@ -876,7 +878,7 @@ def student_teachers():
     """Liste des enseignants de l'élève."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     from models.class_collaboration import SharedClassroom
 
@@ -889,7 +891,7 @@ def student_teachers():
             'name': t.username,
             'email': t.email,
             'subject': student.classroom.subject,
-            'role': 'Maître de classe',
+            'role': _gettext('Maître de classe'),
             'classroom_name': student.classroom.name
         })
 
@@ -904,7 +906,7 @@ def student_teachers():
                 'name': sc.teacher.username,
                 'email': sc.teacher.email,
                 'subject': sc.subject,
-                'role': 'Enseignant spécialisé',
+                'role': _gettext('Enseignant spécialisé'),
                 'classroom_name': sc.name
             })
 
@@ -917,7 +919,7 @@ def student_mark_remark_read(remark_id):
     """Marquer une remarque comme lue par l'élève."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     all_ids = _get_all_student_ids(student)
 
@@ -928,7 +930,7 @@ def student_mark_remark_read(remark_id):
     ).first()
 
     if not remark:
-        return jsonify({'error': 'Remarque non trouvée'}), 404
+        return jsonify({'error': _gettext('Remarque non trouvée')}), 404
 
     remark.is_viewed_by_student = True
     db.session.commit()
@@ -945,7 +947,7 @@ def parent_dashboard():
     """Dashboard parent : liste des enfants + résumé."""
     parent = _get_current_parent()
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     from models.parent import ParentChild
     from models.student import Student
@@ -994,12 +996,12 @@ def parent_child_attendance(student_id):
     """Absences et retards d'un enfant."""
     parent = _get_current_parent()
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     from models.parent import ParentChild
     pc = ParentChild.query.filter_by(parent_id=parent.id, student_id=student_id).first()
     if not pc:
-        return jsonify({'error': 'Accès non autorisé'}), 403
+        return jsonify({'error': _gettext('Accès non autorisé')}), 403
 
     from models.student import Student
     from models.attendance import Attendance
@@ -1042,12 +1044,12 @@ def parent_child_grades(student_id):
     """Notes d'un enfant."""
     parent = _get_current_parent()
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     from models.parent import ParentChild
     pc = ParentChild.query.filter_by(parent_id=parent.id, student_id=student_id).first()
     if not pc:
-        return jsonify({'error': 'Accès non autorisé'}), 403
+        return jsonify({'error': _gettext('Accès non autorisé')}), 403
 
     from models.student import Student
     from models.evaluation import EvaluationGrade, Evaluation
@@ -1132,12 +1134,12 @@ def parent_child_sanctions(student_id):
     """Coches d'un enfant par discipline."""
     parent = _get_current_parent()
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     from models.parent import ParentChild
     pc = ParentChild.query.filter_by(parent_id=parent.id, student_id=student_id).first()
     if not pc:
-        return jsonify({'error': 'Accès non autorisé'}), 403
+        return jsonify({'error': _gettext('Accès non autorisé')}), 403
 
     from models.student import Student
     from models.student_sanctions import StudentSanctionCount
@@ -1199,12 +1201,12 @@ def parent_child_teachers(student_id):
     """Enseignants d'un enfant."""
     parent = _get_current_parent()
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     from models.parent import ParentChild
     pc = ParentChild.query.filter_by(parent_id=parent.id, student_id=student_id).first()
     if not pc:
-        return jsonify({'error': 'Accès non autorisé'}), 403
+        return jsonify({'error': _gettext('Accès non autorisé')}), 403
 
     from models.student import Student
     from models.class_collaboration import SharedClassroom
@@ -1218,7 +1220,7 @@ def parent_child_teachers(student_id):
             'name': t.username,
             'email': t.email,
             'subject': student.classroom.subject,
-            'role': 'Maître de classe',
+            'role': _gettext('Maître de classe'),
             'classroom_name': student.classroom.name
         })
 
@@ -1232,7 +1234,7 @@ def parent_child_teachers(student_id):
                 'name': sc.teacher.username,
                 'email': sc.teacher.email,
                 'subject': sc.subject,
-                'role': 'Enseignant spécialisé',
+                'role': _gettext('Enseignant spécialisé'),
                 'classroom_name': sc.name
             })
 
@@ -1248,7 +1250,7 @@ def parent_remarks():
     """Remarques pour tous les enfants du parent."""
     parent = _get_current_parent()
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     from models.parent import ParentChild
     from models.lesson_memo import StudentRemark
@@ -1294,7 +1296,7 @@ def parent_mark_remark_read(remark_id):
     """Marquer une remarque comme lue par le parent."""
     parent = _get_current_parent()
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     from models.parent import ParentChild
     from models.lesson_memo import StudentRemark
@@ -1308,7 +1310,7 @@ def parent_mark_remark_read(remark_id):
     ).first()
 
     if not remark:
-        return jsonify({'error': 'Remarque non trouvée'}), 404
+        return jsonify({'error': _gettext('Remarque non trouvée')}), 404
 
     remark.is_viewed_by_parent = True
     db.session.commit()
@@ -1321,7 +1323,7 @@ def parent_justify_absence():
     """Soumettre une justification d'absence."""
     parent = _get_current_parent()
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     data = request.get_json(silent=True) or {}
     student_id = data.get('student_id')
@@ -1331,17 +1333,17 @@ def parent_justify_absence():
     periods = data.get('periods', [])
 
     if not student_id or not absence_date_str or not reason_type or not periods:
-        return jsonify({'error': 'Données incomplètes'}), 400
+        return jsonify({'error': _gettext('Données incomplètes')}), 400
 
     from models.parent import ParentChild
     pc = ParentChild.query.filter_by(parent_id=parent.id, student_id=student_id).first()
     if not pc:
-        return jsonify({'error': 'Accès non autorisé'}), 403
+        return jsonify({'error': _gettext('Accès non autorisé')}), 403
 
     try:
         absence_date = datetime.strptime(absence_date_str, '%Y-%m-%d').date()
     except ValueError:
-        return jsonify({'error': 'Format de date invalide'}), 400
+        return jsonify({'error': _gettext('Format de date invalide')}), 400
 
     from models.absence_justification import AbsenceJustification
     justification = AbsenceJustification(
@@ -1361,7 +1363,7 @@ def parent_justify_absence():
 
     return jsonify({
         'success': True,
-        'message': 'Justification envoyée avec succès.',
+        'message': _gettext('Justification envoyée avec succès.'),
         'justification_id': justification.id
     })
 
@@ -1372,26 +1374,26 @@ def parent_add_child():
     """Ajouter un enfant supplémentaire via teacher_name + class_code."""
     parent = _get_current_parent()
     if not parent:
-        return jsonify({'error': 'Parent non trouvé'}), 404
+        return jsonify({'error': _gettext('Parent non trouvé')}), 404
 
     data = request.get_json(silent=True) or {}
     teacher_name = data.get('teacher_name', '').strip()
     class_code = data.get('class_code', '').strip().upper()
 
     if not teacher_name or not class_code:
-        return jsonify({'error': 'Nom de l\'enseignant et code de classe requis'}), 400
+        return jsonify({'error': _gettext("Nom de l'enseignant et code de classe requis")}), 400
 
     from models.parent import ClassCode
     from routes.parent_auth import link_children_automatically
 
     code_obj = ClassCode.query.filter_by(code=class_code, is_active=True).first()
     if not code_obj:
-        return jsonify({'error': 'Code de classe introuvable'}), 404
+        return jsonify({'error': _gettext('Code de classe introuvable')}), 404
 
     teacher = code_obj.user
     tname = teacher_name.lower()
     if tname != teacher.username.lower() and tname != teacher.email.lower():
-        return jsonify({'error': 'Le nom de l\'enseignant ne correspond pas.'}), 400
+        return jsonify({'error': _gettext("Le nom de l'enseignant ne correspond pas.")}), 400
 
     # Mettre à jour le teacher_id si pas encore défini
     if not parent.teacher_id:
@@ -1402,7 +1404,8 @@ def parent_add_child():
     children_linked = link_children_automatically(parent, code_obj.classroom_id)
     db.session.commit()
 
-    msg = f'{children_linked} enfant(s) lié(s).' if children_linked > 0 else 'Aucun enfant trouvé.'
+    msg = (_gettext('%(count)s enfant(s) lié(s).', count=children_linked) if children_linked > 0
+           else _gettext('Aucun enfant trouvé.'))
     return jsonify({'success': True, 'message': msg, 'children_linked': children_linked})
 
 
@@ -1416,7 +1419,7 @@ def student_list_missions():
     """Lister les missions/exercices publiés pour la classe de l'élève."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     if not student.classroom_id:
         return jsonify({'missions': []})
@@ -1504,10 +1507,10 @@ def student_get_mission(mission_id):
     """Obtenir les détails d'une mission avec ses blocs."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     if not student.classroom_id:
-        return jsonify({'error': 'Accès non autorisé'}), 403
+        return jsonify({'error': _gettext('Accès non autorisé')}), 403
 
     from models.exercise import Exercise, ExerciseBlock
     from models.exercise_progress import ExercisePublication
@@ -1518,11 +1521,11 @@ def student_get_mission(mission_id):
     ).first()
 
     if not publication:
-        return jsonify({'error': 'Mission non trouvée'}), 404
+        return jsonify({'error': _gettext('Mission non trouvée')}), 404
 
     exercise = publication.exercise
     if not exercise:
-        return jsonify({'error': 'Exercice non trouvé'}), 404
+        return jsonify({'error': _gettext('Exercice non trouvé')}), 404
 
     blocks_data = []
     for block in exercise.blocks.order_by(ExerciseBlock.position).all():
@@ -1558,7 +1561,7 @@ def student_check_block(mission_id):
     """Vérifier la réponse d'un seul bloc (feedback immédiat)."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     from models.exercise import Exercise, ExerciseBlock
     from models.exercise_progress import ExercisePublication
@@ -1569,11 +1572,11 @@ def student_check_block(mission_id):
         classroom_id=student.classroom_id
     ).first()
     if not publication:
-        return jsonify({'error': 'Mission non trouvée'}), 404
+        return jsonify({'error': _gettext('Mission non trouvée')}), 404
 
     exercise = publication.exercise
     if not exercise:
-        return jsonify({'error': 'Exercice non trouvé'}), 404
+        return jsonify({'error': _gettext('Exercice non trouvé')}), 404
 
     data = request.get_json(silent=True) or {}
     block_id = data.get('block_id')
@@ -1581,7 +1584,7 @@ def student_check_block(mission_id):
 
     block = ExerciseBlock.query.get(block_id)
     if not block or block.exercise_id != exercise.id:
-        return jsonify({'error': 'Bloc non trouvé'}), 404
+        return jsonify({'error': _gettext('Bloc non trouvé')}), 404
 
     accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
     is_correct, points_earned = grade_block(block, answer, accept_typos=accept_typos)
@@ -1604,10 +1607,10 @@ def student_submit_mission(mission_id):
     """Soumettre les réponses à une mission et obtenir un score."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     if not student.classroom_id:
-        return jsonify({'error': 'Accès non autorisé'}), 403
+        return jsonify({'error': _gettext('Accès non autorisé')}), 403
 
     from models.exercise import Exercise, ExerciseBlock
     from models.exercise_progress import (
@@ -1621,11 +1624,11 @@ def student_submit_mission(mission_id):
     ).first()
 
     if not publication:
-        return jsonify({'error': 'Mission non trouvée'}), 404
+        return jsonify({'error': _gettext('Mission non trouvée')}), 404
 
     exercise = publication.exercise
     if not exercise:
-        return jsonify({'error': 'Exercice non trouvé'}), 404
+        return jsonify({'error': _gettext('Exercice non trouvé')}), 404
 
     # Cooldown 24h : vérifier avant de soumettre
     last_attempt = StudentExerciseAttempt.query.filter_by(
@@ -1640,7 +1643,7 @@ def student_submit_mission(mission_id):
             hours = remaining // 3600
             minutes = (remaining % 3600) // 60
             return jsonify({
-                'error': f'Cooldown actif. Réessaie dans {hours}h{minutes:02d}.',
+                'error': _gettext('Cooldown actif. Réessaie dans %(hours)sh%(minutes)s.', hours=hours, minutes='%02d' % minutes),
                 'on_cooldown': True,
                 'cooldown_remaining': remaining
             }), 429
@@ -1806,7 +1809,7 @@ def student_rpg_profile():
     """Obtenir le profil RPG de l'élève (XP, niveau, or, avatar, badges)."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     from models.rpg import StudentRPGProfile, Badge, StudentBadge, StudentItem, CLASS_DESCRIPTIONS, CLASS_BASE_STATS
 
@@ -1939,7 +1942,7 @@ def student_exercise_badges():
     """
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     from models.exercise import Exercise
     from models.exercise_progress import ExercisePublication, StudentExerciseAttempt
@@ -1999,18 +2002,18 @@ def student_update_avatar():
     """Mettre à jour la classe d'avatar de l'élève (reset si changement)."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     data = request.get_json(silent=True) or {}
     avatar_class = (data.get('avatar_class') or data.get('class') or '').strip()
     confirm_reset = data.get('confirm_reset', False)
 
     if not avatar_class:
-        return jsonify({'error': 'Classe d\'avatar requise'}), 400
+        return jsonify({'error': _gettext("Classe d'avatar requise")}), 400
 
     valid_classes = ['guerrier', 'mage', 'archer', 'guerisseur']
     if avatar_class not in valid_classes:
-        return jsonify({'error': f'Classe d\'avatar invalide. Valides: {", ".join(valid_classes)}'}), 400
+        return jsonify({'error': _gettext("Classe d'avatar invalide. Valides: %(classes)s", classes=", ".join(valid_classes))}), 400
 
     from models.rpg import StudentRPGProfile, CLASS_BASE_STATS
 
@@ -2033,7 +2036,7 @@ def student_update_avatar():
                 return jsonify({
                     'success': False,
                     'needs_confirmation': True,
-                    'message': 'Changer de classe réinitialisera ton niveau à 1, tu perdras tout ton équipement et ton or. Confirme pour continuer.',
+                    'message': _gettext('Changer de classe réinitialisera ton niveau à 1, tu perdras tout ton équipement et ton or. Confirme pour continuer.'),
                     'current_class': rpg_profile.avatar_class,
                     'new_class': avatar_class,
                 })
@@ -2047,7 +2050,7 @@ def student_update_avatar():
 
     return jsonify({
         'success': True,
-        'message': f'Avatar changé en {avatar_class}',
+        'message': _gettext('Avatar changé en %(avatar)s', avatar=avatar_class),
         'avatar_class': rpg_profile.avatar_class,
         'profile': rpg_profile.to_dict(),
     })
@@ -2067,7 +2070,7 @@ def student_rpg_evolution_tree():
     """Obtenir l'arbre d'évolution avec les états de déverrouillage."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     from models.rpg import StudentRPGProfile, CLASS_EVOLUTIONS, CLASS_DESCRIPTIONS
 
@@ -2136,20 +2139,20 @@ def student_rpg_evolve():
     """Choisir une évolution de classe."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     from models.rpg import StudentRPGProfile, CLASS_EVOLUTIONS
 
     rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
     if not rpg or not rpg.avatar_class:
-        return jsonify({'error': 'Profil RPG non trouvé ou classe non choisie'}), 400
+        return jsonify({'error': _gettext('Profil RPG non trouvé ou classe non choisie')}), 400
 
     data = request.get_json(silent=True) or {}
     evolution_id = data.get('evolution_id', '').strip()
     evolution_level = data.get('level')
 
     if not evolution_id or not evolution_level:
-        return jsonify({'error': 'ID d\'évolution et niveau requis'}), 400
+        return jsonify({'error': _gettext("ID d'évolution et niveau requis")}), 400
 
     # Vérifier que l'évolution est disponible
     available = rpg.get_available_evolutions()
@@ -2162,7 +2165,7 @@ def student_rpg_evolve():
                     break
 
     if not valid:
-        return jsonify({'error': 'Évolution non disponible'}), 400
+        return jsonify({'error': _gettext('Évolution non disponible')}), 400
 
     evolutions = rpg.evolutions_json or []
     evolutions.append({'level': evolution_level, 'evolution_id': evolution_id})
@@ -2179,13 +2182,13 @@ def student_rpg_equip():
     """Équiper un objet."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     from models.rpg import StudentRPGProfile, RPGItem, StudentItem
 
     rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
     if not rpg:
-        return jsonify({'error': 'Profil RPG non trouvé'}), 400
+        return jsonify({'error': _gettext('Profil RPG non trouvé')}), 400
 
     data = request.get_json(silent=True) or {}
     item_id = data.get('item_id')
@@ -2200,19 +2203,19 @@ def student_rpg_equip():
             rpg.recalculate_stats()
             db.session.commit()
             return jsonify({'success': True, 'profile': rpg.to_dict()})
-        return jsonify({'error': 'Slot requis pour déséquiper'}), 400
+        return jsonify({'error': _gettext('Slot requis pour déséquiper')}), 400
 
     if not item_id:
-        return jsonify({'error': 'ID d\'objet requis'}), 400
+        return jsonify({'error': _gettext("ID d'objet requis")}), 400
 
     # Vérifier que l'élève possède l'objet
     student_item = StudentItem.query.filter_by(student_id=student.id, item_id=item_id).first()
     if not student_item:
-        return jsonify({'error': 'Objet non possédé'}), 400
+        return jsonify({'error': _gettext('Objet non possédé')}), 400
 
     item = RPGItem.query.get(item_id)
     if not item or not item.equip_slot:
-        return jsonify({'error': 'Cet objet ne peut pas être équipé'}), 400
+        return jsonify({'error': _gettext('Cet objet ne peut pas être équipé')}), 400
 
     equipment = rpg.equipment_json or {}
     equipment[item.equip_slot] = item_id
@@ -2229,18 +2232,18 @@ def student_allocate_stat():
     """Attribuer +1 point dans une caractéristique lors d'un level-up."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     from models.rpg import StudentRPGProfile
     rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
     if not rpg:
-        return jsonify({'error': 'Profil RPG non trouvé'}), 404
+        return jsonify({'error': _gettext('Profil RPG non trouvé')}), 404
 
     data = request.get_json(silent=True) or {}
     stat = data.get('stat', '')
     valid_stats = ['force', 'defense', 'defense_magique', 'vie', 'intelligence']
     if stat not in valid_stats:
-        return jsonify({'error': f'Stat invalide. Valeurs acceptées: {valid_stats}'}), 400
+        return jsonify({'error': _gettext('Stat invalide. Valeurs acceptées: %(stats)s', stats=valid_stats)}), 400
 
     col_name = f'stat_{stat}'
     current_val = getattr(rpg, col_name, 0) or 0
@@ -2260,26 +2263,26 @@ def student_rpg_skills():
     """Modifier les compétences actives (max 6)."""
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     from models.rpg import StudentRPGProfile
 
     rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
     if not rpg:
-        return jsonify({'error': 'Profil RPG non trouvé'}), 400
+        return jsonify({'error': _gettext('Profil RPG non trouvé')}), 400
 
     data = request.get_json(silent=True) or {}
     skill_ids = data.get('skill_ids', [])
 
     if len(skill_ids) > 6:
-        return jsonify({'error': 'Maximum 6 compétences actives'}), 400
+        return jsonify({'error': _gettext('Maximum 6 compétences actives')}), 400
 
     # Vérifier que toutes les compétences sont débloquées
     all_skills = rpg.get_all_skills()
     all_skill_ids = {s['id'] for s in all_skills}
     for sid in skill_ids:
         if sid not in all_skill_ids:
-            return jsonify({'error': f'Compétence {sid} non débloquée'}), 400
+            return jsonify({'error': _gettext('Compétence %(sid)s non débloquée', sid=sid)}), 400
 
     rpg.active_skills_json = skill_ids
     db.session.commit()
@@ -2331,7 +2334,7 @@ def student_list_devoirs():
 
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
 
     group_ids = _student_group_classroom_ids(student)
     devoirs = Devoir.query.filter(
@@ -2394,35 +2397,35 @@ def student_submit_devoir(devoir_id):
 
     student = _get_current_student()
     if not student:
-        return jsonify({'success': False, 'error': 'Élève non trouvé'}), 404
+        return jsonify({'success': False, 'error': _gettext('Élève non trouvé')}), 404
 
     devoir = Devoir.query.get(devoir_id)
     if not devoir or devoir.devoir_type != 'submission':
-        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Devoir introuvable')}), 404
     if devoir.classroom_id not in _student_group_classroom_ids(student):
-        return jsonify({'success': False, 'error': 'Ce devoir ne vous concerne pas'}), 403
+        return jsonify({'success': False, 'error': _gettext('Ce devoir ne vous concerne pas')}), 403
 
     files = [f for f in request.files.getlist('photos') if f and f.filename]
     if not files:
-        return jsonify({'success': False, 'error': 'Aucune photo envoyée'}), 400
+        return jsonify({'success': False, 'error': _gettext('Aucune photo envoyée')}), 400
 
     try:
         images = [Image.open(f.stream).convert('RGB') for f in files[:20]]
         if not images:
-            return jsonify({'success': False, 'error': 'Images illisibles'}), 400
+            return jsonify({'success': False, 'error': _gettext('Images illisibles')}), 400
         buf = io.BytesIO()
         images[0].save(buf, format='PDF', save_all=True, append_images=images[1:])
         pdf_bytes = buf.getvalue()
     except Exception:
-        return jsonify({'success': False, 'error': "Impossible de traiter les photos"}), 400
+        return jsonify({'success': False, 'error': _gettext('Impossible de traiter les photos')}), 400
 
     if not is_r2_enabled():
-        return jsonify({'success': False, 'error': 'Stockage indisponible'}), 503
+        return jsonify({'success': False, 'error': _gettext('Stockage indisponible')}), 503
 
     teacher_id = devoir.user_id
     filename = f"devoir{devoir_id}_eleve{student.id}_{uuid.uuid4().hex[:8]}.pdf"
     if not upload_file_to_r2(pdf_bytes, teacher_id, filename, 'application/pdf'):
-        return jsonify({'success': False, 'error': "Échec de l'envoi"}), 500
+        return jsonify({'success': False, 'error': _gettext("Échec de l'envoi")}), 500
 
     sub = DevoirSubmission.query.filter_by(devoir_id=devoir_id, student_id=student.id).first()
     if sub:
@@ -2453,16 +2456,16 @@ def student_devoir_corrected(submission_id):
 
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
     sub = DevoirSubmission.query.get(submission_id)
     if not sub or sub.student_id != student.id or not sub.corrected_filename:
-        return jsonify({'error': 'Accès refusé'}), 403
+        return jsonify({'error': _gettext('Accès refusé')}), 403
     devoir = Devoir.query.get(sub.devoir_id)
     if not devoir:
-        return jsonify({'error': 'Introuvable'}), 404
+        return jsonify({'error': _gettext('Introuvable')}), 404
     data = download_file_from_r2(devoir.user_id, sub.corrected_filename)
     if not data:
-        return jsonify({'error': 'Fichier introuvable'}), 404
+        return jsonify({'error': _gettext('Fichier introuvable')}), 404
     return Response(data, mimetype='application/pdf',
                     headers={'Content-Disposition': 'inline; filename="correction.pdf"'})
 
@@ -2473,11 +2476,11 @@ def student_save_push_token():
     """Enregistre le jeton de notifications push Expo de l'élève."""
     student = _get_current_student()
     if not student:
-        return jsonify({'success': False, 'error': 'Élève non trouvé'}), 404
+        return jsonify({'success': False, 'error': _gettext('Élève non trouvé')}), 404
     data = request.get_json(silent=True) or {}
     token = (data.get('token') or '').strip()
     if not token.startswith('ExponentPushToken'):
-        return jsonify({'success': False, 'error': 'Jeton invalide'}), 400
+        return jsonify({'success': False, 'error': _gettext('Jeton invalide')}), 400
     student.expo_push_token = token[:255]
     db.session.commit()
     return jsonify({'success': True})
@@ -2495,15 +2498,15 @@ def student_devoir_document(devoir_id):
 
     student = _get_current_student()
     if not student:
-        return jsonify({'error': 'Élève non trouvé'}), 404
+        return jsonify({'error': _gettext('Élève non trouvé')}), 404
     devoir = Devoir.query.get(devoir_id)
     if not devoir or not devoir.document_key:
-        return jsonify({'error': 'Aucun document'}), 404
+        return jsonify({'error': _gettext('Aucun document')}), 404
     if devoir.classroom_id not in _student_group_classroom_ids(student):
-        return jsonify({'error': 'Accès refusé'}), 403
+        return jsonify({'error': _gettext('Accès refusé')}), 403
     data = download_file_from_r2(devoir.user_id, devoir.document_key)
     if not data:
-        return jsonify({'error': 'Fichier introuvable'}), 404
+        return jsonify({'error': _gettext('Fichier introuvable')}), 404
     mt = mimetypes.guess_type(devoir.document_name or '')[0] or 'application/octet-stream'
     return Response(data, mimetype=mt, headers={
         'Content-Disposition': content_disposition('inline', devoir.document_name or 'document')})
@@ -2525,11 +2528,11 @@ def auth_refresh():
     if user_type == 'student':
         from models.student import Student
         if not Student.query.get(user_id):
-            return jsonify({'error': 'Compte introuvable'}), 401
+            return jsonify({'error': _gettext('Compte introuvable')}), 401
     elif user_type == 'parent':
         from models.parent import Parent
         if not Parent.query.get(user_id):
-            return jsonify({'error': 'Compte introuvable'}), 401
+            return jsonify({'error': _gettext('Compte introuvable')}), 401
     else:
-        return jsonify({'error': 'Type invalide'}), 401
+        return jsonify({'error': _gettext('Type invalide')}), 401
     return jsonify({'success': True, 'token': generate_token(user_type, user_id)})

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Gestion des classes - ProfCalendar{% endblock %}
+{% block title %}{{ _('Gestion des classes') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -310,11 +310,11 @@
 
     <!-- Section de configuration -->
     <div class="setup-section">
-        <h2><i class="fas fa-chalkboard-teacher"></i> Configuration des classes</h2>
+        <h2><i class="fas fa-chalkboard-teacher"></i> {{ _('Configuration des classes') }}</h2>
         
         <!-- Formulaire de création de classe -->
         <div class="add-classroom-section">
-            <h3><i class="fas fa-plus-circle"></i> Créer une nouvelle classe</h3>
+            <h3><i class="fas fa-plus-circle"></i> {{ _('Créer une nouvelle classe') }}</h3>
             
             <!-- Sélection du type de classe -->
             <div class="class-type-selection">
@@ -322,15 +322,15 @@
                     <label class="class-type-option selected" for="class-type-normal">
                         <input type="radio" id="class-type-normal" name="class_type" value="normal" checked>
                         <span class="class-type-icon">🎓</span>
-                        <div class="class-type-title">Classe normale</div>
-                        <div class="class-type-desc">Une classe traditionnelle avec vos propres élèves</div>
+                        <div class="class-type-title">{{ _('Classe normale') }}</div>
+                        <div class="class-type-desc">{{ _('Une classe traditionnelle avec vos propres élèves') }}</div>
                     </label>
                     
                     <label class="class-type-option" for="class-type-mixed">
                         <input type="radio" id="class-type-mixed" name="class_type" value="mixed">
                         <span class="class-type-icon">🔗</span>
-                        <div class="class-type-title">Classe mixte</div>
-                        <div class="class-type-desc">Mélangez des élèves de différentes classes</div>
+                        <div class="class-type-title">{{ _('Classe mixte') }}</div>
+                        <div class="class-type-desc">{{ _('Mélangez des élèves de différentes classes') }}</div>
                     </label>
                 </div>
             </div>
@@ -343,7 +343,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         {{ form.name.label(class="form-label") }}
-                        {{ form.name(class="form-control", placeholder="Ex: 6ème A") }}
+                        {{ form.name(class="form-control", placeholder=_('Ex: 6ème A')) }}
                         {% if form.name.errors %}
                             <div class="form-error">
                                 {% for error in form.name.errors %}
@@ -355,7 +355,7 @@
                     
                     <div class="form-group">
                         {{ form.subject.label(class="form-label") }}
-                        {{ form.subject(class="form-control", placeholder="Ex: Mathématiques") }}
+                        {{ form.subject(class="form-control", placeholder=_('Ex: Mathématiques')) }}
                         {% if form.subject.errors %}
                             <div class="form-error">
                                 {% for error in form.subject.errors %}
@@ -368,13 +368,13 @@
                 
                 <!-- Boutons pour rejoindre des classes existantes -->
                 <div class="form-group">
-                    <label class="form-label">Options pour rejoindre des classes existantes</label>
+                    <label class="form-label">{{ _('Options pour rejoindre des classes existantes') }}</label>
                     <div class="join-options" style="display: flex; gap: 1rem; margin-bottom: 1rem;">
                         <button type="button" class="btn btn-outline-primary" id="join-with-code-btn">
-                            <i class="fas fa-key"></i> Rejoindre avec un code d'accès
+                            <i class="fas fa-key"></i> {{ _("Rejoindre avec un code d'accès") }}
                         </button>
                         <button type="button" class="btn btn-outline-secondary" id="join-with-invitation-btn">
-                            <i class="fas fa-envelope"></i> Rejoindre avec une invitation
+                            <i class="fas fa-envelope"></i> {{ _('Rejoindre avec une invitation') }}
                         </button>
                     </div>
                 </div>
@@ -384,95 +384,95 @@
                     <div class="color-palette">
                         <input type="hidden" id="color" name="color" value="#4F46E5">
                         <div class="color-options">
-                            <div class="color-option active" data-color="#4F46E5" style="background-color: #4F46E5;" title="Violet"></div>
-                            <div class="color-option" data-color="#EF4444" style="background-color: #EF4444;" title="Rouge"></div>
-                            <div class="color-option" data-color="#F59E0B" style="background-color: #F59E0B;" title="Orange"></div>
-                            <div class="color-option" data-color="#84CC16" style="background-color: #84CC16;" title="Vert lime"></div>
-                            <div class="color-option" data-color="#22C55E" style="background-color: #22C55E;" title="Vert"></div>
-                            <div class="color-option" data-color="#06B6D4" style="background-color: #06B6D4;" title="Cyan"></div>
-                            <div class="color-option" data-color="#3B82F6" style="background-color: #3B82F6;" title="Bleu"></div>
-                            <div class="color-option" data-color="#8B5CF6" style="background-color: #8B5CF6;" title="Violet clair"></div>
-                            <div class="color-option" data-color="#EC4899" style="background-color: #EC4899;" title="Rose"></div>
-                            <div class="color-option" data-color="#F97316" style="background-color: #F97316;" title="Orange foncé"></div>
-                            <div class="color-option" data-color="#10B981" style="background-color: #10B981;" title="Emeraude"></div>
-                            <div class="color-option" data-color="#14B8A6" style="background-color: #14B8A6;" title="Sarcelle"></div>
-                            <div class="color-option" data-color="#6366F1" style="background-color: #6366F1;" title="Indigo"></div>
-                            <div class="color-option" data-color="#A855F7" style="background-color: #A855F7;" title="Violet profond"></div>
-                            <div class="color-option" data-color="#F43F5E" style="background-color: #F43F5E;" title="Rose rouge"></div>
-                            <div class="color-option" data-color="#FDE047" style="background-color: #FDE047;" title="Jaune vif"></div>
+                            <div class="color-option active" data-color="#4F46E5" style="background-color: #4F46E5;" title="{{ _('Violet') }}"></div>
+                            <div class="color-option" data-color="#EF4444" style="background-color: #EF4444;" title="{{ _('Rouge') }}"></div>
+                            <div class="color-option" data-color="#F59E0B" style="background-color: #F59E0B;" title="{{ _('Orange') }}"></div>
+                            <div class="color-option" data-color="#84CC16" style="background-color: #84CC16;" title="{{ _('Vert lime') }}"></div>
+                            <div class="color-option" data-color="#22C55E" style="background-color: #22C55E;" title="{{ _('Vert') }}"></div>
+                            <div class="color-option" data-color="#06B6D4" style="background-color: #06B6D4;" title="{{ _('Cyan') }}"></div>
+                            <div class="color-option" data-color="#3B82F6" style="background-color: #3B82F6;" title="{{ _('Bleu') }}"></div>
+                            <div class="color-option" data-color="#8B5CF6" style="background-color: #8B5CF6;" title="{{ _('Violet clair') }}"></div>
+                            <div class="color-option" data-color="#EC4899" style="background-color: #EC4899;" title="{{ _('Rose') }}"></div>
+                            <div class="color-option" data-color="#F97316" style="background-color: #F97316;" title="{{ _('Orange foncé') }}"></div>
+                            <div class="color-option" data-color="#10B981" style="background-color: #10B981;" title="{{ _('Émeraude') }}"></div>
+                            <div class="color-option" data-color="#14B8A6" style="background-color: #14B8A6;" title="{{ _('Sarcelle') }}"></div>
+                            <div class="color-option" data-color="#6366F1" style="background-color: #6366F1;" title="{{ _('Indigo') }}"></div>
+                            <div class="color-option" data-color="#A855F7" style="background-color: #A855F7;" title="{{ _('Violet profond') }}"></div>
+                            <div class="color-option" data-color="#F43F5E" style="background-color: #F43F5E;" title="{{ _('Rose rouge') }}"></div>
+                            <div class="color-option" data-color="#FDE047" style="background-color: #FDE047;" title="{{ _('Jaune vif') }}"></div>
                         </div>
                     </div>
                 </div>
                 
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Créer la classe
+                    <i class="fas fa-plus"></i> {{ _('Créer la classe') }}
                 </button>
             </form>
             
             <!-- Configuration pour classe mixte -->
             <div class="mixed-class-config" id="mixed-class-config">
-                <h4><i class="fas fa-cog"></i> Configuration de la classe mixte</h4>
-                <p>Configurez votre classe mixte en ajoutant des élèves de différentes classes sources.</p>
+                <h4><i class="fas fa-cog"></i> {{ _('Configuration de la classe mixte') }}</h4>
+                <p>{{ _('Configurez votre classe mixte en ajoutant des élèves de différentes classes sources.') }}</p>
                 
                 <form method="POST" action="{{ url_for('setup.manage_classrooms') }}" id="mixed-class-form">
                     <input type="hidden" name="action_type" value="create_mixed">
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Nom de la classe mixte</label>
-                            <input type="text" name="mixed_name" class="form-control" placeholder="Ex: Groupe de soutien maths" required>
+                            <label class="form-label">{{ _('Nom de la classe mixte') }}</label>
+                            <input type="text" name="mixed_name" class="form-control" placeholder="{{ _('Ex: Groupe de soutien maths') }}" required>
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">Matière</label>
-                            <input type="text" name="mixed_subject" class="form-control" placeholder="Ex: Mathématiques" required>
+                            <label class="form-label">{{ _('Matière') }}</label>
+                            <input type="text" name="mixed_subject" class="form-control" placeholder="{{ _('Ex: Mathématiques') }}" required>
                         </div>
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Couleur</label>
+                        <label class="form-label">{{ _('Couleur') }}</label>
                         <div class="color-palette">
                             <input type="hidden" id="mixed_color" name="mixed_color" value="#4F46E5">
                             <div class="color-options">
-                                <div class="color-option active" data-color="#4F46E5" style="background-color: #4F46E5;" title="Violet"></div>
-                                <div class="color-option" data-color="#EF4444" style="background-color: #EF4444;" title="Rouge"></div>
-                                <div class="color-option" data-color="#F59E0B" style="background-color: #F59E0B;" title="Orange"></div>
-                                <div class="color-option" data-color="#84CC16" style="background-color: #84CC16;" title="Vert lime"></div>
-                                <div class="color-option" data-color="#22C55E" style="background-color: #22C55E;" title="Vert"></div>
-                                <div class="color-option" data-color="#06B6D4" style="background-color: #06B6D4;" title="Cyan"></div>
-                                <div class="color-option" data-color="#3B82F6" style="background-color: #3B82F6;" title="Bleu"></div>
-                                <div class="color-option" data-color="#8B5CF6" style="background-color: #8B5CF6;" title="Violet clair"></div>
-                                <div class="color-option" data-color="#EC4899" style="background-color: #EC4899;" title="Rose"></div>
-                                <div class="color-option" data-color="#F97316" style="background-color: #F97316;" title="Orange foncé"></div>
-                                <div class="color-option" data-color="#10B981" style="background-color: #10B981;" title="Emeraude"></div>
-                                <div class="color-option" data-color="#14B8A6" style="background-color: #14B8A6;" title="Sarcelle"></div>
-                                <div class="color-option" data-color="#6366F1" style="background-color: #6366F1;" title="Indigo"></div>
-                                <div class="color-option" data-color="#A855F7" style="background-color: #A855F7;" title="Violet profond"></div>
-                                <div class="color-option" data-color="#F43F5E" style="background-color: #F43F5E;" title="Rose rouge"></div>
-                                <div class="color-option" data-color="#FDE047" style="background-color: #FDE047;" title="Jaune vif"></div>
+                                <div class="color-option active" data-color="#4F46E5" style="background-color: #4F46E5;" title="{{ _('Violet') }}"></div>
+                                <div class="color-option" data-color="#EF4444" style="background-color: #EF4444;" title="{{ _('Rouge') }}"></div>
+                                <div class="color-option" data-color="#F59E0B" style="background-color: #F59E0B;" title="{{ _('Orange') }}"></div>
+                                <div class="color-option" data-color="#84CC16" style="background-color: #84CC16;" title="{{ _('Vert lime') }}"></div>
+                                <div class="color-option" data-color="#22C55E" style="background-color: #22C55E;" title="{{ _('Vert') }}"></div>
+                                <div class="color-option" data-color="#06B6D4" style="background-color: #06B6D4;" title="{{ _('Cyan') }}"></div>
+                                <div class="color-option" data-color="#3B82F6" style="background-color: #3B82F6;" title="{{ _('Bleu') }}"></div>
+                                <div class="color-option" data-color="#8B5CF6" style="background-color: #8B5CF6;" title="{{ _('Violet clair') }}"></div>
+                                <div class="color-option" data-color="#EC4899" style="background-color: #EC4899;" title="{{ _('Rose') }}"></div>
+                                <div class="color-option" data-color="#F97316" style="background-color: #F97316;" title="{{ _('Orange foncé') }}"></div>
+                                <div class="color-option" data-color="#10B981" style="background-color: #10B981;" title="{{ _('Émeraude') }}"></div>
+                                <div class="color-option" data-color="#14B8A6" style="background-color: #14B8A6;" title="{{ _('Sarcelle') }}"></div>
+                                <div class="color-option" data-color="#6366F1" style="background-color: #6366F1;" title="{{ _('Indigo') }}"></div>
+                                <div class="color-option" data-color="#A855F7" style="background-color: #A855F7;" title="{{ _('Violet profond') }}"></div>
+                                <div class="color-option" data-color="#F43F5E" style="background-color: #F43F5E;" title="{{ _('Rose rouge') }}"></div>
+                                <div class="color-option" data-color="#FDE047" style="background-color: #FDE047;" title="{{ _('Jaune vif') }}"></div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Section d'ajout de classes sources -->
                     <div class="source-classes-section">
-                        <h5><i class="fas fa-users"></i> Ajouter des classes sources</h5>
+                        <h5><i class="fas fa-users"></i> {{ _('Ajouter des classes sources') }}</h5>
                         <div class="source-classes-buttons">
                             <button type="button" class="source-class-btn" data-modal="own-classes">
                                 <i class="fas fa-chalkboard-teacher"></i>
-                                Mes classes
+                                {{ _('Mes classes') }}
                             </button>
                             <button type="button" class="source-class-btn" data-modal="code-classes">
                                 <i class="fas fa-key"></i>
-                                Avec code d'accès
+                                {{ _("Avec code d'accès") }}
                             </button>
                             <button type="button" class="source-class-btn" data-modal="invite-classes">
                                 <i class="fas fa-envelope"></i>
-                                Envoyer invitation
+                                {{ _('Envoyer invitation') }}
                             </button>
                             <button type="button" class="source-class-btn" data-modal="external-classes">
                                 <i class="fas fa-external-link-alt"></i>
-                                Classe externe
+                                {{ _('Classe externe') }}
                             </button>
                         </div>
                         
@@ -483,7 +483,7 @@
                     
                     <!-- Section de sélection des élèves -->
                     <div class="student-selection-section" id="student-selection-section">
-                        <h5><i class="fas fa-user-check"></i> Sélection des élèves</h5>
+                        <h5><i class="fas fa-user-check"></i> {{ _('Sélection des élèves') }}</h5>
                         <div id="student-groups">
                             <!-- Les groupes d'élèves apparaîtront ici -->
                         </div>
@@ -492,11 +492,11 @@
                             <div class="summary-stats">
                                 <div class="summary-stat">
                                     <div class="summary-stat-number" id="total-students">0</div>
-                                    <div class="summary-stat-label">Élèves sélectionnés</div>
+                                    <div class="summary-stat-label">{{ _('Élèves sélectionnés') }}</div>
                                 </div>
                                 <div class="summary-stat">
                                     <div class="summary-stat-number" id="total-classes">0</div>
-                                    <div class="summary-stat-label">Classes sources</div>
+                                    <div class="summary-stat-label">{{ _('Classes sources') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -507,7 +507,7 @@
                     <input type="hidden" name="source_classes" id="source_classes_input">
                     
                     <button type="submit" class="btn btn-primary" id="create-mixed-class-btn" disabled>
-                        <i class="fas fa-plus"></i> Créer la classe mixte
+                        <i class="fas fa-plus"></i> {{ _('Créer la classe mixte') }}
                     </button>
                 </form>
             </div>
@@ -515,14 +515,14 @@
         
         <!-- Formulaire pour rejoindre une classe (uniquement pour classe normale) -->
         <div class="add-classroom-section" id="join-class-section" style="margin-top: 2rem;">
-            <h3><i class="fas fa-link"></i> Rejoindre une classe existante</h3>
-            <p>En tant qu'enseignant spécialisé, liez-vous à une classe d'un maître de classe.</p>
+            <h3><i class="fas fa-link"></i> {{ _('Rejoindre une classe existante') }}</h3>
+            <p>{{ _("En tant qu'enseignant spécialisé, liez-vous à une classe d'un maître de classe.") }}</p>
             
             <!-- Modal pour rejoindre avec code d'accès -->
             <div class="modal" id="join-with-code-modal" style="display: none;">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h4><i class="fas fa-key"></i> Rejoindre avec un code d'accès</h4>
+                        <h4><i class="fas fa-key"></i> {{ _("Rejoindre avec un code d'accès") }}</h4>
                         <span class="close" data-modal="join-with-code-modal">&times;</span>
                     </div>
                     <div class="modal-body">
@@ -531,49 +531,49 @@
                     <input type="hidden" name="action_type" value="join">
                     
                     <div class="form-group">
-                        <label class="form-label">Code d'accès</label>
-                        <input type="text" name="access_code" class="form-control" placeholder="Entrez le code fourni par le maître de classe" maxlength="8" style="text-transform: uppercase;">
-                        <p class="form-help">Code à 8 caractères fourni par le maître de classe</p>
+                        <label class="form-label">{{ _("Code d'accès") }}</label>
+                        <input type="text" name="access_code" class="form-control" placeholder="{{ _('Entrez le code fourni par le maître de classe') }}" maxlength="8" style="text-transform: uppercase;">
+                        <p class="form-help">{{ _('Code à 8 caractères fourni par le maître de classe') }}</p>
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Nom du maître de classe</label>
+                        <label class="form-label">{{ _('Nom du maître de classe') }}</label>
                         <div class="autocomplete-container">
-                            <input type="text" name="master_teacher_name" id="join_master_teacher_name" class="form-control" placeholder="Commencez à taper le nom..." autocomplete="off">
+                            <input type="text" name="master_teacher_name" id="join_master_teacher_name" class="form-control" placeholder="{{ _('Commencez à taper le nom...') }}" autocomplete="off">
                             <div id="join_master_teacher_suggestions" class="autocomplete-suggestions"></div>
                         </div>
-                        <p class="form-help">Pour vérifier que vous rejoignez la bonne classe</p>
+                        <p class="form-help">{{ _('Pour vérifier que vous rejoignez la bonne classe') }}</p>
                     </div>
                     
                     <div class="form-group" id="join_class_selection" style="display: none;">
-                        <label class="form-label">Classe à rejoindre</label>
+                        <label class="form-label">{{ _('Classe à rejoindre') }}</label>
                         <select name="join_target_classroom_id" id="join_target_classroom_id" class="form-control">
-                            <option value="">Sélectionnez une classe...</option>
+                            <option value="">{{ _('Sélectionnez une classe...') }}</option>
                         </select>
-                        <p class="form-help">Choisissez la classe du maître que vous souhaitez rejoindre</p>
+                        <p class="form-help">{{ _('Choisissez la classe du maître que vous souhaitez rejoindre') }}</p>
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Nom personnalisé de votre classe</label>
-                        <input type="text" name="personal_class_name" class="form-control" placeholder="Ex: 11VG2" required>
-                        <p class="form-help">Ce nom sera utilisé pour toutes vos disciplines de cette classe</p>
+                        <label class="form-label">{{ _('Nom personnalisé de votre classe') }}</label>
+                        <input type="text" name="personal_class_name" class="form-control" placeholder="{{ _('Ex: 11VG2') }}" required>
+                        <p class="form-help">{{ _('Ce nom sera utilisé pour toutes vos disciplines de cette classe') }}</p>
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Vos disciplines pour cette classe</label>
+                        <label class="form-label">{{ _('Vos disciplines pour cette classe') }}</label>
                         <div id="join_disciplines_container">
                             <!-- La première discipline -->
                             <div class="discipline-item" data-index="0">
                                 <div class="form-row" style="display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.375rem;">
                                     <div class="form-group" style="flex: 2; margin: 0;">
-                                        <label class="form-label">Matière</label>
-                                        <input type="text" name="join_disciplines[0][subject]" class="form-control" placeholder="Ex: Histoire" required>
+                                        <label class="form-label">{{ _('Matière') }}</label>
+                                        <input type="text" name="join_disciplines[0][subject]" class="form-control" placeholder="{{ _('Ex: Histoire') }}" required>
                                     </div>
                                     <div class="form-group" style="margin: 0;">
-                                        <label class="form-label">Couleur</label>
+                                        <label class="form-label">{{ _('Couleur') }}</label>
                                         <div class="color-palette-small">
                                             <input type="hidden" name="join_disciplines[0][color]" value="#4F46E5">
-                                            <div class="color-preview" style="width: 40px; height: 40px; border-radius: 0.375rem; background-color: #4F46E5; border: 2px solid #e5e7eb; cursor: pointer;" title="Cliquer pour changer"></div>
+                                            <div class="color-preview" style="width: 40px; height: 40px; border-radius: 0.375rem; background-color: #4F46E5; border: 2px solid #e5e7eb; cursor: pointer;" title="{{ _('Cliquer pour changer') }}"></div>
                                         </div>
                                     </div>
                                     <button type="button" class="btn btn-danger btn-sm remove-join-discipline" style="margin: 0; height: fit-content;" disabled>
@@ -584,18 +584,18 @@
                         </div>
                         
                         <button type="button" id="add_join_discipline" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-plus"></i> Ajouter une autre discipline
+                            <i class="fas fa-plus"></i> {{ _('Ajouter une autre discipline') }}
                         </button>
-                        <p class="form-help">Ajoutez toutes les matières que vous enseignez pour cette classe</p>
-                        <small style="color: #6b7280;">✨ Exemple: Histoire, Français, Géographie (toutes avec le même nom de classe)</small>
+                        <p class="form-help">{{ _('Ajoutez toutes les matières que vous enseignez pour cette classe') }}</p>
+                        <small style="color: #6b7280;">✨ {{ _('Exemple : Histoire, Français, Géographie (toutes avec le même nom de classe)') }}</small>
                     </div>
                     
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-secondary" onclick="closeModal('join-with-code-modal')">
-                                <i class="fas fa-times"></i> Annuler
+                                <i class="fas fa-times"></i> {{ _('Annuler') }}
                             </button>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-link"></i> Rejoindre avec le code
+                                <i class="fas fa-link"></i> {{ _('Rejoindre avec le code') }}
                             </button>
                         </div>
                     </form>
@@ -607,54 +607,54 @@
             <div class="modal" id="join-with-invitation-modal" style="display: none;">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h4><i class="fas fa-envelope"></i> Rejoindre avec une invitation</h4>
+                        <h4><i class="fas fa-envelope"></i> {{ _('Rejoindre avec une invitation') }}</h4>
                         <span class="close" data-modal="join-with-invitation-modal">&times;</span>
                     </div>
                     <div class="modal-body">
-                        <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 1rem;">Si vous n'avez pas de code, envoyez une invitation au maître de classe.</p>
+                        <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 1rem;">{{ _("Si vous n'avez pas de code, envoyez une invitation au maître de classe.") }}</p>
                 
                 <form method="POST" action="{{ url_for('setup.manage_classrooms') }}">
                     {{ form.hidden_tag() }}
                     <input type="hidden" name="action_type" value="invite">
                     
                     <div class="form-group">
-                        <label class="form-label">Nom du maître de classe</label>
+                        <label class="form-label">{{ _('Nom du maître de classe') }}</label>
                         <div class="autocomplete-container">
-                            <input type="text" name="invite_master_teacher_name" id="invite_master_teacher_name" class="form-control" placeholder="Commencez à taper le nom..." autocomplete="off">
+                            <input type="text" name="invite_master_teacher_name" id="invite_master_teacher_name" class="form-control" placeholder="{{ _('Commencez à taper le nom...') }}" autocomplete="off">
                             <div id="invite_master_teacher_suggestions" class="autocomplete-suggestions"></div>
                         </div>
-                        <p class="form-help">Enseignants de votre établissement qui sont maîtres de classe</p>
+                        <p class="form-help">{{ _('Enseignants de votre établissement qui sont maîtres de classe') }}</p>
                     </div>
                     
                     <div class="form-group" id="target_class_selection" style="display: none;">
-                        <label class="form-label">Classe à rejoindre</label>
+                        <label class="form-label">{{ _('Classe à rejoindre') }}</label>
                         <select name="target_classroom_id" id="target_classroom_id" class="form-control">
-                            <option value="">Sélectionnez une classe...</option>
+                            <option value="">{{ _('Sélectionnez une classe...') }}</option>
                         </select>
-                        <p class="form-help">Choisissez la classe du maître que vous souhaitez rejoindre</p>
+                        <p class="form-help">{{ _('Choisissez la classe du maître que vous souhaitez rejoindre') }}</p>
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Nom personnalisé de votre classe</label>
-                        <input type="text" name="personal_class_name" class="form-control" placeholder="Ex: 11VG2" required>
-                        <p class="form-help">Ce nom sera utilisé pour toutes vos disciplines de cette classe</p>
+                        <label class="form-label">{{ _('Nom personnalisé de votre classe') }}</label>
+                        <input type="text" name="personal_class_name" class="form-control" placeholder="{{ _('Ex: 11VG2') }}" required>
+                        <p class="form-help">{{ _('Ce nom sera utilisé pour toutes vos disciplines de cette classe') }}</p>
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Vos disciplines pour cette classe</label>
+                        <label class="form-label">{{ _('Vos disciplines pour cette classe') }}</label>
                         <div id="disciplines_container">
                             <!-- La première discipline -->
                             <div class="discipline-item" data-index="0">
                                 <div class="form-row" style="display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.375rem;">
                                     <div class="form-group" style="flex: 2; margin: 0;">
-                                        <label class="form-label">Matière</label>
-                                        <input type="text" name="disciplines[0][subject]" class="form-control" placeholder="Ex: Histoire" required>
+                                        <label class="form-label">{{ _('Matière') }}</label>
+                                        <input type="text" name="disciplines[0][subject]" class="form-control" placeholder="{{ _('Ex: Histoire') }}" required>
                                     </div>
                                     <div class="form-group" style="margin: 0;">
-                                        <label class="form-label">Couleur</label>
+                                        <label class="form-label">{{ _('Couleur') }}</label>
                                         <div class="color-palette-small">
                                             <input type="hidden" name="disciplines[0][color]" value="#4F46E5">
-                                            <div class="color-preview" style="width: 40px; height: 40px; border-radius: 0.375rem; background-color: #4F46E5; border: 2px solid #e5e7eb; cursor: pointer;" title="Cliquer pour changer"></div>
+                                            <div class="color-preview" style="width: 40px; height: 40px; border-radius: 0.375rem; background-color: #4F46E5; border: 2px solid #e5e7eb; cursor: pointer;" title="{{ _('Cliquer pour changer') }}"></div>
                                         </div>
                                     </div>
                                     <button type="button" class="btn btn-danger btn-sm remove-discipline" style="margin: 0; height: fit-content;" disabled>
@@ -665,23 +665,23 @@
                         </div>
                         
                         <button type="button" id="add_discipline" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-plus"></i> Ajouter une autre discipline
+                            <i class="fas fa-plus"></i> {{ _('Ajouter une autre discipline') }}
                         </button>
-                        <p class="form-help">Ajoutez toutes les matières que vous enseignez pour cette classe</p>
-                        <small style="color: #6b7280;">✨ Exemple: Histoire, Français, Géographie (toutes avec le même nom de classe)</small>
+                        <p class="form-help">{{ _('Ajoutez toutes les matières que vous enseignez pour cette classe') }}</p>
+                        <small style="color: #6b7280;">✨ {{ _('Exemple : Histoire, Français, Géographie (toutes avec le même nom de classe)') }}</small>
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Message (optionnel)</label>
-                        <textarea name="invite_message" class="form-control" rows="3" placeholder="Expliquez pourquoi vous souhaitez rejoindre cette classe..."></textarea>
+                        <label class="form-label">{{ _('Message (optionnel)') }}</label>
+                        <textarea name="invite_message" class="form-control" rows="3" placeholder="{{ _('Expliquez pourquoi vous souhaitez rejoindre cette classe...') }}"></textarea>
                     </div>
                     
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-secondary" onclick="closeModal('join-with-invitation-modal')">
-                                <i class="fas fa-times"></i> Annuler
+                                <i class="fas fa-times"></i> {{ _('Annuler') }}
                             </button>
                             <button type="submit" class="btn btn-success">
-                                <i class="fas fa-paper-plane"></i> Envoyer la demande
+                                <i class="fas fa-paper-plane"></i> {{ _('Envoyer la demande') }}
                             </button>
                         </div>
                     </form>
@@ -701,18 +701,17 @@
                     border-radius:12px; padding:0.9rem 1.1rem; margin-bottom:1.25rem;">
             <i class="fas fa-crown" style="color:#F59E0B; font-size:1.4rem;"></i>
             <div style="flex:1; min-width:230px;">
-                <strong>Tu es maître de classe.</strong>
-                <span style="color:#4B5563;">Transmets ce code à tes collègues&nbsp;: ils l'utilisent dans
-                «&nbsp;Rejoindre avec un code d'accès&nbsp;» (avec ton nom d'utilisateur
-                <strong>{{ current_user.username }}</strong>) pour se lier à tes classes.</span>
+                <strong>{{ _('Vous êtes maître de classe.') }}</strong>
+                <span style="color:#4B5563;">{{ _("Transmettez ce code à vos collègues : ils l'utilisent dans « Rejoindre avec un code d'accès » (avec votre nom d'utilisateur <strong>%(username)s</strong>) pour se lier à vos classes.", username=current_user.username) }}</span>
             </div>
             <div style="display:flex; align-items:center; gap:0.5rem;">
                 <code id="masterAccessCode" style="font-size:1.25rem; font-weight:700; letter-spacing:2px;
                       background:#fff; border:1px dashed #6366F1; color:#3730A3;
                       padding:0.4rem 0.8rem; border-radius:8px;">{{ my_access_code }}</code>
                 <button type="button" class="btn btn-secondary btn-sm" id="copyMasterCodeBtn"
-                        onclick="copyMasterAccessCode()" title="Copier le code">
-                    <i class="fas fa-copy"></i> Copier
+                        onclick="copyMasterAccessCode()" title="{{ _('Copier le code') }}"
+                        data-copied-label="{{ _('Copié !') }}">
+                    <i class="fas fa-copy"></i> {{ _('Copier') }}
                 </button>
             </div>
         </div>
@@ -722,16 +721,16 @@
             navigator.clipboard.writeText(code).then(() => {
                 const btn = document.getElementById('copyMasterCodeBtn');
                 const old = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check"></i> Copié !';
+                btn.innerHTML = '<i class="fas fa-check"></i> ' + btn.dataset.copiedLabel;
                 setTimeout(() => { btn.innerHTML = old; }, 1600);
             });
         }
         </script>
         {% endif %}
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-            <h2 style="margin: 0;"><i class="fas fa-list"></i> Mes classes</h2>
+            <h2 style="margin: 0;"><i class="fas fa-list"></i> {{ _('Mes classes') }}</h2>
             <a href="{{ url_for('setup.corbeille') }}" class="btn btn-secondary btn-sm">
-                <i class="fas fa-trash-restore"></i> Corbeille
+                <i class="fas fa-trash-restore"></i> {{ _('Corbeille') }}
             </a>
         </div>
 
@@ -751,13 +750,13 @@
                                 <i class="fas fa-layer-group" style="margin-right: 0.25rem;"></i>
                                 {% if mixed_group.description and mixed_group.description.startswith('SOURCES:') %}
                                     {% set source_names = mixed_group.description[8:].split(',') %}
-                                    Sources: {% for source_name in source_names %}{{ source_name.strip() }}{% if not loop.last %}, {% endif %}{% endfor %}
+                                    {{ _('Sources :') }} {% for source_name in source_names %}{{ source_name.strip() }}{% if not loop.last %}, {% endif %}{% endfor %}
                                 {% else %}
                                     {% set source_classrooms = mixed_group.get_classrooms_involved() %}
                                     {% if source_classrooms %}
-                                        Sources: {% for src_classroom in source_classrooms %}{{ src_classroom.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+                                        {{ _('Sources :') }} {% for src_classroom in source_classrooms %}{{ src_classroom.name }}{% if not loop.last %}, {% endif %}{% endfor %}
                                     {% else %}
-                                        Sources: Classes externes ou en attente
+                                        {{ _('Sources :') }} {{ _('Classes externes ou en attente') }}
                                     {% endif %}
                                 {% endif %}
                             </div>
@@ -769,27 +768,27 @@
                     {% if classroom.is_temporary %}
                         <!-- Classe temporaire en attente -->
                         <span class="badge" style="background-color: #fbbf24; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 20px;">
-                            <i class="fas fa-clock"></i> En attente d'approbation
+                            <i class="fas fa-clock"></i> {{ _("En attente d'approbation") }}
                         </span>
                     {% elif classroom.id in all_class_masters %}
                         {% if classroom.id in master_classroom_ids %}
                             <!-- L'utilisateur est déjà maître de cette classe -->
-                            <button type="button" class="btn btn-info btn-sm master-status" disabled title="Vous êtes maître de cette classe">
-                                <i class="fas fa-crown"></i> Vous êtes maître de classe
+                            <button type="button" class="btn btn-info btn-sm master-status" disabled title="{{ _('Vous êtes maître de cette classe') }}">
+                                <i class="fas fa-crown"></i> {{ _('Vous êtes maître de classe') }}
                             </button>
                         {% else %}
                             <!-- Quelqu'un d'autre est déjà maître de cette classe -->
                             {% if all_class_masters[classroom.id].get('is_derived') %}
                                 <!-- Classe dérivée - classe rejointe via collaboration -->
-                                <span class="derived-class" title="Classe en collaboration avec: {{ all_class_masters[classroom.id].teacher_name }}">
+                                <span class="derived-class" title="{{ _('Classe en collaboration avec : %(name)s', name=all_class_masters[classroom.id].teacher_name) }}">
                                     <i class="fas fa-handshake" style="color: #059669;"></i> 
-                                    Collaboration: {{ all_class_masters[classroom.id].teacher_name }}
+                                    {{ _('Collaboration : %(name)s', name=all_class_masters[classroom.id].teacher_name) }}
                                 </span>
                             {% else %}
                                 <!-- Classe normale avec un autre maître -->
-                                <span class="existing-master" title="Maître de classe: {{ all_class_masters[classroom.id].teacher_name }}">
+                                <span class="existing-master" title="{{ _('Maître de classe : %(name)s', name=all_class_masters[classroom.id].teacher_name) }}">
                                     <i class="fas fa-crown" style="color: #f59e0b;"></i> 
-                                    Maître: {{ all_class_masters[classroom.id].teacher_name }}
+                                    {{ _('Maître : %(name)s', name=all_class_masters[classroom.id].teacher_name) }}
                                 </span>
                             {% endif %}
                         {% endif %}
@@ -798,20 +797,20 @@
                         {% if classroom.mixed_groups_list %}
                             <!-- Classe mixte - pas de maître, étiquette spéciale -->
                             <span class="badge" style="background-color: #8b5cf6; color: white; padding: 0.25rem 0.75rem; border-radius: 20px;">
-                                <i class="fas fa-users"></i> Classe mixte
+                                <i class="fas fa-users"></i> {{ _('Classe mixte') }}
                             </span>
                         {% else %}
                             <!-- Classe normale - permettre de devenir maître -->
                             <form method="POST" action="{{ url_for('setup.become_class_master', classroom_id=classroom.id) }}" style="margin: 0;">
-                                <button type="submit" class="btn btn-success btn-sm" title="Devenir maître de cette classe">
-                                    <i class="fas fa-crown"></i> Devenir maître
+                                <button type="submit" class="btn btn-success btn-sm" title="{{ _('Devenir maître de cette classe') }}">
+                                    <i class="fas fa-crown"></i> {{ _('Devenir maître') }}
                                 </button>
                             </form>
                         {% endif %}
                     {% endif %}
                     
                     <form method="POST" action="{{ url_for('setup.delete_classroom', id=classroom.id) }}" style="margin: 0;">
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette classe ?');" title="Supprimer cette classe">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick='return confirm({{ _("Êtes-vous sûr de vouloir supprimer cette classe ?")|tojson }});' title="{{ _('Supprimer cette classe') }}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </form>
@@ -823,7 +822,7 @@
         <!-- Classes liées (spécialisé) -->
         {% if linked_classrooms %}
             <h3 style="font-size: 1.1rem; margin-top: 2rem; margin-bottom: 1rem; color: var(--gray-color);">
-                <i class="fas fa-link"></i> Classes en collaboration
+                <i class="fas fa-link"></i> {{ _('Classes en collaboration') }}
             </h3>
             {% for item in linked_classrooms %}
             <div class="classroom-item">
@@ -831,12 +830,12 @@
                     <div class="classroom-color" style="background-color: {{ item.classroom.color }};"></div>
                     <div class="classroom-details">
                         <h3>{{ item.classroom.name }}</h3>
-                        <p>{{ item.classroom.subject }} - Maître: {{ item.master_teacher.username }}</p>
+                        <p>{{ item.classroom.subject }} - {{ _('Maître : %(name)s', name=item.master_teacher.username) }}</p>
                     </div>
                 </div>
                 
                 <span class="badge" style="background-color: #e3f2fd; color: #1565c0; padding: 0.25rem 0.75rem; border-radius: 20px;">
-                    <i class="fas fa-handshake"></i> Collaboration
+                    <i class="fas fa-handshake"></i> {{ _('Collaboration') }}
                 </span>
             </div>
             {% endfor %}
@@ -846,8 +845,8 @@
         {% if not classrooms and not linked_classrooms %}
             <div class="empty-state">
                 <i class="fas fa-chalkboard-teacher"></i>
-                <p>Aucune classe configurée pour le moment.</p>
-                <p>Créez vos propres classes ou rejoignez une classe existante.</p>
+                <p>{{ _('Aucune classe configurée pour le moment.') }}</p>
+                <p>{{ _('Créez vos propres classes ou rejoignez une classe existante.') }}</p>
             </div>
         {% endif %}
     </div>
@@ -855,12 +854,12 @@
     <!-- Section des invitations -->
     {% if received_invitations or sent_invitations %}
     <div class="classrooms-list" style="margin-top: 2rem;">
-        <h2><i class="fas fa-envelope"></i> Invitations</h2>
+        <h2><i class="fas fa-envelope"></i> {{ _('Invitations') }}</h2>
         
         <!-- Invitations reçues -->
         {% if received_invitations %}
         <h3 style="font-size: 1.1rem; margin-top: 1rem; margin-bottom: 1rem; color: var(--gray-color);">
-            <i class="fas fa-inbox"></i> Invitations reçues ({{ received_invitations|length }})
+            <i class="fas fa-inbox"></i> {{ _('Invitations reçues (%(n)s)', n=received_invitations|length) }}
         </h3>
         
         {% for invitation in received_invitations %}
@@ -869,12 +868,12 @@
                 <div class="classroom-color" style="background-color: #10b981;"></div>
                 <div class="classroom-details">
                     <h3>{{ invitation.proposed_class_name }}</h3>
-                    <p><strong>Matière:</strong> {{ invitation.proposed_subject }}</p>
-                    <p><strong>Demandeur:</strong> {{ invitation.requesting_teacher.username }} ({{ invitation.requesting_teacher.email }})</p>
+                    <p><strong>{{ _('Matière :') }}</strong> {{ invitation.proposed_subject }}</p>
+                    <p><strong>{{ _('Demandeur :') }}</strong> {{ invitation.requesting_teacher.username }} ({{ invitation.requesting_teacher.email }})</p>
                     {% if invitation.message %}
-                    <p><strong>Message:</strong> <em>{{ invitation.message }}</em></p>
+                    <p><strong>{{ _('Message :') }}</strong> <em>{{ invitation.message }}</em></p>
                     {% endif %}
-                    <small style="color: var(--gray-color);">Reçu le {{ invitation.created_at.strftime('%d/%m/%Y à %H:%M') }}</small>
+                    <small style="color: var(--gray-color);">{{ _('Reçu le %(date)s à %(time)s', date=invitation.created_at.strftime('%d/%m/%Y'), time=invitation.created_at.strftime('%H:%M')) }}</small>
                 </div>
             </div>
             
@@ -882,14 +881,14 @@
                 <form method="POST" action="{{ url_for('setup.respond_to_invitation', invitation_id=invitation.id) }}" style="margin: 0;">
                     <input type="hidden" name="action" value="accept">
                     <div class="form-group" style="margin-bottom: 0.5rem;">
-                        <textarea name="response_message" class="form-control" rows="2" placeholder="Message de réponse (optionnel)" style="font-size: 0.8rem;"></textarea>
+                        <textarea name="response_message" class="form-control" rows="2" placeholder="{{ _('Message de réponse (optionnel)') }}" style="font-size: 0.8rem;"></textarea>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
                         <button type="submit" class="btn btn-success btn-sm">
-                            <i class="fas fa-check"></i> Accepter
+                            <i class="fas fa-check"></i> {{ _('Accepter') }}
                         </button>
                         <button type="button" class="btn btn-danger btn-sm" onclick="rejectInvitation({{ invitation.id }})">
-                            <i class="fas fa-times"></i> Rejeter
+                            <i class="fas fa-times"></i> {{ _('Rejeter') }}
                         </button>
                     </div>
                 </form>
@@ -901,7 +900,7 @@
         <!-- Invitations envoyées -->
         {% if sent_invitations %}
         <h3 style="font-size: 1.1rem; margin-top: 2rem; margin-bottom: 1rem; color: var(--gray-color);">
-            <i class="fas fa-paper-plane"></i> Vos demandes envoyées
+            <i class="fas fa-paper-plane"></i> {{ _('Vos demandes envoyées') }}
         </h3>
         
         {% for invitation in sent_invitations %}
@@ -910,27 +909,27 @@
                 <div class="classroom-color" style="background-color: {% if invitation.status == 'pending' %}#fbbf24{% elif invitation.status == 'accepted' %}#10b981{% else %}#ef4444{% endif %};"></div>
                 <div class="classroom-details">
                     <h3>{{ invitation.proposed_class_name }}</h3>
-                    <p><strong>Destiné à:</strong> {{ invitation.target_master_teacher.username }} ({{ invitation.target_master_teacher.email }})</p>
-                    <p><strong>Matière:</strong> {{ invitation.proposed_subject }}</p>
+                    <p><strong>{{ _('Destiné à :') }}</strong> {{ invitation.target_master_teacher.username }} ({{ invitation.target_master_teacher.email }})</p>
+                    <p><strong>{{ _('Matière :') }}</strong> {{ invitation.proposed_subject }}</p>
                     {% if invitation.response_message %}
-                    <p><strong>Réponse:</strong> <em>{{ invitation.response_message }}</em></p>
+                    <p><strong>{{ _('Réponse :') }}</strong> <em>{{ invitation.response_message }}</em></p>
                     {% endif %}
-                    <small style="color: var(--gray-color);">Envoyé le {{ invitation.created_at.strftime('%d/%m/%Y à %H:%M') }}</small>
+                    <small style="color: var(--gray-color);">{{ _('Envoyé le %(date)s à %(time)s', date=invitation.created_at.strftime('%d/%m/%Y'), time=invitation.created_at.strftime('%H:%M')) }}</small>
                 </div>
             </div>
             
             <div class="invitation-status">
                 {% if invitation.status == 'pending' %}
                 <span class="badge" style="background-color: #fbbf24; color: #92400e; padding: 0.5rem 1rem; border-radius: 20px;">
-                    <i class="fas fa-clock"></i> En attente
+                    <i class="fas fa-clock"></i> {{ _('En attente') }}
                 </span>
                 {% elif invitation.status == 'accepted' %}
                 <span class="badge" style="background-color: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 20px;">
-                    <i class="fas fa-check"></i> Acceptée
+                    <i class="fas fa-check"></i> {{ _('Acceptée') }}
                 </span>
                 {% elif invitation.status == 'rejected' %}
                 <span class="badge" style="background-color: #ef4444; color: white; padding: 0.5rem 1rem; border-radius: 20px;">
-                    <i class="fas fa-times"></i> Rejetée
+                    <i class="fas fa-times"></i> {{ _('Rejetée') }}
                 </span>
                 {% endif %}
             </div>
@@ -945,12 +944,12 @@
     <div class="action-buttons" style="margin-top: 2rem;">
         <!-- Bouton gauche : Pauses -->
         <a href="{{ url_for('setup.manage_breaks') }}" class="btn btn-outline">
-            <i class="fas fa-coffee"></i> Pauses
+            <i class="fas fa-coffee"></i> {{ _('Pauses') }}
         </a>
 
         <!-- Bouton droit : Horaire type -->
         <a href="{{ url_for('schedule.weekly_schedule') }}" class="btn btn-primary">
-            Horaire type <i class="fas fa-calendar-week"></i>
+            {{ _('Horaire type') }} <i class="fas fa-calendar-week"></i>
         </a>
     </div>
     {% endif %}
@@ -960,7 +959,7 @@
     {% if from_dashboard %}
     <div style="margin-top: 2rem; text-align: center;">
         <a href="{{ url_for('planning.dashboard') }}" class="btn btn-primary">
-            <i class="fas fa-check"></i> Terminé — retour au tableau de bord
+            <i class="fas fa-check"></i> {{ _('Terminé — retour au tableau de bord') }}
         </a>
     </div>
     {% endif %}
@@ -1605,6 +1604,66 @@
 </style>
 
 <script>
+// ============================================================
+// Chaînes traduites pour le JS (échappées via |tojson).
+// Jetons {n}/{name}/{error} remplacés en JS via .replace().
+// ============================================================
+const SETUP_CLASSES_I18N = {
+    classMaster: {{ _('Maître de classe')|tojson }},
+    subject: {{ _('Matière')|tojson }},
+    color: {{ _('Couleur')|tojson }},
+    clickToChange: {{ _('Cliquer pour changer')|tojson }},
+    exHistory: {{ _('Ex: Histoire')|tojson }},
+    yourClassName: {{ _('Nom de votre classe')|tojson }},
+    exClassSubject: {{ _('Ex: 11VG2 - Histoire')|tojson }},
+    selectClass: {{ _('Sélectionnez une classe...')|tojson }},
+    teacherNoClasses: {{ _("Cet enseignant n'a pas de classes configurées en tant que maître de classe.")|tojson }},
+    loadClassesError: {{ _('Erreur lors du chargement des classes.')|tojson }},
+    myClasses: {{ _('Mes classes')|tojson }},
+    noClassFound: {{ _('Aucune classe trouvée')|tojson }},
+    noOwnClasses: {{ _("Vous n'avez pas encore de classes créées. Créez d'abord une classe normale pour pouvoir l'utiliser dans une classe mixte.")|tojson }},
+    error: {{ _('Erreur')|tojson }},
+    fetchClassesError: {{ _('Erreur lors de la récupération de vos classes.')|tojson }},
+    joinWithCode: {{ _("Rejoindre avec un code d'accès")|tojson }},
+    accessCode: {{ _("Code d'accès")|tojson }},
+    accessCodePlaceholder: {{ _('Entrez le code fourni par le maître de classe')|tojson }},
+    accessCodeHelp: {{ _('Code à 8 caractères fourni par le maître de classe')|tojson }},
+    masterName: {{ _('Nom du maître de classe')|tojson }},
+    typeName: {{ _('Commencez à taper le nom...')|tojson }},
+    verifyClassHelp: {{ _('Pour vérifier que vous rejoignez la bonne classe')|tojson }},
+    classToJoin: {{ _('Classe à rejoindre')|tojson }},
+    chooseMasterClass: {{ _('Choisissez la classe du maître que vous souhaitez rejoindre')|tojson }},
+    cancel: {{ _('Annuler')|tojson }},
+    addAsSource: {{ _('Ajouter comme classe source')|tojson }},
+    sendInviteRequest: {{ _("Envoyer une demande d'invitation")|tojson }},
+    noCodeHelp: {{ _("Si vous n'avez pas de code, envoyez une invitation au maître de classe.")|tojson }},
+    schoolMasters: {{ _('Enseignants de votre établissement qui sont maîtres de classe')|tojson }},
+    messageOptional: {{ _('Message (optionnel)')|tojson }},
+    explainWhy: {{ _('Expliquez pourquoi vous souhaitez rejoindre cette classe...')|tojson }},
+    externalClassName: {{ _('Nom de la classe externe :')|tojson }},
+    close: {{ _('Fermer')|tojson }},
+    subjectUnspecified: {{ _('Matière non spécifiée')|tojson }},
+    nStudents: {{ _('{n} élève(s)')|tojson }},
+    addSelectedClasses: {{ _('Ajouter les classes sélectionnées')|tojson }},
+    add: {{ _('Ajouter')|tojson }},
+    noVisibleModal: {{ _('Aucune fenêtre ouverte trouvée.')|tojson }},
+    selectAtLeastOneClass: {{ _('Veuillez sélectionner au moins une classe.')|tojson }},
+    classAlreadyAdded: {{ _('Cette classe est déjà ajoutée.')|tojson }},
+    selectAll: {{ _('Tout sélectionner')|tojson }},
+    deselectAll: {{ _('Tout désélectionner')|tojson }},
+    fillRequiredFields: {{ _('Veuillez remplir tous les champs requis et sélectionner une classe.')|tojson }},
+    validating: {{ _('Validation...')|tojson }},
+    errorWithMsg: {{ _('Erreur : {error}')|tojson }},
+    validateCodeError: {{ _("Erreur lors de la validation du code d'accès")|tojson }},
+    selectTeacherAndClass: {{ _('Veuillez sélectionner un enseignant et une classe.')|tojson }},
+    alreadySource: {{ _('Cette classe est déjà ajoutée comme source.')|tojson }},
+    unknownSubject: {{ _('Matière inconnue')|tojson }},
+    inviteSendError: {{ _("Erreur lors de l'envoi de l'invitation. Veuillez réessayer.")|tojson }},
+    sourceAdded: {{ _('Classe « {name} » ajoutée comme source.')|tojson }},
+    codeSaved: {{ _("Code d'accès sauvegardé.")|tojson }},
+    invitePrepared: {{ _('Invitation préparée.')|tojson }},
+    loadStudentsFailed: {{ _("Impossible de charger les élèves de « {name} ». La classe a été ajoutée mais aucun élève n'est disponible.")|tojson }}
+};
 document.addEventListener('DOMContentLoaded', function() {
     // Gestionnaire pour tous les sélecteurs de couleurs
     document.querySelectorAll('.color-palette').forEach((palette, index) => {
@@ -1718,7 +1777,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             const div = document.createElement('div');
                             div.className = 'autocomplete-suggestion';
                             div.innerHTML = `
-                                <div class="suggestion-name">${teacher.username}${teacher.is_master ? '<span class="suggestion-badge">Maître de classe</span>' : ''}</div>
+                                <div class="suggestion-name">${teacher.username}${teacher.is_master ? '<span class="suggestion-badge">' + SETUP_CLASSES_I18N.classMaster + '</span>' : ''}</div>
                                 <div class="suggestion-email">${teacher.email}</div>
                             `;
                             
@@ -1833,14 +1892,14 @@ document.addEventListener('DOMContentLoaded', function() {
             newItem.innerHTML = `
                 <div class="form-row" style="display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.375rem;">
                     <div class="form-group" style="flex: 2; margin: 0;">
-                        <label class="form-label">Matière</label>
-                        <input type="text" name="${prefix}[${nextIndex}][subject]" class="form-control" placeholder="Ex: Histoire" required>
+                        <label class="form-label">${SETUP_CLASSES_I18N.subject}</label>
+                        <input type="text" name="${prefix}[${nextIndex}][subject]" class="form-control" placeholder="${SETUP_CLASSES_I18N.exHistory}" required>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">Couleur</label>
+                        <label class="form-label">${SETUP_CLASSES_I18N.color}</label>
                         <div class="color-palette-small">
                             <input type="hidden" name="${prefix}[${nextIndex}][color]" value="#4F46E5">
-                            <div class="color-preview" style="width: 40px; height: 40px; border-radius: 0.375rem; background-color: #4F46E5; border: 2px solid #e5e7eb; cursor: pointer;" title="Cliquer pour changer"></div>
+                            <div class="color-preview" style="width: 40px; height: 40px; border-radius: 0.375rem; background-color: #4F46E5; border: 2px solid #e5e7eb; cursor: pointer;" title="${SETUP_CLASSES_I18N.clickToChange}"></div>
                         </div>
                     </div>
                     <button type="button" class="btn btn-danger btn-sm remove-discipline-btn" style="margin: 0; height: fit-content;">
@@ -1853,14 +1912,14 @@ document.addEventListener('DOMContentLoaded', function() {
             newItem.innerHTML = `
                 <div class="form-row" style="display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.375rem;">
                     <div class="form-group" style="flex: 2; margin: 0;">
-                        <label class="form-label">Matière</label>
-                        <input type="text" name="${prefix}[${nextIndex}][subject]" class="form-control" placeholder="Ex: Histoire" required>
+                        <label class="form-label">${SETUP_CLASSES_I18N.subject}</label>
+                        <input type="text" name="${prefix}[${nextIndex}][subject]" class="form-control" placeholder="${SETUP_CLASSES_I18N.exHistory}" required>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">Couleur</label>
+                        <label class="form-label">${SETUP_CLASSES_I18N.color}</label>
                         <div class="color-palette-small">
                             <input type="hidden" name="${prefix}[${nextIndex}][color]" value="#4F46E5">
-                            <div class="color-preview" style="width: 40px; height: 40px; border-radius: 0.375rem; background-color: #4F46E5; border: 2px solid #e5e7eb; cursor: pointer;" title="Cliquer pour changer"></div>
+                            <div class="color-preview" style="width: 40px; height: 40px; border-radius: 0.375rem; background-color: #4F46E5; border: 2px solid #e5e7eb; cursor: pointer;" title="${SETUP_CLASSES_I18N.clickToChange}"></div>
                         </div>
                     </div>
                     <button type="button" class="btn btn-danger btn-sm remove-discipline-btn" style="margin: 0; height: fit-content;">
@@ -2136,7 +2195,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (select && container) {
                 // Vider et remplir le select
-                select.innerHTML = '<option value="">Sélectionnez une classe...</option>';
+                select.innerHTML = '<option value="">' + SETUP_CLASSES_I18N.selectClass + '</option>';
                 
                 if (data.classes && data.classes.length > 0) {
                     data.classes.forEach(classroom => {
@@ -2181,7 +2240,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (select && selectContainer) {
                 // Vider les options existantes
-                select.innerHTML = '<option value="">Sélectionnez une classe...</option>';
+                select.innerHTML = '<option value="">' + SETUP_CLASSES_I18N.selectClass + '</option>';
                 
                 if (data.classes && data.classes.length > 0) {
                     data.classes.forEach(cls => {
@@ -2202,7 +2261,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const infoDiv = document.createElement('div');
                     infoDiv.className = 'alert alert-info';
                     infoDiv.style.marginTop = '1rem';
-                    infoDiv.innerHTML = '<i class="fas fa-info-circle"></i> Cet enseignant n\'a pas de classes configurées en tant que maître de classe.';
+                    infoDiv.innerHTML = '<i class="fas fa-info-circle"></i> ' + SETUP_CLASSES_I18N.teacherNoClasses;
                     
                     // Supprimer les anciens messages
                     const oldInfo = modal.querySelector('.alert');
@@ -2223,7 +2282,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const errorDiv = document.createElement('div');
             errorDiv.className = 'alert alert-error';
             errorDiv.style.marginTop = '1rem';
-            errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erreur lors du chargement des classes.';
+            errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + SETUP_CLASSES_I18N.loadClassesError;
             
             // Supprimer les anciens messages
             const oldError = modal.querySelector('.alert');
@@ -2276,15 +2335,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('DEBUG: API response:', data);
                 if (data.classes && data.classes.length > 0) {
                     console.log('DEBUG: Showing modal with', data.classes.length, 'classes');
-                    showImprovedClassSelectionModal('Mes classes', data.classes, 'own');
+                    showImprovedClassSelectionModal(SETUP_CLASSES_I18N.myClasses, data.classes, 'own');
                 } else {
                     console.log('DEBUG: No classes found, showing empty state');
-                    showEmptyStateModal('Aucune classe trouvée', 'Vous n\'avez pas encore de classes créées. Créez d\'abord une classe normale pour pouvoir l\'utiliser dans une classe mixte.');
+                    showEmptyStateModal(SETUP_CLASSES_I18N.noClassFound, SETUP_CLASSES_I18N.noOwnClasses);
                 }
             })
             .catch(error => {
                 console.error('Erreur:', error);
-                showEmptyStateModal('Erreur', 'Erreur lors de la récupération de vos classes.');
+                showEmptyStateModal(SETUP_CLASSES_I18N.error, SETUP_CLASSES_I18N.fetchClassesError);
             });
     }
     
@@ -2303,7 +2362,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         modalContent.innerHTML = 
             '<div class="modal-header">' +
-                '<h4><i class="fas fa-key"></i> Rejoindre avec code d\'accès</h4>' +
+                '<h4><i class="fas fa-key"></i> ' + SETUP_CLASSES_I18N.joinWithCode + '</h4>' +
                 '<button type="button" class="close-modal">&times;</button>' +
             '</div>' +
             '<div class="modal-body">' +
@@ -2312,33 +2371,33 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<input type="hidden" name="action_type" value="join">' +
                     
                     '<div class="form-group">' +
-                        '<label class="form-label">Code d\'accès</label>' +
-                        '<input type="text" name="access_code" class="form-control" placeholder="Entrez le code fourni par le maître de classe" maxlength="8" style="text-transform: uppercase;" required>' +
-                        '<p class="form-help">Code à 8 caractères fourni par le maître de classe</p>' +
+                        '<label class="form-label">' + SETUP_CLASSES_I18N.accessCode + '</label>' +
+                        '<input type="text" name="access_code" class="form-control" placeholder="' + SETUP_CLASSES_I18N.accessCodePlaceholder + '" maxlength="8" style="text-transform: uppercase;" required>' +
+                        '<p class="form-help">' + SETUP_CLASSES_I18N.accessCodeHelp + '</p>' +
                     '</div>' +
                     
                     '<div class="form-group">' +
-                        '<label class="form-label">Nom du maître de classe</label>' +
+                        '<label class="form-label">' + SETUP_CLASSES_I18N.masterName + '</label>' +
                         '<div class="autocomplete-container">' +
-                            '<input type="text" name="master_teacher_name" class="form-control" placeholder="Commencez à taper le nom..." autocomplete="off" required>' +
+                            '<input type="text" name="master_teacher_name" class="form-control" placeholder="' + SETUP_CLASSES_I18N.typeName + '" autocomplete="off" required>' +
                             '<div class="autocomplete-suggestions"></div>' +
                         '</div>' +
-                        '<p class="form-help">Pour vérifier que vous rejoignez la bonne classe</p>' +
+                        '<p class="form-help">' + SETUP_CLASSES_I18N.verifyClassHelp + '</p>' +
                     '</div>' +
                     
                     '<div class="form-group" style="display: none;">' +
-                        '<label class="form-label">Classe à rejoindre</label>' +
+                        '<label class="form-label">' + SETUP_CLASSES_I18N.classToJoin + '</label>' +
                         '<select name="join_target_classroom_id" class="form-control">' +
-                            '<option value="">Sélectionnez une classe...</option>' +
+                            '<option value="">' + SETUP_CLASSES_I18N.selectClass + '</option>' +
                         '</select>' +
-                        '<p class="form-help">Choisissez la classe du maître que vous souhaitez rejoindre</p>' +
+                        '<p class="form-help">' + SETUP_CLASSES_I18N.chooseMasterClass + '</p>' +
                     '</div>' +
                 '</form>' +
             '</div>' +
             '<div class="modal-footer">' +
-                '<button type="button" class="btn btn-secondary close-modal">Annuler</button>' +
+                '<button type="button" class="btn btn-secondary close-modal">' + SETUP_CLASSES_I18N.cancel + '</button>' +
                 '<button type="button" class="btn btn-primary" onclick="addClassAsSource(\'join-code-form\')">' +
-                    '<i class="fas fa-plus"></i> Ajouter comme classe source' +
+                    '<i class="fas fa-plus"></i> ' + SETUP_CLASSES_I18N.addAsSource +
                 '</button>' +
             '</div>';
         
@@ -2382,43 +2441,43 @@ document.addEventListener('DOMContentLoaded', function() {
         
         modalContent.innerHTML = 
             '<div class="modal-header">' +
-                '<h4><i class="fas fa-envelope"></i> Envoyer une demande d\'invitation</h4>' +
+                '<h4><i class="fas fa-envelope"></i> ' + SETUP_CLASSES_I18N.sendInviteRequest + '</h4>' +
                 '<button type="button" class="close-modal">&times;</button>' +
             '</div>' +
             '<div class="modal-body">' +
-                '<p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 1rem;">Si vous n\'avez pas de code, envoyez une invitation au maître de classe.</p>' +
+                '<p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 1rem;">' + SETUP_CLASSES_I18N.noCodeHelp + '</p>' +
                 
                 '<form method="POST" action="/setup/classrooms" id="invite-form">' +
                     '<input type="hidden" name="csrf_token" value="' + csrfToken + '">' +
                     '<input type="hidden" name="action_type" value="invite">' +
                     
                     '<div class="form-group">' +
-                        '<label class="form-label">Nom du maître de classe</label>' +
+                        '<label class="form-label">' + SETUP_CLASSES_I18N.masterName + '</label>' +
                         '<div class="autocomplete-container">' +
-                            '<input type="text" name="invite_master_teacher_name" class="form-control" placeholder="Commencez à taper le nom..." autocomplete="off" required>' +
+                            '<input type="text" name="invite_master_teacher_name" class="form-control" placeholder="' + SETUP_CLASSES_I18N.typeName + '" autocomplete="off" required>' +
                             '<div class="autocomplete-suggestions"></div>' +
                         '</div>' +
-                        '<p class="form-help">Enseignants de votre établissement qui sont maîtres de classe</p>' +
+                        '<p class="form-help">' + SETUP_CLASSES_I18N.schoolMasters + '</p>' +
                     '</div>' +
                     
                     '<div class="form-group" style="display: none;">' +
-                        '<label class="form-label">Classe à rejoindre</label>' +
+                        '<label class="form-label">' + SETUP_CLASSES_I18N.classToJoin + '</label>' +
                         '<select name="target_classroom_id" class="form-control">' +
-                            '<option value="">Sélectionnez une classe...</option>' +
+                            '<option value="">' + SETUP_CLASSES_I18N.selectClass + '</option>' +
                         '</select>' +
-                        '<p class="form-help">Choisissez la classe du maître que vous souhaitez rejoindre</p>' +
+                        '<p class="form-help">' + SETUP_CLASSES_I18N.chooseMasterClass + '</p>' +
                     '</div>' +
                     
                     '<div class="form-group">' +
-                        '<label class="form-label">Message (optionnel)</label>' +
-                        '<textarea name="invite_message" class="form-control" rows="3" placeholder="Expliquez pourquoi vous souhaitez rejoindre cette classe..."></textarea>' +
+                        '<label class="form-label">' + SETUP_CLASSES_I18N.messageOptional + '</label>' +
+                        '<textarea name="invite_message" class="form-control" rows="3" placeholder="' + SETUP_CLASSES_I18N.explainWhy + '"></textarea>' +
                     '</div>' +
                 '</form>' +
             '</div>' +
             '<div class="modal-footer">' +
-                '<button type="button" class="btn btn-secondary close-modal">Annuler</button>' +
+                '<button type="button" class="btn btn-secondary close-modal">' + SETUP_CLASSES_I18N.cancel + '</button>' +
                 '<button type="button" class="btn btn-success" onclick="addClassAsSource(\'invite-form\')">' +
-                    '<i class="fas fa-plus"></i> Ajouter comme classe source' +
+                    '<i class="fas fa-plus"></i> ' + SETUP_CLASSES_I18N.addAsSource +
                 '</button>' +
             '</div>';
         
@@ -2449,7 +2508,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Fonction pour afficher le modal de classe externe
     function showExternalClassesModal() {
-        const className = prompt('Nom de la classe externe:');
+        const className = prompt(SETUP_CLASSES_I18N.externalClassName);
         if (className) {
             // Ajouter une classe externe (sans élèves)
             const externalClass = {
@@ -2483,7 +2542,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<p style="color: var(--gray-color); margin-bottom: 0;">' + message + '</p>' +
             '</div>' +
             '<div class="modal-footer">' +
-                '<button type="button" class="btn btn-secondary close-modal">Fermer</button>' +
+                '<button type="button" class="btn btn-secondary close-modal">' + SETUP_CLASSES_I18N.close + '</button>' +
             '</div>';
         
         modal.appendChild(modalContent);
@@ -2541,8 +2600,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<div class="class-item-info">' +
                         '<div class="class-item-name">' + cls.name + '</div>' +
                         '<div class="class-item-details">' +
-                            '<span class="class-subject"><i class="fas fa-book"></i> ' + (cls.subject || 'Matière non spécifiée') + '</span>' +
-                            '<span class="class-student-count"><i class="fas fa-users"></i> ' + (cls.student_count || 0) + ' élèves</span>' +
+                            '<span class="class-subject"><i class="fas fa-book"></i> ' + (cls.subject || SETUP_CLASSES_I18N.subjectUnspecified) + '</span>' +
+                            '<span class="class-student-count"><i class="fas fa-users"></i> ' + SETUP_CLASSES_I18N.nStudents.replace('{n}', cls.student_count || 0) + '</span>' +
                         '</div>' +
                     '</div>' +
                     '<div class="class-item-checkbox">' +
@@ -2583,8 +2642,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const modalFooter = document.createElement('div');
         modalFooter.className = 'modal-footer';
         modalFooter.innerHTML = 
-            '<button type="button" class="btn btn-outline-secondary close-modal">Annuler</button>' +
-            '<button type="button" class="btn btn-primary" onclick="addSelectedClasses(\'' + type + '\')">Ajouter les classes sélectionnées</button>';
+            '<button type="button" class="btn btn-outline-secondary close-modal">' + SETUP_CLASSES_I18N.cancel + '</button>' +
+            '<button type="button" class="btn btn-primary" onclick="addSelectedClasses(\'' + type + '\')">' + SETUP_CLASSES_I18N.addSelectedClasses + '</button>';
         
         modalContent.appendChild(modalHeader);
         modalContent.appendChild(modalBody);
@@ -2659,7 +2718,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<input type="checkbox" id="class_' + cls.id + '" value="' + cls.id + '">' +
                 '<label for="class_' + cls.id + '" class="class-info">' +
                     '<div class="class-name">' + cls.name + '</div>' +
-                    '<div class="class-subjects">' + (cls.subject || 'Matière non spécifiée') + '</div>' +
+                    '<div class="class-subjects">' + (cls.subject || SETUP_CLASSES_I18N.subjectUnspecified) + '</div>' +
                 '</label>';
             classList.appendChild(classItem);
         });
@@ -2670,8 +2729,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const modalFooter = document.createElement('div');
         modalFooter.className = 'modal-footer';
         modalFooter.innerHTML = 
-            '<button type="button" class="btn btn-secondary close-modal">Annuler</button>' +
-            '<button type="button" class="btn btn-primary" onclick="addSelectedClasses(\'' + type + '\')">Ajouter</button>';
+            '<button type="button" class="btn btn-secondary close-modal">' + SETUP_CLASSES_I18N.cancel + '</button>' +
+            '<button type="button" class="btn btn-primary" onclick="addSelectedClasses(\'' + type + '\')">' + SETUP_CLASSES_I18N.add + '</button>';
         
         modalContent.appendChild(modalHeader);
         modalContent.appendChild(modalBody);
@@ -2716,7 +2775,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('DEBUG: visible modal found:', !!visibleModal);
         
         if (!visibleModal) {
-            alert('Aucun modal visible trouvé.');
+            alert(SETUP_CLASSES_I18N.noVisibleModal);
             return;
         }
         
@@ -2734,7 +2793,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         if (checkedBoxes.length === 0) {
-            alert('Veuillez sélectionner au moins une classe.');
+            alert(SETUP_CLASSES_I18N.selectAtLeastOneClass);
             return;
         }
         
@@ -2780,7 +2839,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function addSourceClass(classInfo) {
         // Vérifier si la classe n'est pas déjà ajoutée
         if (sourceClasses.find(cls => cls.id === classInfo.id)) {
-            alert('Cette classe est déjà ajoutée.');
+            alert(SETUP_CLASSES_I18N.classAlreadyAdded);
             return;
         }
         
@@ -2933,10 +2992,10 @@ document.addEventListener('DOMContentLoaded', function() {
             '<span>' + className + '</span>' +
             '<div class="group-actions">' +
                 '<button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllStudents(\'' + classId + '\')">' +
-                    'Tout sélectionner' +
+                    SETUP_CLASSES_I18N.selectAll +
                 '</button>' +
                 '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllStudents(\'' + classId + '\')">' +
-                    'Tout désélectionner' +
+                    SETUP_CLASSES_I18N.deselectAll +
                 '</button>' +
             '</div>';
         
@@ -3151,18 +3210,18 @@ document.addEventListener('DOMContentLoaded', function() {
         newItem.innerHTML = 
             '<div class="form-row" style="display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.375rem;">' +
                 '<div class="form-group" style="flex: 2; margin: 0;">' +
-                    '<label class="form-label">Nom de votre classe</label>' +
-                    '<input type="text" name="' + prefix + '[' + nextIndex + '][class_name]" class="form-control" placeholder="Ex: 11VG2 - Histoire" required>' +
+                    '<label class="form-label">' + SETUP_CLASSES_I18N.yourClassName + '</label>' +
+                    '<input type="text" name="' + prefix + '[' + nextIndex + '][class_name]" class="form-control" placeholder="' + SETUP_CLASSES_I18N.exClassSubject + '" required>' +
                 '</div>' +
                 '<div class="form-group" style="flex: 1; margin: 0;">' +
-                    '<label class="form-label">Matière</label>' +
-                    '<input type="text" name="' + prefix + '[' + nextIndex + '][subject]" class="form-control" placeholder="Ex: Histoire" required>' +
+                    '<label class="form-label">' + SETUP_CLASSES_I18N.subject + '</label>' +
+                    '<input type="text" name="' + prefix + '[' + nextIndex + '][subject]" class="form-control" placeholder="' + SETUP_CLASSES_I18N.exHistory + '" required>' +
                 '</div>' +
                 '<div class="form-group" style="margin: 0;">' +
-                    '<label class="form-label">Couleur</label>' +
+                    '<label class="form-label">' + SETUP_CLASSES_I18N.color + '</label>' +
                     '<div class="color-palette-small">' +
                         '<input type="hidden" name="' + prefix + '[' + nextIndex + '][color]" value="#4F46E5">' +
-                        '<div class="color-preview" style="width: 40px; height: 40px; border-radius: 0.375rem; background-color: #4F46E5; border: 2px solid #e5e7eb; cursor: pointer;" title="Cliquer pour changer"></div>' +
+                        '<div class="color-preview" style="width: 40px; height: 40px; border-radius: 0.375rem; background-color: #4F46E5; border: 2px solid #e5e7eb; cursor: pointer;" title="' + SETUP_CLASSES_I18N.clickToChange + '"></div>' +
                     '</div>' +
                 '</div>' +
                 '<button type="button" class="btn btn-danger btn-sm ' + (isJoin ? 'remove-join-discipline' : 'remove-discipline') + '" style="margin: 0; height: fit-content;">' +
@@ -3211,14 +3270,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Validation
         if (formId === 'join-code-form') {
             if (!accessCode || !teacherName || !targetClassroomId) {
-                alert('Veuillez remplir tous les champs requis et sélectionner une classe.');
+                alert(SETUP_CLASSES_I18N.fillRequiredFields);
                 return;
             }
             
             // Valider le code d'accès côté serveur
             const validateBtn = modal.querySelector('.btn-primary');
             validateBtn.disabled = true;
-            validateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validation...';
+            validateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + SETUP_CLASSES_I18N.validating;
             
             fetch('/setup/api/validate-access-code', {
                 method: 'POST',
@@ -3233,9 +3292,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (!data.valid) {
-                    alert('Erreur: ' + data.error);
+                    alert(SETUP_CLASSES_I18N.errorWithMsg.replace('{error}', data.error));
                     validateBtn.disabled = false;
-                    validateBtn.innerHTML = '<i class="fas fa-plus"></i> Ajouter comme classe source';
+                    validateBtn.innerHTML = '<i class="fas fa-plus"></i> ' + SETUP_CLASSES_I18N.addAsSource;
                     return;
                 }
                 
@@ -3244,16 +3303,16 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Erreur lors de la validation:', error);
-                alert('Erreur lors de la validation du code d\'accès');
+                alert(SETUP_CLASSES_I18N.validateCodeError);
                 validateBtn.disabled = false;
-                validateBtn.innerHTML = '<i class="fas fa-plus"></i> Ajouter comme classe source';
+                validateBtn.innerHTML = '<i class="fas fa-plus"></i> ' + SETUP_CLASSES_I18N.addAsSource;
             });
             
             return; // Arrêter ici, proceedWithAddingSource() prendra le relais
             
         } else if (formId === 'invite-form') {
             if (!teacherName || !targetClassroomId) {
-                alert('Veuillez sélectionner un enseignant et une classe.');
+                alert(SETUP_CLASSES_I18N.selectTeacherAndClass);
                 return;
             }
         }
@@ -3290,7 +3349,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         if (alreadyExists) {
-            alert('Cette classe est déjà ajoutée comme source.');
+            alert(SETUP_CLASSES_I18N.alreadySource);
             document.body.removeChild(modal);
             return;
         }
@@ -3299,7 +3358,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const sourceClass = {
             id: `${formId}_${targetClassroomId}_${Date.now()}`,
             name: form.querySelector('select[name="join_target_classroom_id"], select[name="target_classroom_id"]').selectedOptions[0].text.split(' - ')[0],
-            subject: form.querySelector('select[name="join_target_classroom_id"], select[name="target_classroom_id"]').selectedOptions[0].text.split(' - ')[1] || 'Matière inconnue',
+            subject: form.querySelector('select[name="join_target_classroom_id"], select[name="target_classroom_id"]').selectedOptions[0].text.split(' - ')[1] || SETUP_CLASSES_I18N.unknownSubject,
             type: formId === 'join-code-form' ? 'code_access' : 'invitation',
             teacher_name: teacherName,
             target_classroom_id: targetClassroomId,
@@ -3333,12 +3392,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     proceedWithStudentLoading();
                 } else {
                     console.error('Error sending invitation');
-                    alert('Erreur lors de l\'envoi de l\'invitation. Veuillez réessayer.');
+                    alert(SETUP_CLASSES_I18N.inviteSendError);
                 }
             })
             .catch(error => {
                 console.error('Error sending invitation:', error);
-                alert('Erreur lors de l\'envoi de l\'invitation. Veuillez réessayer.');
+                alert(SETUP_CLASSES_I18N.inviteSendError);
             });
         } else {
             // Pour les codes d'accès, continuer directement
@@ -3367,8 +3426,8 @@ document.addEventListener('DOMContentLoaded', function() {
         alertDiv.style.maxWidth = '400px';
         alertDiv.innerHTML = `
             <i class="fas fa-info-circle"></i> 
-            Classe "${sourceClass.name}" ajoutée comme source. 
-            ${sourceClass.type === 'code_access' ? 'Code d\'accès sauvegardé.' : 'Invitation préparée.'}
+            ${SETUP_CLASSES_I18N.sourceAdded.replace('{name}', sourceClass.name)}
+            ${sourceClass.type === 'code_access' ? SETUP_CLASSES_I18N.codeSaved : SETUP_CLASSES_I18N.invitePrepared}
         `;
         
         document.body.appendChild(alertDiv);
@@ -3442,8 +3501,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     alertDiv.style.maxWidth = '400px';
                     alertDiv.innerHTML = `
                         <i class="fas fa-exclamation-triangle"></i> 
-                        Impossible de charger les élèves de "${sourceClass.name}". 
-                        La classe a été ajoutée mais aucun élève n'est disponible.
+                        ${SETUP_CLASSES_I18N.loadStudentsFailed.replace('{name}', sourceClass.name)}
                     `;
                     
                     document.body.appendChild(alertDiv);

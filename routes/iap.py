@@ -27,6 +27,7 @@ import os
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
+from flask_babel import gettext as _gettext
 
 from extensions import db
 from utils.apple_iap import (
@@ -86,13 +87,13 @@ def validate_transaction():
         logger.warning(f"[IAP] Validation JWS échouée pour user {current_user.id} : {e}")
         return jsonify({
             'success': False,
-            'message': f'Signature Apple invalide : {e}'
+            'message': _gettext('Signature Apple invalide : %(error)s', error=str(e))
         }), 400
     except Exception as e:
         logger.exception(f"[IAP] Erreur inattendue lors de la validation JWS")
         return jsonify({
             'success': False,
-            'message': f'Erreur de validation : {e}'
+            'message': _gettext('Erreur de validation : %(error)s', error=str(e))
         }), 500
 
     # On vérifie aussi que le user qui a posté est bien celui qui a payé.

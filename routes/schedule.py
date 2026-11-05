@@ -66,11 +66,11 @@ def calculate_periods(user):
 def weekly_schedule():
     # Vérifier d'abord que la configuration de base est complète
     if not current_user.school_year_start or not current_user.day_start_time:
-        flash('Veuillez d\'abord compléter la configuration initiale.', 'warning')
+        flash(_gettext('Veuillez d\'abord compléter la configuration initiale.'), 'warning')
         return redirect(url_for('setup.initial_setup'))
 
     if current_user.classrooms.count() == 0:
-        flash('Veuillez d\'abord ajouter au moins une classe.', 'warning')
+        flash(_gettext('Veuillez d\'abord ajouter au moins une classe.'), 'warning')
         return redirect(url_for('setup.manage_classrooms'))
 
     # Comptes restés sur les anciens défauts (15 min entre les périodes, aucune
@@ -178,22 +178,22 @@ def update_times():
         period_duration = int(data.get('period_duration'))
         break_duration = int(data.get('break_duration'))
     except (TypeError, ValueError):
-        return jsonify(success=False, message='Durées invalides.'), 400
+        return jsonify(success=False, message=_gettext('Durées invalides.')), 400
     if not day_start or not day_end or day_start >= day_end:
-        return jsonify(success=False, message='Le début de la journée doit précéder la fin.'), 400
+        return jsonify(success=False, message=_gettext('Le début de la journée doit précéder la fin.')), 400
     if not 20 <= period_duration <= 120:
-        return jsonify(success=False, message='Une période dure entre 20 et 120 minutes.'), 400
+        return jsonify(success=False, message=_gettext('Une période dure entre 20 et 120 minutes.')), 400
     if not 0 <= break_duration <= 30:
-        return jsonify(success=False, message='La pause entre deux périodes dure entre 0 et 30 minutes.'), 400
+        return jsonify(success=False, message=_gettext('La pause entre deux périodes dure entre 0 et 30 minutes.')), 400
 
     breaks_in = []
     for b in (data.get('breaks') or [])[:8]:
         start, end = _parse_hhmm(b.get('start')), _parse_hhmm(b.get('end'))
         name = (str(b.get('name') or '').strip() or 'Pause')[:100]
         if not start or not end or start >= end:
-            return jsonify(success=False, message=f'Pause « {name} » : l’heure de fin doit suivre l’heure de début.'), 400
+            return jsonify(success=False, message=_gettext('Pause « %(name)s » : l’heure de fin doit suivre l’heure de début.', name=name)), 400
         if start <= day_start or end >= day_end:
-            return jsonify(success=False, message=f'Pause « {name} » : elle doit se situer pendant la journée.'), 400
+            return jsonify(success=False, message=_gettext('Pause « %(name)s » : elle doit se situer pendant la journée.', name=name)), 400
         try:
             bid = int(b.get('id')) if b.get('id') not in (None, '') else None
         except (TypeError, ValueError):
@@ -202,7 +202,7 @@ def update_times():
     breaks_in.sort(key=lambda x: x['start'])
     for a, b in zip(breaks_in, breaks_in[1:]):
         if b['start'] < a['end']:
-            return jsonify(success=False, message=f'Les pauses « {a["name"]} » et « {b["name"]} » se chevauchent.'), 400
+            return jsonify(success=False, message=_gettext('Les pauses « %(first)s » et « %(second)s » se chevauchent.', first=a["name"], second=b["name"])), 400
 
     try:
         current_user.day_start_time = day_start
@@ -238,7 +238,7 @@ def save_schedule():
     data = request.get_json()
 
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     try:
         weekday = data.get('weekday')
@@ -278,7 +278,7 @@ def save_schedule():
                 from models.mixed_group import MixedGroup
                 mixed_group = MixedGroup.query.filter_by(id=mixed_group_id_param, teacher_id=current_user.id).first()
                 if not mixed_group:
-                    return jsonify({'success': False, 'message': 'Groupe mixte non trouvé'}), 404
+                    return jsonify({'success': False, 'message': _gettext('Groupe mixte non trouvé')}), 404
                 classroom_id = None
                 mixed_group_id = mixed_group_id_param
                 custom_task_title = None
@@ -286,23 +286,23 @@ def save_schedule():
                 # Vérifier que la classe appartient à l'utilisateur
                 classroom = Classroom.query.filter_by(id=classroom_id_param, user_id=current_user.id).first()
                 if not classroom:
-                    return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+                    return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
                 classroom_id = classroom_id_param
                 mixed_group_id = None
                 custom_task_title = None
             elif item_type == 'custom' and custom_task_title:
                 if not custom_task_title:
-                    return jsonify({'success': False, 'message': 'Le titre de la tâche est obligatoire'}), 400
+                    return jsonify({'success': False, 'message': _gettext('Le titre de la tâche est obligatoire')}), 400
                 classroom_id = None
                 mixed_group_id = None
             else:
-                return jsonify({'success': False, 'message': 'Paramètres invalides'}), 400
+                return jsonify({'success': False, 'message': _gettext('Paramètres invalides')}), 400
 
             # Calculer les heures de début et fin
             periods = calculate_periods(current_user)
             period = next((p for p in periods if p['number'] == period_number), None)
             if not period:
-                return jsonify({'success': False, 'message': 'Période non valide'}), 400
+                return jsonify({'success': False, 'message': _gettext('Période non valide')}), 400
 
             if existing:
                 # Mettre à jour
@@ -351,7 +351,7 @@ def validate_schedule():
     # Vérifier qu'il y a au moins un cours dans l'horaire
     schedules_count = current_user.schedules.count()
     if schedules_count == 0:
-        flash('Veuillez ajouter au moins un cours dans votre horaire type.', 'warning')
+        flash(_gettext('Veuillez ajouter au moins un cours dans votre horaire type.'), 'warning')
         return redirect(url_for('schedule.weekly_schedule'))
 
     # Marquer l'horaire comme complété et s'assurer que le setup de base est aussi marqué comme complété
@@ -359,7 +359,7 @@ def validate_schedule():
     current_user.setup_completed = True
     db.session.commit()
 
-    flash('Horaire type validé avec succès ! Vous pouvez maintenant accéder à votre calendrier.', 'success')
+    flash(_gettext('Horaire type validé avec succès ! Vous pouvez maintenant accéder à votre calendrier.'), 'success')
     return redirect(url_for('planning.dashboard'))
 
 @schedule_bp.route('/view')
@@ -368,7 +368,7 @@ def view_schedule():
     """Affichage simple de l'horaire type sans navigation ni progression"""
     # Vérifier que l'horaire est configuré
     if not current_user.schedule_completed:
-        flash('Veuillez d\'abord configurer votre horaire type.', 'warning')
+        flash(_gettext('Veuillez d\'abord configurer votre horaire type.'), 'warning')
         return redirect(url_for('schedule.weekly_schedule'))
 
     # Récupérer les groupes mixtes d'abord pour filtrer les classes auto-créées
@@ -482,7 +482,7 @@ def merge_periods():
         if not data:
             return jsonify({
                 'success': False,
-                'message': 'Aucune donnée reçue'
+                'message': _gettext('Aucune donnée reçue')
             })
             
         weekday = int(data.get('weekday'))
@@ -495,7 +495,7 @@ def merge_periods():
         if period_end != period_start + 1:
             return jsonify({
                 'success': False,
-                'message': 'Les périodes doivent être consécutives'
+                'message': _gettext('Les périodes doivent être consécutives')
             })
         
         # Récupérer les schedules existants
@@ -518,7 +518,7 @@ def merge_periods():
         if not schedule_start or not schedule_end:
             return jsonify({
                 'success': False,
-                'message': 'Les deux périodes doivent être assignées'
+                'message': _gettext('Les deux périodes doivent être assignées')
             })
         
         # Vérifier qu'ils ont la même classe/discipline
@@ -536,7 +536,7 @@ def merge_periods():
         if not same_class:
             return jsonify({
                 'success': False,
-                'message': 'Les périodes doivent avoir la même classe/discipline'
+                'message': _gettext('Les périodes doivent avoir la même classe/discipline')
             })
         
         # Marquer la période de fin comme fusionnée
@@ -552,7 +552,7 @@ def merge_periods():
         
         return jsonify({
             'success': True,
-            'message': 'Périodes fusionnées avec succès'
+            'message': _gettext('Périodes fusionnées avec succès')
         })
         
     except Exception as e:
@@ -562,7 +562,7 @@ def merge_periods():
         db.session.rollback()
         return jsonify({
             'success': False,
-            'message': f'Erreur lors de la fusion: {str(e)}'
+            'message': _gettext('Erreur lors de la fusion: %(error)s', error=str(e))
         })
 
 @schedule_bp.route('/separate-periods', methods=['POST'])
@@ -591,7 +591,7 @@ def separate_periods():
         if not schedule_start or not schedule_end:
             return jsonify({
                 'success': False,
-                'message': 'Périodes non trouvées'
+                'message': _gettext('Périodes non trouvées')
             })
         
         # Séparer les périodes
@@ -603,12 +603,12 @@ def separate_periods():
         
         return jsonify({
             'success': True,
-            'message': 'Périodes séparées avec succès'
+            'message': _gettext('Périodes séparées avec succès')
         })
         
     except Exception as e:
         db.session.rollback()
         return jsonify({
             'success': False,
-            'message': f'Erreur lors de la séparation: {str(e)}'
+            'message': _gettext('Erreur lors de la séparation: %(error)s', error=str(e))
         })

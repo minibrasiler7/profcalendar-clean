@@ -1,3 +1,4 @@
+if (typeof window.pcT !== 'function') { window.pcT = function (s, v) { return v ? String(s).replace(/\{(\w+)\}/g, function (m, k) { return (k in v) ? String(v[k]) : m; }) : s; }; }
 // Fonctions utilitaires pour les calendriers
 
 // Formater une date au format YYYY-MM-DD
@@ -10,15 +11,15 @@ function formatDateISO(date) {
 
 // Obtenir le nom du jour en français
 function getDayName(dayIndex) {
-    const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
+    const days = [pcT('Lundi'), pcT('Mardi'), pcT('Mercredi'), pcT('Jeudi'), pcT('Vendredi')];
     return days[dayIndex];
 }
 
 // Obtenir le nom du mois en français
 function getMonthName(monthIndex) {
     const months = [
-        'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-        'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
+        pcT('janvier'), pcT('février'), pcT('mars'), pcT('avril'), pcT('mai'), pcT('juin'),
+        pcT('juillet'), pcT('août'), pcT('septembre'), pcT('octobre'), pcT('novembre'), pcT('décembre')
     ];
     return months[monthIndex];
 }

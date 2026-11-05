@@ -9,6 +9,7 @@ import html as _html
 import threading
 
 from flask import Blueprint, request, jsonify
+from flask_babel import gettext as _gettext
 from flask_login import login_required, current_user
 
 from extensions import db
@@ -34,7 +35,8 @@ def _serialize(a, author=None):
         'author': author if author is not None else (a.user.username if a.user else ''),
         'email_sent': bool(a.email_sent),
         'email_recipients': a.email_recipients or 0,
-        'created_at': a.created_at.strftime('%d.%m.%Y à %H:%M') if a.created_at else '',
+        'created_at': (_gettext('%(date)s à %(time)s', date=a.created_at.strftime('%d.%m.%Y'),
+                                 time=a.created_at.strftime('%H:%M')) if a.created_at else ''),
     }
 
 
@@ -43,7 +45,7 @@ def _serialize(a, author=None):
 def list_announcements(classroom_id):
     """Liste les annonces d'une classe (vue enseignant)."""
     if not user_can_access_classroom(current_user.id, classroom_id):
-        return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Accès refusé')}), 403
     items = (Announcement.query
              .filter_by(classroom_id=classroom_id)
              .order_by(Announcement.created_at.desc())
@@ -56,7 +58,7 @@ def list_announcements(classroom_id):
 def create_announcement(classroom_id):
     """Crée une annonce. Notifie les parents par email si demandé."""
     if not user_can_access_classroom(current_user.id, classroom_id):
-        return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Accès refusé')}), 403
 
     data = request.get_json(silent=True) or {}
     title = (data.get('title') or '').strip()
@@ -64,7 +66,7 @@ def create_announcement(classroom_id):
     notify = bool(data.get('notify_email', False))
 
     if not title or not content:
-        return jsonify({'success': False, 'message': 'Le titre et le message sont obligatoires.'}), 400
+        return jsonify({'success': False, 'message': _gettext('Le titre et le message sont obligatoires.')}), 400
     if len(title) > 255:
         title = title[:255]
 
@@ -108,7 +110,7 @@ def delete_announcement(announcement_id):
     """Supprime une annonce (enseignant ayant accès à la classe)."""
     announcement = Announcement.query.get_or_404(announcement_id)
     if not user_can_access_classroom(current_user.id, announcement.classroom_id):
-        return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Accès refusé')}), 403
     db.session.delete(announcement)
     db.session.commit()
     return jsonify({'success': True})

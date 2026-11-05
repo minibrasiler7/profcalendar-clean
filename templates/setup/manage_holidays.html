@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Gestion des vacances - ProfCalendar{% endblock %}
+{% block title %}{{ _('Gestion des vacances') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -177,17 +177,17 @@
     <!-- Information -->
     <div class="info-box">
         <i class="fas fa-info-circle"></i>
-        <p>Les périodes de vacances seront automatiquement exclues de votre planification. Vous pouvez ajouter toutes les vacances scolaires et jours fériés.</p>
+        <p>{{ _('Les périodes de vacances seront automatiquement exclues de votre planification. Vous pouvez ajouter toutes les vacances scolaires et jours fériés.') }}</p>
     </div>
 
     <!-- Import automatique par canton et année scolaire -->
     <div class="import-section">
-        <h3><i class="fas fa-download"></i> Import rapide par canton</h3>
-        <p>Choisissez votre <strong>canton</strong> et votre <strong>année scolaire</strong> : les vacances et les jours fériés cantonaux sont remplis automatiquement (dates officielles vérifiées).</p>
+        <h3><i class="fas fa-download"></i> {{ _('Import rapide par canton') }}</h3>
+        <p>{{ _('Choisissez votre <strong>canton</strong> et votre <strong>année scolaire</strong> : les vacances et les jours fériés cantonaux sont remplis automatiquement (dates officielles vérifiées).') }}</p>
         <form method="POST" action="{{ url_for('setup.import_holidays') }}">
             <div class="import-row">
                 <div class="import-field">
-                    <label class="form-label" for="importCanton">Canton / région</label>
+                    <label class="form-label" for="importCanton">{{ _('Canton / région') }}</label>
                     <select name="canton" id="importCanton" class="form-control">
                         {% for c in import_cantons %}
                         <option value="{{ c.slug }}">{{ c.label }}</option>
@@ -195,20 +195,20 @@
                     </select>
                 </div>
                 <div class="import-field">
-                    <label class="form-label" for="importYear">Année scolaire</label>
+                    <label class="form-label" for="importYear">{{ _('Année scolaire') }}</label>
                     <select name="school_year" id="importYear" class="form-control"></select>
                 </div>
             </div>
             <label class="checkbox-group" style="margin: 0.75rem 0 0;">
                 <input type="checkbox" name="include_feries" value="true" checked>
-                <span>Inclure les jours fériés cantonaux (Ascension, Pentecôte, Jeûne, Fête-Dieu…)</span>
+                <span>{{ _('Inclure les jours fériés cantonaux (Ascension, Pentecôte, Jeûne, Fête-Dieu…)') }}</span>
             </label>
             <label class="checkbox-group" style="margin: 0.5rem 0 1rem;">
                 <input type="checkbox" name="replace_existing" value="true">
-                <span>Remplacer les vacances existantes</span>
+                <span>{{ _('Remplacer les vacances existantes') }}</span>
             </label>
             <button type="submit" class="btn btn-secondary">
-                <i class="fas fa-magic"></i> Importer les vacances
+                <i class="fas fa-magic"></i> {{ _('Importer les vacances') }}
             </button>
         </form>
     </div>
@@ -240,13 +240,13 @@
 
     <!-- Formulaire d'ajout de vacances -->
     <div class="add-classroom-section">
-        <h2><i class="fas fa-umbrella-beach"></i> Ajouter des vacances</h2>
+        <h2><i class="fas fa-umbrella-beach"></i> {{ _('Ajouter des vacances') }}</h2>
         <form method="POST" action="{{ url_for('setup.manage_holidays') }}">
             {{ form.hidden_tag() }}
 
             <div class="form-group">
                 {{ form.name.label(class="form-label") }}
-                {{ form.name(class="form-control", placeholder="Ex: Vacances de Noël") }}
+                {{ form.name(class="form-control", placeholder=_('Ex: Vacances de Noël')) }}
                 {% if form.name.errors %}
                     <div class="form-error">
                         {% for error in form.name.errors %}
@@ -283,14 +283,14 @@
             </div>
 
             <button type="submit" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Ajouter les vacances
+                <i class="fas fa-plus"></i> {{ _('Ajouter les vacances') }}
             </button>
         </form>
     </div>
 
     <!-- Liste des vacances -->
     <div class="classrooms-list">
-        <h2><i class="fas fa-calendar-times"></i> Périodes de vacances</h2>
+        <h2><i class="fas fa-calendar-times"></i> {{ _('Périodes de vacances') }}</h2>
 
         {% if holidays %}
             {% for holiday in holidays %}
@@ -301,12 +301,12 @@
                     </div>
                     <div class="holiday-details">
                         <h3>{{ holiday.name }}</h3>
-                        <p>Du {{ holiday.start_date.strftime('%d/%m/%Y') }} au {{ holiday.end_date.strftime('%d/%m/%Y') }}</p>
+                        <p>{{ _('Du %(start)s au %(end)s', start=holiday.start_date.strftime('%d/%m/%Y'), end=holiday.end_date.strftime('%d/%m/%Y')) }}</p>
                     </div>
                 </div>
 
                 <form method="POST" action="{{ url_for('setup.delete_holiday', id=holiday.id) }}" style="margin: 0;">
-                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ces vacances ?');">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick='return confirm({{ _("Êtes-vous sûr de vouloir supprimer ces vacances ?")|tojson }});'>
                         <i class="fas fa-trash"></i>
                     </button>
                 </form>
@@ -315,8 +315,8 @@
         {% else %}
             <div class="empty-state">
                 <i class="fas fa-calendar-times"></i>
-                <p>Aucune période de vacances ajoutée.</p>
-                <p>Vous pouvez passer cette étape si vous le souhaitez.</p>
+                <p>{{ _('Aucune période de vacances ajoutée.') }}</p>
+                <p>{{ _('Vous pouvez passer cette étape si vous le souhaitez.') }}</p>
             </div>
         {% endif %}
     </div>
@@ -324,11 +324,11 @@
     <!-- Boutons de navigation -->
     <div class="action-buttons" style="margin-top: 2rem;">
         <a href="{{ url_for('settings.index') }}" class="btn btn-outline">
-            <i class="fas fa-arrow-left"></i> Retour aux paramètres
+            <i class="fas fa-arrow-left"></i> {{ _('Retour aux paramètres') }}
         </a>
 
         <a href="{{ url_for('planning.dashboard') }}" class="btn btn-primary">
-            <i class="fas fa-home"></i> Tableau de bord
+            <i class="fas fa-home"></i> {{ _('Tableau de bord') }}
         </a>
     </div>
 </div>

@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_babel import gettext as _gettext
 from flask_login import login_required, current_user
 from extensions import db
 from models.student import LegacyClassFile as ClassFile  # Utiliser le modèle legacy qui contient les vrais fichiers
@@ -35,14 +36,14 @@ def copy_file_to_class():
         print(f"🔍 file_id={file_id}, class_id={class_id}, folder_path={folder_path}")
         
         if not file_id or not class_id:
-            return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
+            return jsonify({'success': False, 'message': _gettext('Paramètres manquants')}), 400
 
         # Convertir les IDs en entiers
         try:
             file_id = int(file_id)
             class_id = int(class_id)
         except (ValueError, TypeError):
-            return jsonify({'success': False, 'message': 'IDs invalides'}), 400
+            return jsonify({'success': False, 'message': _gettext('IDs invalides')}), 400
         
         # Vérifier que le fichier appartient à l'utilisateur
         user_file = UserFile.query.filter_by(
@@ -51,7 +52,7 @@ def copy_file_to_class():
         ).first()
         
         if not user_file:
-            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Fichier introuvable')}), 404
         
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
@@ -60,7 +61,7 @@ def copy_file_to_class():
         ).first()
         
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
         
         # Vérifier si le fichier n'est pas déjà dans cette classe
         existing = ClassFile.query.filter_by(
@@ -71,7 +72,7 @@ def copy_file_to_class():
         if existing:
             return jsonify({
                 'success': False, 
-                'message': f'Le fichier "{user_file.original_filename}" existe déjà dans cette classe'
+                'message': _gettext('Le fichier "%(filename)s" existe déjà dans cette classe', filename=user_file.original_filename)
             })
         
         # Lire le contenu du fichier source
@@ -112,7 +113,7 @@ def copy_file_to_class():
         if not file_content:
             return jsonify({
                 'success': False,
-                'message': 'Fichier source inaccessible'
+                'message': _gettext('Fichier source inaccessible')
             })
         
         # Déterminer le type MIME si pas défini
@@ -148,7 +149,7 @@ def copy_file_to_class():
         
         return jsonify({
             'success': True,
-            'message': f'Fichier "{user_file.original_filename}" copié dans {classroom.name}',
+            'message': _gettext('Fichier "%(filename)s" copié dans %(classroom)s', filename=user_file.original_filename, classroom=classroom.name),
             'file': {
                 'id': class_file.id,
                 'name': user_file.original_filename,
@@ -158,7 +159,7 @@ def copy_file_to_class():
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 @class_files_bp.route('/copy-folder', methods=['POST'])
 @login_required
@@ -177,14 +178,14 @@ def copy_folder_to_class():
         print(f"🔍 Données reçues: folder_id={folder_id}, class_id={class_id}, target_path={target_path}")
         
         if not folder_id or not class_id:
-            return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
+            return jsonify({'success': False, 'message': _gettext('Paramètres manquants')}), 400
 
         # Convertir les IDs en entiers
         try:
             folder_id = int(folder_id)
             class_id = int(class_id)
         except (ValueError, TypeError):
-            return jsonify({'success': False, 'message': 'IDs invalides'}), 400
+            return jsonify({'success': False, 'message': _gettext('IDs invalides')}), 400
             
         print(f"🔍 Données converties: folder_id={folder_id}, class_id={class_id}")
 
@@ -195,7 +196,7 @@ def copy_folder_to_class():
         ).first()
 
         if not folder:
-            return jsonify({'success': False, 'message': 'Dossier introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Dossier introuvable')}), 404
 
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
@@ -204,7 +205,7 @@ def copy_folder_to_class():
         ).first()
 
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
 
         # Copier le dossier récursivement (duplication R2 + class_files_v2)
         copied_count, already_exists_count, failed_count = copy_folder_recursive(
@@ -219,22 +220,22 @@ def copy_folder_to_class():
         if copied_count == 0 and already_exists_count == 0 and failed_count == 0:
             return jsonify({
                 'success': True,
-                'message': f'Dossier vide "{folder.name}" copié'
+                'message': _gettext('Dossier vide "%(folder)s" copié', folder=folder.name)
             })
         elif copied_count > 0:
-            msg = f'Dossier "{folder.name}" copié avec {copied_count} fichier(s)'
+            msg = _gettext('Dossier "%(folder)s" copié avec %(count)s fichier(s)', folder=folder.name, count=copied_count)
             if already_exists_count > 0:
-                msg += f' ({already_exists_count} déjà présent(s))'
+                msg += ' ' + _gettext('(%(count)s déjà présent(s))', count=already_exists_count)
             return jsonify({'success': True, 'message': msg})
         elif already_exists_count > 0:
             return jsonify({
                 'success': True,
-                'message': f'Tous les fichiers du dossier "{folder.name}" sont déjà présents dans cette classe'
+                'message': _gettext('Tous les fichiers du dossier "%(folder)s" sont déjà présents dans cette classe', folder=folder.name)
             })
         else:
             return jsonify({
                 'success': False,
-                'message': f'Aucun fichier n\'a pu être copié depuis "{folder.name}" ({failed_count} en erreur)'
+                'message': _gettext('Aucun fichier n\'a pu être copié depuis "%(folder)s" (%(count)s en erreur)', folder=folder.name, count=failed_count)
             })
         
     except Exception as e:
@@ -242,7 +243,7 @@ def copy_folder_to_class():
         import traceback
         print(f"❌ Traceback complet: {traceback.format_exc()}")
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur lors de la copie du dossier: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur lors de la copie du dossier: %(error)s', error=str(e))}), 500
 
 def copy_folder_recursive(folder, class_id, base_path):
     """Copie récursive d'un dossier vers une classe, via le système moderne.
@@ -319,7 +320,7 @@ def list_class_files(class_id):
             user_id=current_user.id
         ).first()
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
 
         pinned, files = list_classroom_files(class_id, include_exercises=False)
         all_files = pinned + files
@@ -337,7 +338,7 @@ def list_class_files(class_id):
         })
 
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 @class_files_bp.route('/delete/<int:file_id>', methods=['DELETE'])
 @login_required
@@ -370,13 +371,13 @@ def delete_class_file(file_id):
                         print(f"⚠️ Erreur suppression copie R2: {e}")
                 db.session.delete(v2)
                 db.session.commit()
-                return jsonify({'success': True, 'message': 'Fichier retiré de la classe'})
+                return jsonify({'success': True, 'message': _gettext('Fichier retiré de la classe')})
             if source == 'v2':
                 if request.args.get('diag'):
                     total = db.session.query(ClassFileV2).filter(ClassFileV2.id == file_id).count()
-                    return jsonify({'success': False, 'message': 'Fichier introuvable',
+                    return jsonify({'success': False, 'message': _gettext('Fichier introuvable'),
                                     'diag': {'branch': 'v2', 'exists_any_owner': total}}), 404
-                return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+                return jsonify({'success': False, 'message': _gettext('Fichier introuvable')}), 404
 
         # 2. Legacy (ancien système)
         class_file = db.session.query(ClassFile).join(
@@ -387,7 +388,7 @@ def delete_class_file(file_id):
         ).first()
         
         if not class_file:
-            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Fichier introuvable')}), 404
         
         # Supprimer le fichier physique
         try:
@@ -406,12 +407,12 @@ def delete_class_file(file_id):
         
         return jsonify({
             'success': True,
-            'message': 'Fichier retiré de la classe'
+            'message': _gettext('Fichier retiré de la classe')
         })
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 # Route create-folder supprimée pour l'instant - fonctionnalité future
 
@@ -427,7 +428,7 @@ def get_class_files(classroom_id):
         ).first()
         
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
         
         # Récupérer tous les fichiers de la classe
         files = ClassFile.query.filter_by(
@@ -458,7 +459,7 @@ def get_class_files(classroom_id):
         })
         
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 @class_files_bp.route('/upload', methods=['POST'])
 @login_required
@@ -469,7 +470,7 @@ def upload_class_file():
         from werkzeug.utils import secure_filename
         
         if 'file' not in request.files:
-            return jsonify({'success': False, 'message': 'Aucun fichier fourni'}), 400
+            return jsonify({'success': False, 'message': _gettext('Aucun fichier fourni')}), 400
         
         file = request.files['file']
         classroom_id = request.form.get('classroom_id')
@@ -482,7 +483,7 @@ def upload_class_file():
         folder_path = request.form.get('folder_path', '').strip().rstrip('/')
 
         if not classroom_id:
-            return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe manquant')}), 400
 
         # Postgres en mode strict refuse de comparer un INTEGER avec un VARCHAR
         # ("operator does not exist: integer = character varying"). request.form
@@ -490,7 +491,7 @@ def upload_class_file():
         try:
             classroom_id = int(classroom_id)
         except (TypeError, ValueError):
-            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
 
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
@@ -499,10 +500,10 @@ def upload_class_file():
         ).first()
         
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
         
         if file.filename == '':
-            return jsonify({'success': False, 'message': 'Nom de fichier vide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Nom de fichier vide')}), 400
         
         # Générer un nom unique
         file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
@@ -526,13 +527,13 @@ def upload_class_file():
         
         # Vérifier la taille du fichier
         if file_size > MAX_FILE_SIZE:
-            return jsonify({'success': False, 'message': f'Fichier trop volumineux. Maximum: {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
+            return jsonify({'success': False, 'message': _gettext('Fichier trop volumineux. Maximum: %(max)sMB', max=MAX_FILE_SIZE // (1024*1024))}), 400
         
         # Vérifier la limite de stockage total
         current_storage = get_user_total_storage(current_user)
         if current_storage + file_size > MAX_TOTAL_STORAGE:
             remaining_space = (MAX_TOTAL_STORAGE - current_storage) / (1024 * 1024)
-            return jsonify({'success': False, 'message': f'Limite de stockage dépassée. Espace restant: {remaining_space:.1f}MB'}), 400
+            return jsonify({'success': False, 'message': _gettext('Limite de stockage dépassée. Espace restant: %(space)sMB', space='%.1f' % remaining_space)}), 400
         
         # Déterminer le type MIME
         mime_type = 'application/octet-stream'
@@ -555,7 +556,7 @@ def upload_class_file():
 
         dest_key = f"class_files/{classroom_id}/{unique_filename}"
         if not upload_to_r2_key(file_content, dest_key, mime_type):
-            return jsonify({'success': False, 'message': 'Stockage du fichier indisponible, réessayez.'}), 503
+            return jsonify({'success': False, 'message': _gettext('Stockage du fichier indisponible, réessayez.')}), 503
 
         # Nom d'affichage : garder les accents (safe_filename du gestionnaire),
         # secure_filename les supprimait (« Théorie » → « Theorie »).
@@ -579,7 +580,7 @@ def upload_class_file():
 
         return jsonify({
             'success': True,
-            'message': 'Fichier uploadé avec succès',
+            'message': _gettext('Fichier uploadé avec succès'),
             'file': {
                 'id': class_file.id,
                 'name': display_name,
@@ -592,7 +593,7 @@ def upload_class_file():
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 
 @class_files_bp.route('/create-folder-structure', methods=['POST'])
@@ -620,31 +621,31 @@ def create_folder_structure():
         folders = data.get('folders', []) or []
 
         if not classroom_id:
-            return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe manquant')}), 400
 
         # Cast en int : Postgres strict refuse INTEGER = VARCHAR.
         try:
             classroom_id = int(classroom_id)
         except (TypeError, ValueError):
-            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
 
         classroom = Classroom.query.filter_by(
             id=classroom_id,
             user_id=current_user.id
         ).first()
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
 
         # Pas de création effective de dossiers : l'arborescence est portée
         # par `folder_path` des fichiers. On renvoie juste OK pour que le
         # flux JS continue avec /upload.
         return jsonify({
             'success': True,
-            'message': f'{len(folders)} dossier(s) prêts à recevoir des fichiers',
+            'message': _gettext('%(count)s dossier(s) prêts à recevoir des fichiers', count=len(folders)),
             'folders': folders,
         })
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 
 def _serve_class_file_any(file_id, as_attachment):
@@ -671,10 +672,10 @@ def _serve_class_file_any(file_id, as_attachment):
                 current_app.logger.warning(
                     f"class_files serve: candidat {kind} échoué pour id={file_id}: {e}")
         if candidates:
-            return jsonify({'success': False, 'message': 'Contenu du fichier manquant'}), 404
-        return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Contenu du fichier manquant')}), 404
+        return jsonify({'success': False, 'message': _gettext('Fichier introuvable')}), 404
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 @class_files_bp.route('/preview/<int:file_id>')
 @login_required
@@ -699,7 +700,7 @@ def rename_class_item():
         new_name = data.get('name', '').strip()
         
         if not item_type or not item_id or not new_name:
-            return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
+            return jsonify({'success': False, 'message': _gettext('Paramètres manquants')}), 400
         
         if item_type == 'file':
             # Vérifier que le fichier appartient à une classe de l'utilisateur
@@ -711,7 +712,7 @@ def rename_class_item():
             ).first()
             
             if not class_file:
-                return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+                return jsonify({'success': False, 'message': _gettext('Fichier introuvable')}), 404
             
             # Garder l'extension originale
             if '.' in class_file.original_filename:
@@ -724,14 +725,14 @@ def rename_class_item():
             
             return jsonify({
                 'success': True,
-                'message': 'Fichier renommé avec succès'
+                'message': _gettext('Fichier renommé avec succès')
             })
         
         # TODO: implémenter le renommage de dossiers
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 # Pour le moment, les dossiers ne sont pas implémentés dans la base de données
 # Les dossiers sont simulés via la description des fichiers
@@ -746,13 +747,13 @@ def create_class_folder():
         parent_id = data.get('parent_id')  # Non utilisé pour le moment
 
         if not name or not classroom_id:
-            return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
+            return jsonify({'success': False, 'message': _gettext('Paramètres manquants')}), 400
 
         # Cast en int : Postgres strict refuse INTEGER = VARCHAR.
         try:
             classroom_id = int(classroom_id)
         except (TypeError, ValueError):
-            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
 
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
@@ -761,13 +762,13 @@ def create_class_folder():
         ).first()
         
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
         
         # Pour le moment, on retourne juste un succès
         # Les dossiers sont gérés via la description des fichiers
         return jsonify({
             'success': True,
-            'message': 'Dossier créé avec succès',
+            'message': _gettext('Dossier créé avec succès'),
             'folder': {
                 'id': str(uuid.uuid4()),  # ID temporaire
                 'name': name
@@ -775,7 +776,7 @@ def create_class_folder():
         })
         
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 @class_files_bp.route('/delete-folder-by-path', methods=['DELETE'])
 @login_required
@@ -787,13 +788,13 @@ def delete_class_folder_by_path():
         folder_path = data.get('folder_path', '').strip()
 
         if not classroom_id or not folder_path:
-            return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
+            return jsonify({'success': False, 'message': _gettext('Paramètres manquants')}), 400
 
         # Cast en int : Postgres strict refuse INTEGER = VARCHAR.
         try:
             classroom_id = int(classroom_id)
         except (TypeError, ValueError):
-            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
 
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
@@ -802,7 +803,7 @@ def delete_class_folder_by_path():
         ).first()
         
         if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
         
         # Trouver tous les fichiers qui sont dans ce dossier ou ses sous-dossiers
         files_to_delete = ClassFile.query.filter(
@@ -834,13 +835,13 @@ def delete_class_folder_by_path():
         
         return jsonify({
             'success': True,
-            'message': f'Dossier supprimé avec {deleted_count} fichier(s)',
+            'message': _gettext('Dossier supprimé avec %(count)s fichier(s)', count=deleted_count),
             'deleted_count': deleted_count
         })
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 # ===== ROUTES POUR LE PARTAGE DE FICHIERS =====
 
@@ -859,7 +860,7 @@ def list_students_for_sharing(classroom_id):
         
         if not classroom:
             print(f"❌ Classe {classroom_id} introuvable pour l'utilisateur {current_user.id}")
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Classe introuvable')}), 404
         
         print(f"✅ Classe trouvée: {classroom.name}")
 
@@ -893,7 +894,7 @@ def list_students_for_sharing(classroom_id):
         print(f"❌ Erreur dans list_students_for_sharing: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500
 
 @class_files_bp.route('/share', methods=['POST'])
 @login_required
@@ -910,7 +911,7 @@ def share_file_with_students():
         
         if not file_id or not student_ids:
             print(f"❌ Paramètres manquants: file_id={file_id}, student_ids={student_ids}")
-            return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
+            return jsonify({'success': False, 'message': _gettext('Paramètres manquants')}), 400
 
         # Le fichier partagé DOIT être une entrée class_files_v2 :
         # StudentFileShare.file_id référence cette table (FK). L'ancienne
@@ -936,11 +937,10 @@ def share_file_with_students():
             if legacy:
                 return jsonify({
                     'success': False,
-                    'message': 'Ce fichier date de l\'ancien stockage et ne peut pas être partagé tel quel. '
-                               'Recopiez-le dans la classe depuis le gestionnaire, puis partagez la nouvelle copie.'
+                    'message': _gettext("Ce fichier date de l'ancien stockage et ne peut pas être partagé tel quel. Recopiez-le dans la classe depuis le gestionnaire, puis partagez la nouvelle copie.")
                 }), 400
             print(f"❌ Fichier {file_id} introuvable pour l'utilisateur {current_user.id}")
-            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Fichier introuvable')}), 404
 
         # Vérifier que tous les élèves appartiennent au GROUPE de la classe du
         # fichier : une classe suivie dans deux disciplines partage sa liste
@@ -955,7 +955,7 @@ def share_file_with_students():
 
         if len(students) != len(student_ids):
             print(f"❌ Certains élèves ne sont pas dans le groupe de la classe {class_file.classroom_id}")
-            return jsonify({'success': False, 'message': 'Certains élèves ne sont pas dans cette classe'}), 400
+            return jsonify({'success': False, 'message': _gettext('Certains élèves ne sont pas dans cette classe')}), 400
         
         # Créer les partages (en évitant les doublons)
         from models.file_sharing import StudentFileShare
@@ -993,7 +993,7 @@ def share_file_with_students():
         
         return jsonify({
             'success': True,
-            'message': f'Fichier partagé avec {shares_created} élève(s)',
+            'message': _gettext('Fichier partagé avec %(count)s élève(s)', count=shares_created),
             'shares_created': shares_created
         })
         
@@ -1002,4 +1002,4 @@ def share_file_with_students():
         import traceback
         traceback.print_exc()
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur: %(error)s', error=str(e))}), 500

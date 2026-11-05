@@ -18,6 +18,9 @@
 
 'use strict';
 
+// Traduction des textes affichés (window.pcT défini par base.html) ; repli si la page ne l'a pas chargé.
+if (typeof window.pcT !== 'function') { window.pcT = function (s, v) { return v ? String(s).replace(/\{(\w+)\}/g, function (m, k) { return (k in v) ? String(v[k]) : m; }) : s; }; }
+
 // ==========================================================================
 // Pre-init PencilKit bridge stub
 // --------------------------------------------------------------------------
@@ -363,71 +366,71 @@ class CleanPDFViewer {
                 <!-- Barre d'outils en haut -->
                 <div class="pdf-toolbar">
                     <div class="toolbar-left">
-                        <button class="btn-tool" data-tool="pen" title="Stylo">
+                        <button class="btn-tool" data-tool="pen" title="${pcT('Stylo')}">
                             <i class="fas fa-pen"></i>
                         </button>
-                        <button class="btn-tool" data-tool="highlighter" title="Surligneur">
+                        <button class="btn-tool" data-tool="highlighter" title="${pcT('Surligneur')}">
                             <i class="fas fa-highlighter"></i>
                         </button>
-                        <button class="btn-tool" data-tool="eraser" title="Gomme">
+                        <button class="btn-tool" data-tool="eraser" title="${pcT('Gomme')}">
                             <i class="fas fa-eraser"></i>
                         </button>
                         <div class="separator"></div>
-                        <button class="btn-tool" data-tool="ruler" title="Règle">
+                        <button class="btn-tool" data-tool="ruler" title="${pcT('Règle')}">
                             <i class="fas fa-ruler"></i>
                         </button>
-                        <button class="btn-tool" data-tool="compass" title="Compas">
+                        <button class="btn-tool" data-tool="compass" title="${pcT('Compas')}">
                             <i class="fas fa-compass-drafting"></i>
                         </button>
-                        <button class="btn-tool" data-tool="angle" title="Angle">
+                        <button class="btn-tool" data-tool="angle" title="${pcT('Angle')}">
                             <i class="fas fa-angle-right"></i>
                         </button>
-                        <button class="btn-tool" data-tool="arc" title="Arc de cercle">
+                        <button class="btn-tool" data-tool="arc" title="${pcT('Arc de cercle')}">
                             <i class="fas fa-circle-notch"></i>
                         </button>
                         <div class="separator"></div>
-                        <button class="btn-tool" data-tool="arrow" title="Flèche">
+                        <button class="btn-tool" data-tool="arrow" title="${pcT('Flèche')}">
                             <i class="fas fa-arrow-right"></i>
                         </button>
-                        <button class="btn-tool" data-tool="rectangle" title="Rectangle">
+                        <button class="btn-tool" data-tool="rectangle" title="${pcT('Rectangle')}">
                             <i class="far fa-square"></i>
                         </button>
-                        <button class="btn-tool" data-tool="disk" title="Disque">
+                        <button class="btn-tool" data-tool="disk" title="${pcT('Disque')}">
                             <i class="fas fa-circle"></i>
                         </button>
-                        <button class="btn-tool" data-tool="grid" title="Grille">
+                        <button class="btn-tool" data-tool="grid" title="${pcT('Grille')}">
                             <i class="fas fa-border-all"></i>
                         </button>
-                        <button class="btn-tool" data-tool="set-square" title="Équerre">
+                        <button class="btn-tool" data-tool="set-square" title="${pcT('Équerre')}">
                             <i class="fas fa-ruler-combined"></i>
                         </button>
-                        <button class="btn-tool" data-tool="text" title="Texte">
+                        <button class="btn-tool" data-tool="text" title="${pcT('Texte')}">
                             <i class="fas fa-font"></i>
                         </button>
-                        <button class="btn-tool" data-tool="text-hider" title="Masquer du texte">
+                        <button class="btn-tool" data-tool="text-hider" title="${pcT('Masquer du texte')}">
                             <i class="fas fa-eye-slash"></i>
                         </button>
                         <div class="separator"></div>
-                        <button class="btn-action" id="btn-rotate-page" title="Tourner les pages de 90° (à faire avant d'annoter)">
+                        <button class="btn-action" id="btn-rotate-page" title="${pcT("Tourner les pages de 90° (à faire avant d'annoter)")}">
                             <i class="fas fa-rotate-right"></i>
                         </button>
-                        <button class="btn-action" id="btn-print-pdf" title="Imprimer / photocopier le PDF">
+                        <button class="btn-action" id="btn-print-pdf" title="${pcT('Imprimer / photocopier le PDF')}">
                             <i class="fas fa-print"></i>
                         </button>
-                        <button class="btn-tool" data-tool="student-tracking" title="Suivi des élèves">
+                        <button class="btn-tool" data-tool="student-tracking" title="${pcT('Suivi des élèves')}">
                             <i class="fas fa-users"></i>
                         </button>
                     </div>
 
                     <div class="toolbar-center">
                         <div class="color-selector">
-                            <button class="btn-color active" data-color="#000000" style="background-color: #000000;" title="Noir"></button>
-                            <button class="btn-color" data-color="#FF0000" style="background-color: #FF0000;" title="Rouge"></button>
-                            <button class="btn-color" data-color="#00FF00" style="background-color: #00FF00;" title="Vert"></button>
-                            <button class="btn-color" data-color="#0000FF" style="background-color: #0000FF;" title="Bleu"></button>
+                            <button class="btn-color active" data-color="#000000" style="background-color: #000000;" title="${pcT('Noir')}"></button>
+                            <button class="btn-color" data-color="#FF0000" style="background-color: #FF0000;" title="${pcT('Rouge')}"></button>
+                            <button class="btn-color" data-color="#00FF00" style="background-color: #00FF00;" title="${pcT('Vert')}"></button>
+                            <button class="btn-color" data-color="#0000FF" style="background-color: #0000FF;" title="${pcT('Bleu')}"></button>
                             <div class="custom-color-wrapper">
                                 <input type="color" id="color-picker" value="#FF00FF">
-                                <button class="btn-color btn-color-custom" id="btn-custom-color" title="Couleur personnalisée"></button>
+                                <button class="btn-color btn-color-custom" id="btn-custom-color" title="${pcT('Couleur personnalisée')}"></button>
                             </div>
                         </div>
                         <div class="separator"></div>
@@ -451,20 +454,20 @@ class CleanPDFViewer {
                     </div>
 
                     <div class="toolbar-right">
-                        <button class="btn-action" id="btn-undo" title="Annuler">
+                        <button class="btn-action" id="btn-undo" title="${pcT('Annuler la dernière action')}">
                             <i class="fas fa-undo"></i>
                         </button>
-                        <button class="btn-action" id="btn-redo" title="Rétablir">
+                        <button class="btn-action" id="btn-redo" title="${pcT('Rétablir')}">
                             <i class="fas fa-redo"></i>
                         </button>
-                        <button class="btn-action" id="btn-clear-page" title="Effacer la page">
+                        <button class="btn-action" id="btn-clear-page" title="${pcT('Effacer la page')}">
                             <i class="fas fa-trash"></i>
                         </button>
                         <div class="separator"></div>
-                        <button class="btn-action" id="btn-download" title="Télécharger/Envoyer">
+                        <button class="btn-action" id="btn-download" title="${pcT('Télécharger/Envoyer')}">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="btn-action" id="btn-close" title="Fermer">
+                        <button class="btn-action" id="btn-close" title="${pcT('Fermer')}">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -491,20 +494,20 @@ class CleanPDFViewer {
 
                 <!-- Mini-toolbar flottante pour le zoom -->
                 <div class="pdf-mini-toolbar" id="pdf-mini-toolbar">
-                    <button class="btn-tool" data-mini-tool="pen" title="Stylo">
+                    <button class="btn-tool" data-mini-tool="pen" title="${pcT('Stylo')}">
                         <i class="fas fa-pen"></i>
                     </button>
-                    <button class="btn-tool" data-mini-tool="highlighter" title="Surligneur">
+                    <button class="btn-tool" data-mini-tool="highlighter" title="${pcT('Surligneur')}">
                         <i class="fas fa-highlighter"></i>
                     </button>
-                    <button class="btn-tool" data-mini-tool="eraser" title="Gomme">
+                    <button class="btn-tool" data-mini-tool="eraser" title="${pcT('Gomme')}">
                         <i class="fas fa-eraser"></i>
                     </button>
                     <div class="separator" style="width: 100%; height: 1px;"></div>
-                    <button class="btn-tool" data-mini-tool="undo" title="Annuler">
+                    <button class="btn-tool" data-mini-tool="undo" title="${pcT('Annuler la dernière action')}">
                         <i class="fas fa-undo"></i>
                     </button>
-                    <button class="btn-tool" data-mini-tool="redo" title="Rétablir">
+                    <button class="btn-tool" data-mini-tool="redo" title="${pcT('Rétablir')}">
                         <i class="fas fa-redo"></i>
                     </button>
                 </div>
@@ -512,7 +515,7 @@ class CleanPDFViewer {
                 <!-- Loading overlay -->
                 <div class="pdf-loading" id="pdf-loading" style="display: none;">
                     <div class="spinner"></div>
-                    <p>Chargement...</p>
+                    <p>${pcT('Chargement…')}</p>
                 </div>
             </div>
         `;
@@ -1774,28 +1777,30 @@ class CleanPDFViewer {
             // Identifier le type d'action basé sur le style/title du bouton
             const title = (control.title || '').toLowerCase();
             const cursor = control.style.cursor || '';
+            // Action du contrôle : data-ctrl (indépendant de la langue), sinon title (ancien repli)
+            const ctrl = (control.dataset && control.dataset.ctrl) || '';
 
-            if (title.includes('déplacer') || title.includes('move')) {
+            if (ctrl === 'move' || (!ctrl && (title.includes('déplacer') || title.includes('move')))) {
                 console.log('[PEN INTERCEPT] → Action: MOVE');
                 this.startTextBoxDrag({ clientX, clientY, preventDefault: ()=>{}, stopPropagation: ()=>{} }, 'move');
                 return true;
             }
-            if (title.includes('supprimer') || title.includes('delete')) {
+            if (ctrl === 'delete' || (!ctrl && (title.includes('supprimer') || title.includes('delete')))) {
                 console.log('[PEN INTERCEPT] → Action: DELETE');
                 this.deleteSelectedTextBox();
                 return true;
             }
-            if (title.includes('augmenter') || title.includes('plus')) {
+            if (ctrl === 'size-up' || (!ctrl && (title.includes('augmenter') || title.includes('plus')))) {
                 console.log('[PEN INTERCEPT] → Action: FONT SIZE UP');
                 this.changeFontSize(2);
                 return true;
             }
-            if (title.includes('diminuer') || title.includes('minus') || title.includes('moins')) {
+            if (ctrl === 'size-down' || (!ctrl && (title.includes('diminuer') || title.includes('minus') || title.includes('moins')))) {
                 console.log('[PEN INTERCEPT] → Action: FONT SIZE DOWN');
                 this.changeFontSize(-2);
                 return true;
             }
-            if (title.includes('police') || title.includes('font')) {
+            if (ctrl === 'font' || (!ctrl && (title.includes('police') || title.includes('font')))) {
                 console.log('[PEN INTERCEPT] → Action: FONT FAMILY');
                 this.showFontFamilyMenu({ clientX, clientY, stopPropagation: ()=>{} });
                 return true;
@@ -2382,8 +2387,8 @@ class CleanPDFViewer {
         this.isAnnotating = false;
         this.isDrawing = false;
 
-        const shortName = this.options.fileName ? ('« ' + this.options.fileName + ' »') : '';
-        this.showLoading(true, shortName ? 'Chargement de ' + shortName + '…' : 'Chargement…');
+        const shortName = this.options.fileName || '';
+        this.showLoading(true, shortName ? pcT('Chargement de « {name} »…', {name: shortName}) : pcT('Chargement…'));
 
         try {
             // IMAGES (.jpg/.png/.gif/.webp…) : les ouvrir comme un document d'une
@@ -2393,7 +2398,7 @@ class CleanPDFViewer {
             // annotations sont persistées normalement.
             if (this.options.sourceIsImage || CleanPDFViewer.isImageUrl(url)) {
                 console.log('[loadPDF] Source image → conversion en PDF 1 page');
-                this.showLoading(true, 'Préparation de l\'image ' + shortName + '…');
+                this.showLoading(true, shortName ? pcT("Préparation de l'image « {name} »…", {name: shortName}) : pcT("Préparation de l'image…"));
                 url = await this.imageUrlToPdfBlobUrl(url);
                 this._imageSourceUrl = this.options.pdfUrl;
                 // Impression / export / partage : travailler sur le PDF généré
@@ -2410,13 +2415,15 @@ class CleanPDFViewer {
                 if (p.total > 0) {
                     txt = Math.min(100, Math.round(p.loaded / p.total * 100)) + ' %';
                 } else if (p.loaded > 0) {
-                    txt = (p.loaded / (1024 * 1024)).toFixed(1) + ' Mo';
+                    txt = pcT('{size} Mo', {size: (p.loaded / (1024 * 1024)).toFixed(1)});
                 }
-                if (txt) this.showLoading(true, 'Chargement de ' + (shortName || 'du document') + '… ' + txt);
+                if (txt) this.showLoading(true, shortName
+                    ? pcT('Chargement de « {name} »… {progress}', {name: shortName, progress: txt})
+                    : pcT('Chargement du document… {progress}', {progress: txt}));
             };
             console.log('[loadPDF] En attente du PDF...');
             this.pdf = await loadingTask.promise;
-            this.showLoading(true, 'Affichage des pages…');
+            this.showLoading(true, pcT('Affichage des pages…'));
             console.log('[loadPDF] PDF chargé, nombre de pages:', this.pdf.numPages);
             this.totalPages = this.pdf.numPages;
 
@@ -2443,7 +2450,7 @@ class CleanPDFViewer {
 
         } catch (error) {
             console.error('[loadPDF] Erreur chargement PDF:', error);
-            alert('Erreur lors du chargement du PDF: ' + error.message);
+            alert(pcT('Erreur lors du chargement du PDF : {error}', {error: error.message}));
         } finally {
             console.log('[loadPDF] Masquage du loading...');
             this.showLoading(false);
@@ -2468,7 +2475,7 @@ class CleanPDFViewer {
      */
     async imageUrlToPdfBlobUrl(url) {
         const resp = await fetch(url, { credentials: 'same-origin' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' en récupérant l\'image');
+        if (!resp.ok) throw new Error(pcT("HTTP {status} en récupérant l'image", {status: resp.status}));
         const blob = await resp.blob();
 
         // Décoder l'image via le navigateur (gère JPG/PNG/GIF/WebP/BMP/AVIF…)
@@ -2478,7 +2485,7 @@ class CleanPDFViewer {
             img = await new Promise((resolve, reject) => {
                 const i = new Image();
                 i.onload = () => resolve(i);
-                i.onerror = () => reject(new Error('Image illisible (format non supporté par le navigateur)'));
+                i.onerror = () => reject(new Error(pcT('Image illisible (format non supporté par le navigateur)')));
                 i.src = objectUrl;
             });
         } finally {
@@ -2488,7 +2495,7 @@ class CleanPDFViewer {
 
         const naturalW = img.naturalWidth || img.width;
         const naturalH = img.naturalHeight || img.height;
-        if (!naturalW || !naturalH) throw new Error('Dimensions d\'image invalides');
+        if (!naturalW || !naturalH) throw new Error(pcT("Dimensions d'image invalides"));
 
         // Redimensionner si énorme (photo 12 Mpx) : cible ≤ 2000 px sur le bord long
         const maxSide = 2000;
@@ -2653,7 +2660,7 @@ class CleanPDFViewer {
         // Bouton +
         const addBtn = document.createElement('button');
         addBtn.className = 'thumbnail-add-btn';
-        addBtn.innerHTML = '<i class="fas fa-plus"></i> Ajouter';
+        addBtn.innerHTML = '<i class="fas fa-plus"></i> ' + pcT('Ajouter');
         addBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.showAddPageMenu(pageId);
@@ -2703,7 +2710,7 @@ class CleanPDFViewer {
 
     printPdf() {
         const url = this.options.pdfUrl;
-        if (!url) { alert('Aucun PDF à imprimer.'); return; }
+        if (!url) { alert(pcT('Aucun PDF à imprimer.')); return; }
 
         // Dans l'app iOS, window.open ne renvoie AUCUNE fenêtre (le delegate natif
         // charge l'URL puis retourne nil) et window.print() est ignoré par
@@ -2716,7 +2723,7 @@ class CleanPDFViewer {
         }
 
         const win = window.open(url, '_blank');
-        if (!win) { alert('Autorisez les fenêtres pop-up pour imprimer le PDF.'); return; }
+        if (!win) { alert(pcT('Autorisez les fenêtres pop-up pour imprimer le PDF.')); return; }
         // Laisser le visualiseur du navigateur charger le document avant d'imprimer
         setTimeout(() => { try { win.print(); } catch (e) { /* Cmd/Ctrl+P reste possible */ } }, 1500);
     }
@@ -2751,9 +2758,7 @@ class CleanPDFViewer {
             // L'utilisateur qui annule la feuille de partage n'est pas une erreur
             if (e && (e.name === 'AbortError' || e.name === 'NotAllowedError')) return;
             console.warn('[printPdf] partage iOS impossible:', e && e.message);
-            alert("Impression indisponible depuis l'app sur cet appareil.\n\n"
-                + "Ouvre profcalendar.org dans Safari, affiche le document, "
-                + "puis utilise le bouton Partager pour l'imprimer.");
+            alert(pcT("Impression indisponible depuis l'app sur cet appareil.\n\nOuvrez profcalendar.org dans Safari, affichez le document, puis utilisez le bouton Partager pour l'imprimer."));
         }
     }
 
@@ -2821,7 +2826,7 @@ class CleanPDFViewer {
             const configBtn = document.createElement('button');
             configBtn.className = 'graph-config-btn';
             configBtn.innerHTML = '<i class="fas fa-cog"></i>';
-            configBtn.title = 'Configurer le graphique';
+            configBtn.title = pcT('Configurer le graphique');
             configBtn.addEventListener('click', () => this.openGraphConfigPanel(pageId));
             container.appendChild(configBtn);
         } else if (pageData && pageData.type === 'timeline') {
@@ -2831,7 +2836,7 @@ class CleanPDFViewer {
             const configBtn = document.createElement('button');
             configBtn.className = 'timeline-config-btn';
             configBtn.innerHTML = '<i class="fas fa-cog"></i>';
-            configBtn.title = 'Configurer la frise chronologique';
+            configBtn.title = pcT('Configurer la frise chronologique');
             configBtn.addEventListener('click', () => this.openTimelineConfigPanel(pageId));
             container.appendChild(configBtn);
 
@@ -2842,7 +2847,7 @@ class CleanPDFViewer {
                 const testBtn = document.createElement('button');
                 testBtn.className = 'timeline-test-btn';
                 testBtn.innerHTML = '❓';
-                testBtn.title = 'Mode test - Cliquez sur les événements pour révéler leur contenu';
+                testBtn.title = pcT('Mode test - Cliquez sur les événements pour révéler leur contenu');
                 testBtn.addEventListener('click', () => this.startTimelineTestMode(pageId));
                 container.appendChild(testBtn);
 
@@ -2851,7 +2856,7 @@ class CleanPDFViewer {
                     const animBtn = document.createElement('button');
                     animBtn.className = 'timeline-animation-btn';
                     animBtn.innerHTML = '🚶';
-                    animBtn.title = 'Lancer l\'animation du marcheur';
+                    animBtn.title = pcT("Lancer l'animation du marcheur");
                     animBtn.addEventListener('click', () => this.startTimelineWalkerAnimation(pageId));
                     container.appendChild(animBtn);
                 }
@@ -2863,7 +2868,7 @@ class CleanPDFViewer {
             const configBtn = document.createElement('button');
             configBtn.className = 'diagram-config-btn';
             configBtn.innerHTML = '<i class="fas fa-cog"></i>';
-            configBtn.title = 'Configurer les diagrammes';
+            configBtn.title = pcT('Configurer les diagrammes');
             configBtn.addEventListener('click', () => this.openDiagramConfigPanel(pageId));
             container.appendChild(configBtn);
         }
@@ -3258,7 +3263,7 @@ class CleanPDFViewer {
         const orientation = timelineData.orientation || 'horizontal';
         const startYear = timelineData.startYear || new Date().getFullYear();
         const endYear = timelineData.endYear || new Date().getFullYear() + 10;
-        const title = timelineData.title || 'Frise chronologique';
+        const title = timelineData.title || pcT('Frise chronologique');
         const events = timelineData.events || [];
         const lineColor = timelineData.lineColor || '#667eea';
         const showYears = timelineData.showYears !== false;
@@ -3352,7 +3357,7 @@ class CleanPDFViewer {
             ctx.fillStyle = '#9ca3af';
             ctx.font = '18px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Cliquez sur ⚙️ pour ajouter des diagrammes', width / 2, height / 2);
+            ctx.fillText(pcT('Cliquez sur ⚙️ pour ajouter des diagrammes'), width / 2, height / 2);
         } else {
             // Calculer automatiquement les positions des diagrammes
             const positions = this.calculateChartPositions(charts.length, width, height);
@@ -3458,14 +3463,14 @@ class CleanPDFViewer {
         // Générer le contenu du tableau
         tableOverlay.innerHTML = `
             <div style="background: #f3f4f6; padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; border-radius: 6px 6px 0 0; display: flex; justify-content: space-between; align-items: center;">
-                <span>📊 ${chart.title || 'Données'}</span>
-                <button class="add-row-inline-btn" title="Ajouter une ligne" style="background: #10b981; color: white; border: none; border-radius: 4px; width: 22px; height: 22px; cursor: pointer; font-size: 14px; line-height: 1; pointer-events: auto;">+</button>
+                <span>📊 ${chart.title || pcT('Données')}</span>
+                <button class="add-row-inline-btn" title="${pcT('Ajouter une ligne')}" style="background: #10b981; color: white; border: none; border-radius: 4px; width: 22px; height: 22px; cursor: pointer; font-size: 14px; line-height: 1; pointer-events: auto;">+</button>
             </div>
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: #f9fafb;">
-                        <th style="padding: 4px 6px; text-align: left; font-weight: 500; color: #6b7280; border-bottom: 1px solid #e5e7eb;">Catégorie</th>
-                        <th style="padding: 4px 6px; text-align: left; font-weight: 500; color: #6b7280; border-bottom: 1px solid #e5e7eb; width: 60px;">Valeur</th>
+                        <th style="padding: 4px 6px; text-align: left; font-weight: 500; color: #6b7280; border-bottom: 1px solid #e5e7eb;">${pcT('Catégorie')}</th>
+                        <th style="padding: 4px 6px; text-align: left; font-weight: 500; color: #6b7280; border-bottom: 1px solid #e5e7eb; width: 60px;">${pcT('Valeur')}</th>
                         <th style="padding: 4px 6px; text-align: center; font-weight: 500; color: #6b7280; border-bottom: 1px solid #e5e7eb; width: 40px;">🎨</th>
                         <th style="width: 24px; border-bottom: 1px solid #e5e7eb;"></th>
                     </tr>
@@ -3486,7 +3491,7 @@ class CleanPDFViewer {
                                        style="width: 28px; height: 20px; border: 1px solid #d1d5db; border-radius: 3px; cursor: pointer; padding: 0; pointer-events: auto;">
                             </td>
                             <td style="padding: 2px; border-bottom: 1px solid #f3f4f6; text-align: center;">
-                                <button class="delete-row-inline-btn" title="Supprimer" style="background: #fee2e2; color: #dc2626; border: none; border-radius: 3px; width: 20px; height: 20px; cursor: pointer; font-size: 10px; line-height: 1; pointer-events: auto;">×</button>
+                                <button class="delete-row-inline-btn" title="${pcT('Supprimer')}" style="background: #fee2e2; color: #dc2626; border: none; border-radius: 3px; width: 20px; height: 20px; cursor: pointer; font-size: 10px; line-height: 1; pointer-events: auto;">×</button>
                             </td>
                         </tr>
                     `).join('')}
@@ -3556,7 +3561,7 @@ class CleanPDFViewer {
             const colors = this.getDiagramColors();
             const newIndex = chart.data.length;
             chart.data.push({
-                category: `Catégorie ${newIndex + 1}`,
+                category: pcT('Catégorie {n}', {n: newIndex + 1}),
                 value: 0,
                 color: colors[newIndex % colors.length]
             });
@@ -3714,7 +3719,7 @@ class CleanPDFViewer {
                 ctx.fillStyle = '#4b5563';
                 ctx.font = '11px Arial';
                 ctx.textAlign = 'left';
-                const text = item.category || `Série ${index + 1}`;
+                const text = item.category || pcT('Série {n}', {n: index + 1});
                 ctx.fillText(text, legendX + 16, legendY + 2);
 
                 legendX += ctx.measureText(text).width + 30;
@@ -3798,7 +3803,7 @@ class CleanPDFViewer {
                 ctx.font = '11px Arial';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                const text = item.category || `Série ${index + 1}`;
+                const text = item.category || pcT('Série {n}', {n: index + 1});
                 ctx.fillText(text, legendX + 16, legendY);
 
                 legendY += 20;
@@ -3953,7 +3958,7 @@ class CleanPDFViewer {
             ctx.fillStyle = '#4b5563';
             ctx.font = '11px Arial';
             ctx.textAlign = 'left';
-            ctx.fillText(chart.title || 'Données', legendX + 16, legendY + 2);
+            ctx.fillText(chart.title || pcT('Données'), legendX + 16, legendY + 2);
         }
     }
 
@@ -4190,7 +4195,7 @@ class CleanPDFViewer {
             ctx.fillStyle = '#1f2937';
             ctx.font = 'bold 12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(event.title || 'Événement', eventX, titleOffsetY, boxWidth - 10);
+            ctx.fillText(event.title || pcT('Événement'), eventX, titleOffsetY, boxWidth - 10);
 
             // Description
             if (event.description) {
@@ -4361,7 +4366,7 @@ class CleanPDFViewer {
             ctx.fillStyle = '#1f2937';
             ctx.font = 'bold 24px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(data.title || 'Frise chronologique', width / 2, 40);
+            ctx.fillText(data.title || pcT('Frise chronologique'), width / 2, 40);
 
             // Redessiner la frise avec seulement les événements visibles
             this.drawHorizontalTimeline(
@@ -4459,7 +4464,7 @@ class CleanPDFViewer {
         // Ajouter le bouton pour quitter le mode test
         const exitBtn = document.createElement('button');
         exitBtn.className = 'timeline-exit-test-btn';
-        exitBtn.innerHTML = '✕ Quitter le test';
+        exitBtn.innerHTML = '✕ ' + pcT('Quitter le test');
         exitBtn.addEventListener('click', () => this.exitTimelineTestMode(pageId));
         canvasContainer.appendChild(exitBtn);
 
@@ -4484,7 +4489,7 @@ class CleanPDFViewer {
         ctx.fillStyle = '#1f2937';
         ctx.font = 'bold 24px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(data.title || 'Frise chronologique', width / 2, 40);
+        ctx.fillText(data.title || pcT('Frise chronologique'), width / 2, 40);
 
         // Dessiner la frise de base (ligne et graduations) mais pas les événements normaux
         if (orientation === 'horizontal') {
@@ -4827,7 +4832,7 @@ class CleanPDFViewer {
         ctx.fillStyle = '#1f2937';
         ctx.font = 'bold 12px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(title || 'Événement', eventData.x, titleOffsetY, boxWidth - 10);
+        ctx.fillText(title || pcT('Événement'), eventData.x, titleOffsetY, boxWidth - 10);
 
         // Description
         if (description) {
@@ -5053,7 +5058,7 @@ class CleanPDFViewer {
             ctx.fillStyle = '#1f2937';
             ctx.font = 'bold 12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(event.title || 'Événement', eventX, titleOffsetY, boxWidth - 10);
+            ctx.fillText(event.title || pcT('Événement'), eventX, titleOffsetY, boxWidth - 10);
 
             // Description
             if (event.description) {
@@ -5087,46 +5092,46 @@ class CleanPDFViewer {
      */
     getHistoryEmojis() {
         return [
-            { emoji: '', label: 'Aucun' },
-            { emoji: '👑', label: 'Couronne (royauté)' },
-            { emoji: '⚔️', label: 'Épées (guerre)' },
-            { emoji: '🏰', label: 'Château' },
-            { emoji: '📜', label: 'Parchemin' },
-            { emoji: '🗡️', label: 'Épée' },
-            { emoji: '🛡️', label: 'Bouclier' },
-            { emoji: '⛪', label: 'Église' },
-            { emoji: '🏛️', label: 'Monument' },
-            { emoji: '🎭', label: 'Théâtre/Arts' },
-            { emoji: '🎨', label: 'Art' },
-            { emoji: '📖', label: 'Livre' },
-            { emoji: '🔬', label: 'Science' },
-            { emoji: '💡', label: 'Invention' },
-            { emoji: '🚂', label: 'Train (révolution industrielle)' },
-            { emoji: '⚓', label: 'Ancre (navigation)' },
-            { emoji: '🗺️', label: 'Carte (exploration)' },
-            { emoji: '🏴', label: 'Drapeau' },
-            { emoji: '✝️', label: 'Religion' },
-            { emoji: '☪️', label: 'Islam' },
-            { emoji: '🕎', label: 'Judaïsme' },
-            { emoji: '🔥', label: 'Feu/Destruction' },
-            { emoji: '💀', label: 'Mort/Épidémie' },
-            { emoji: '🌍', label: 'Monde' },
-            { emoji: '🗽', label: 'Liberté' },
-            { emoji: '⚖️', label: 'Justice/Loi' },
-            { emoji: '🎵', label: 'Musique' },
-            { emoji: '🏆', label: 'Victoire' },
-            { emoji: '💎', label: 'Richesse' },
-            { emoji: '🌾', label: 'Agriculture' },
-            { emoji: '🏺', label: 'Antiquité' },
-            { emoji: '🗿', label: 'Préhistoire' },
-            { emoji: '📝', label: 'Écriture/Traité' },
-            { emoji: '🎓', label: 'Éducation' },
-            { emoji: '🚀', label: 'Espace' },
-            { emoji: '💻', label: 'Informatique' },
-            { emoji: '⚡', label: 'Électricité' },
-            { emoji: '🏥', label: 'Médecine' },
-            { emoji: '🗳️', label: 'Vote/Démocratie' },
-            { emoji: '✊', label: 'Révolution' }
+            { emoji: '', label: pcT('Aucun') },
+            { emoji: '👑', label: pcT('Couronne (royauté)') },
+            { emoji: '⚔️', label: pcT('Épées (guerre)') },
+            { emoji: '🏰', label: pcT('Château') },
+            { emoji: '📜', label: pcT('Parchemin') },
+            { emoji: '🗡️', label: pcT('Épée') },
+            { emoji: '🛡️', label: pcT('Bouclier') },
+            { emoji: '⛪', label: pcT('Église') },
+            { emoji: '🏛️', label: pcT('Monument') },
+            { emoji: '🎭', label: pcT('Théâtre/Arts') },
+            { emoji: '🎨', label: pcT('Art') },
+            { emoji: '📖', label: pcT('Livre') },
+            { emoji: '🔬', label: pcT('Science') },
+            { emoji: '💡', label: pcT('Invention') },
+            { emoji: '🚂', label: pcT('Train (révolution industrielle)') },
+            { emoji: '⚓', label: pcT('Ancre (navigation)') },
+            { emoji: '🗺️', label: pcT('Carte (exploration)') },
+            { emoji: '🏴', label: pcT('Drapeau') },
+            { emoji: '✝️', label: pcT('Religion') },
+            { emoji: '☪️', label: pcT('Islam') },
+            { emoji: '🕎', label: pcT('Judaïsme') },
+            { emoji: '🔥', label: pcT('Feu/Destruction') },
+            { emoji: '💀', label: pcT('Mort/Épidémie') },
+            { emoji: '🌍', label: pcT('Monde') },
+            { emoji: '🗽', label: pcT('Liberté') },
+            { emoji: '⚖️', label: pcT('Justice/Loi') },
+            { emoji: '🎵', label: pcT('Musique') },
+            { emoji: '🏆', label: pcT('Victoire') },
+            { emoji: '💎', label: pcT('Richesse') },
+            { emoji: '🌾', label: pcT('Agriculture') },
+            { emoji: '🏺', label: pcT('Antiquité') },
+            { emoji: '🗿', label: pcT('Préhistoire') },
+            { emoji: '📝', label: pcT('Écriture/Traité') },
+            { emoji: '🎓', label: pcT('Éducation') },
+            { emoji: '🚀', label: pcT('Espace') },
+            { emoji: '💻', label: pcT('Informatique') },
+            { emoji: '⚡', label: pcT('Électricité') },
+            { emoji: '🏥', label: pcT('Médecine') },
+            { emoji: '🗳️', label: pcT('Vote/Démocratie') },
+            { emoji: '✊', label: pcT('Révolution') }
         ];
     }
 
@@ -5160,24 +5165,24 @@ class CleanPDFViewer {
         panel.innerHTML = `
             <div style="padding: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="margin: 0;">Configurer la frise chronologique</h3>
+                    <h3 style="margin: 0;">${pcT('Configurer la frise chronologique')}</h3>
                     <button id="timeline-close-btn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Titre de la frise</label>
-                    <input type="text" id="timeline-title" value="${data.title || 'Frise chronologique'}"
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">${pcT('Titre de la frise')}</label>
+                    <input type="text" id="timeline-title" value="${data.title || pcT('Frise chronologique')}"
                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
                     <div>
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Année de début</label>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">${pcT('Année de début')}</label>
                         <input type="number" id="timeline-start-year" value="${data.startYear || new Date().getFullYear()}"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
                     </div>
                     <div>
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Année de fin</label>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">${pcT('Année de fin')}</label>
                         <input type="number" id="timeline-end-year" value="${data.endYear || (new Date().getFullYear() + 10)}"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
                     </div>
@@ -5185,46 +5190,46 @@ class CleanPDFViewer {
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
                     <div>
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Orientation</label>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">${pcT('Orientation')}</label>
                         <select id="timeline-orientation" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
-                            <option value="horizontal" ${data.orientation === 'horizontal' || !data.orientation ? 'selected' : ''}>Horizontale</option>
-                            <option value="vertical" ${data.orientation === 'vertical' ? 'selected' : ''}>Verticale</option>
+                            <option value="horizontal" ${data.orientation === 'horizontal' || !data.orientation ? 'selected' : ''}>${pcT('Horizontale')}</option>
+                            <option value="vertical" ${data.orientation === 'vertical' ? 'selected' : ''}>${pcT('Verticale')}</option>
                         </select>
                     </div>
                     <div>
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Intervalle des graduations</label>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">${pcT('Intervalle des graduations')}</label>
                         <select id="timeline-tick-interval" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
-                            <option value="auto" ${!data.tickInterval ? 'selected' : ''}>Automatique (10-25 traits)</option>
-                            <option value="1" ${data.tickInterval === 1 ? 'selected' : ''}>Tous les 1 an</option>
-                            <option value="5" ${data.tickInterval === 5 ? 'selected' : ''}>Tous les 5 ans</option>
-                            <option value="10" ${data.tickInterval === 10 ? 'selected' : ''}>Tous les 10 ans</option>
-                            <option value="25" ${data.tickInterval === 25 ? 'selected' : ''}>Tous les 25 ans</option>
-                            <option value="50" ${data.tickInterval === 50 ? 'selected' : ''}>Tous les 50 ans</option>
-                            <option value="100" ${data.tickInterval === 100 ? 'selected' : ''}>Tous les 100 ans</option>
-                            <option value="500" ${data.tickInterval === 500 ? 'selected' : ''}>Tous les 500 ans</option>
+                            <option value="auto" ${!data.tickInterval ? 'selected' : ''}>${pcT('Automatique (10-25 traits)')}</option>
+                            <option value="1" ${data.tickInterval === 1 ? 'selected' : ''}>${pcT('Chaque année')}</option>
+                            <option value="5" ${data.tickInterval === 5 ? 'selected' : ''}>${pcT('Tous les {n} ans', {n: 5})}</option>
+                            <option value="10" ${data.tickInterval === 10 ? 'selected' : ''}>${pcT('Tous les {n} ans', {n: 10})}</option>
+                            <option value="25" ${data.tickInterval === 25 ? 'selected' : ''}>${pcT('Tous les {n} ans', {n: 25})}</option>
+                            <option value="50" ${data.tickInterval === 50 ? 'selected' : ''}>${pcT('Tous les {n} ans', {n: 50})}</option>
+                            <option value="100" ${data.tickInterval === 100 ? 'selected' : ''}>${pcT('Tous les {n} ans', {n: 100})}</option>
+                            <option value="500" ${data.tickInterval === 500 ? 'selected' : ''}>${pcT('Tous les {n} ans', {n: 500})}</option>
                         </select>
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
                     <div>
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Couleur de la ligne</label>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">${pcT('Couleur de la ligne')}</label>
                         <input type="color" id="timeline-line-color" value="${data.lineColor || '#667eea'}"
                                style="width: 100px; height: 40px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">
                     </div>
                     <div style="display: flex; align-items: flex-end;">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                             <input type="checkbox" id="timeline-show-years" ${data.showYears !== false ? 'checked' : ''}>
-                            <span>Afficher les années</span>
+                            <span>${pcT('Afficher les années')}</span>
                         </label>
                     </div>
                 </div>
 
                 <div style="margin-bottom: 16px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h4 style="margin: 0;">Événements</h4>
+                        <h4 style="margin: 0;">${pcT('Événements')}</h4>
                         <button id="add-event-btn" style="padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                            + Ajouter un événement
+                            + ${pcT('Ajouter un événement')}
                         </button>
                     </div>
                     <div id="events-list" style="max-height: 250px; overflow-y: auto;">
@@ -5234,10 +5239,10 @@ class CleanPDFViewer {
 
                 <div style="display: flex; gap: 12px; margin-top: 24px;">
                     <button id="apply-timeline-btn" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                        Appliquer
+                        ${pcT('Appliquer')}
                     </button>
                     <button id="cancel-timeline-btn" style="flex: 1; padding: 12px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                        Annuler
+                        ${pcT('Annuler')}
                     </button>
                 </div>
             </div>
@@ -5386,12 +5391,12 @@ class CleanPDFViewer {
             <div class="timeline-event-item" style="background: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e5e7eb;">
                 <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
                     <input type="number" class="event-year" value="${event.year || new Date().getFullYear()}"
-                           placeholder="Année" style="width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                           placeholder="${pcT('Année')}" style="width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
                     <input type="color" class="event-color" value="${event.color || '#3b82f6'}"
-                           title="Couleur" style="width: 40px; height: 32px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                           title="${pcT('Couleur')}" style="width: 40px; height: 32px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
                     <div style="position: relative;">
                         <input type="hidden" class="event-emoji" value="${event.emoji || ''}">
-                        <button type="button" class="emoji-picker-btn" style="width: 36px; height: 32px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; background: white; font-size: 16px;" title="Choisir un emoji">
+                        <button type="button" class="emoji-picker-btn" style="width: 36px; height: 32px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; background: white; font-size: 16px;" title="${pcT('Choisir un emoji')}">
                             ${event.emoji || '😀'}
                         </button>
                         <div class="emoji-dropdown" style="display: none; position: absolute; top: 100%; left: 0; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); grid-template-columns: repeat(8, 1fr); gap: 2px; width: 280px; max-height: 200px; overflow-y: auto;">
@@ -5399,10 +5404,10 @@ class CleanPDFViewer {
                         </div>
                     </div>
                     <input type="text" class="event-title" value="${event.title || ''}"
-                           placeholder="Titre de l'événement" style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                           placeholder="${pcT("Titre de l'événement")}" style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
                     <button class="delete-event-btn" type="button" style="width: 32px; height: 32px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">×</button>
                 </div>
-                <textarea class="event-description" placeholder="Description (optionnelle)"
+                <textarea class="event-description" placeholder="${pcT('Description (optionnelle)')}"
                           style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; min-height: 40px; font-size: 13px; font-family: Arial;">${event.description || ''}</textarea>
             </div>
         `;
@@ -5452,13 +5457,13 @@ class CleanPDFViewer {
         panel.innerHTML = `
             <div style="padding: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="margin: 0;">Configuration des diagrammes</h3>
+                    <h3 style="margin: 0;">${pcT('Configuration des diagrammes')}</h3>
                     <button id="diagram-close-btn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
                 </div>
 
                 <div style="margin-bottom: 16px;">
                     <button id="add-chart-btn" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
-                        + Ajouter un diagramme
+                        + ${pcT('Ajouter un diagramme')}
                     </button>
                 </div>
 
@@ -5468,10 +5473,10 @@ class CleanPDFViewer {
 
                 <div style="display: flex; gap: 12px; margin-top: 24px;">
                     <button id="apply-diagram-btn" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                        Appliquer
+                        ${pcT('Appliquer')}
                     </button>
                     <button id="cancel-diagram-btn" style="flex: 1; padding: 12px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                        Annuler
+                        ${pcT('Annuler')}
                     </button>
                 </div>
             </div>
@@ -5490,14 +5495,14 @@ class CleanPDFViewer {
             const newChart = {
                 id: `chart_${Date.now()}`,
                 type: 'bar',
-                title: `Diagramme ${newIndex + 1}`,
+                title: pcT('Diagramme {n}', {n: newIndex + 1}),
                 showTitle: true,
                 showLegend: true,
                 showLabels: true,
                 data: [
-                    { category: 'Catégorie A', value: 30, color: colors[0] },
-                    { category: 'Catégorie B', value: 45, color: colors[1] },
-                    { category: 'Catégorie C', value: 25, color: colors[2] }
+                    { category: pcT('Catégorie {n}', {n: 'A'}), value: 30, color: colors[0] },
+                    { category: pcT('Catégorie {n}', {n: 'B'}), value: 45, color: colors[1] },
+                    { category: pcT('Catégorie {n}', {n: 'C'}), value: 25, color: colors[2] }
                 ]
             };
             const newChartHtml = this.renderChartConfigItem(newChart, newIndex);
@@ -5532,8 +5537,8 @@ class CleanPDFViewer {
                 <div class="chart-accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer; background: #f3f4f6;">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span class="accordion-arrow" style="transition: transform 0.2s; ${isExpanded ? 'transform: rotate(90deg);' : ''}">▶</span>
-                        <span class="chart-preview-title" style="font-weight: 600; color: #374151;">${chart.title || `Diagramme ${index + 1}`}</span>
-                        <span style="color: #9ca3af; font-size: 12px;">(${chart.type === 'bar' ? 'Barres' : chart.type === 'pie' ? 'Camembert' : 'Aires'})</span>
+                        <span class="chart-preview-title" style="font-weight: 600; color: #374151;">${chart.title || pcT('Diagramme {n}', {n: index + 1})}</span>
+                        <span style="color: #9ca3af; font-size: 12px;">(${chart.type === 'bar' ? pcT('Barres') : chart.type === 'pie' ? pcT('Camembert') : pcT('Aires')})</span>
                     </div>
                     <button class="delete-chart-btn" type="button" style="padding: 4px 10px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
                         🗑️
@@ -5543,48 +5548,48 @@ class CleanPDFViewer {
                 <!-- Contenu de l'accordéon (masqué par défaut) -->
                 <div class="chart-accordion-content" style="padding: 16px; ${isExpanded ? '' : 'display: none;'}">
                     <div style="margin-bottom: 12px;">
-                        <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">Titre du diagramme</label>
-                        <input type="text" class="chart-title-input" value="${chart.title || ''}" placeholder="Titre du diagramme"
+                        <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">${pcT('Titre du diagramme')}</label>
+                        <input type="text" class="chart-title-input" value="${chart.title || ''}" placeholder="${pcT('Titre du diagramme')}"
                                style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                         <div>
-                            <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">Type</label>
+                            <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">${pcT('Type')}</label>
                             <select class="chart-type-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
-                                <option value="bar" ${chart.type === 'bar' ? 'selected' : ''}>📊 Barres</option>
-                                <option value="pie" ${chart.type === 'pie' ? 'selected' : ''}>🥧 Camembert</option>
-                                <option value="area" ${chart.type === 'area' ? 'selected' : ''}>📈 Aires</option>
+                                <option value="bar" ${chart.type === 'bar' ? 'selected' : ''}>📊 ${pcT('Barres')}</option>
+                                <option value="pie" ${chart.type === 'pie' ? 'selected' : ''}>🥧 ${pcT('Camembert')}</option>
+                                <option value="area" ${chart.type === 'area' ? 'selected' : ''}>📈 ${pcT('Aires')}</option>
                             </select>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 6px; justify-content: center;">
                             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
                                 <input type="checkbox" class="chart-show-title" ${chart.showTitle !== false ? 'checked' : ''}>
-                                <span>Titre</span>
+                                <span>${pcT('Titre')}</span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
                                 <input type="checkbox" class="chart-show-legend" ${chart.showLegend !== false ? 'checked' : ''}>
-                                <span>Légende</span>
+                                <span>${pcT('Légende')}</span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
                                 <input type="checkbox" class="chart-show-labels" ${chart.showLabels !== false ? 'checked' : ''}>
-                                <span>Étiquettes</span>
+                                <span>${pcT('Étiquettes')}</span>
                             </label>
                         </div>
                     </div>
 
                     <div style="margin-top: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <label style="font-weight: 500; font-size: 13px;">Données</label>
+                            <label style="font-weight: 500; font-size: 13px;">${pcT('Données')}</label>
                             <button class="add-data-row-btn" type="button" style="padding: 4px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                                + Ligne
+                                + ${pcT('Ligne')}
                             </button>
                         </div>
                         <div class="chart-data-table" style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden;">
                             <div style="display: grid; grid-template-columns: 2fr 1fr 50px 32px; gap: 0; background: #e5e7eb; padding: 6px 8px; font-weight: 500; font-size: 11px; color: #4b5563;">
-                                <div>Catégorie</div>
-                                <div>Valeur</div>
-                                <div>Couleur</div>
+                                <div>${pcT('Catégorie')}</div>
+                                <div>${pcT('Valeur')}</div>
+                                <div>${pcT('Couleur')}</div>
                                 <div></div>
                             </div>
                             <div class="data-rows-container">
@@ -5604,7 +5609,7 @@ class CleanPDFViewer {
         const colors = this.getDiagramColors();
         return `
             <div class="data-row" style="display: grid; grid-template-columns: 2fr 1fr 50px 32px; gap: 4px; padding: 6px 8px; border-top: 1px solid #e5e7eb; align-items: center; background: white;">
-                <input type="text" class="data-category" value="${item.category || ''}" placeholder="Catégorie"
+                <input type="text" class="data-category" value="${item.category || ''}" placeholder="${pcT('Catégorie')}"
                        style="padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
                 <input type="number" class="data-value" value="${item.value || 0}" min="0"
                        style="padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
@@ -5643,7 +5648,7 @@ class CleanPDFViewer {
         const titleInput = chartItem.querySelector('.chart-title-input');
         const previewTitle = chartItem.querySelector('.chart-preview-title');
         titleInput.addEventListener('input', () => {
-            previewTitle.textContent = titleInput.value || 'Sans titre';
+            previewTitle.textContent = titleInput.value || pcT('Sans titre');
         });
 
         // Ajout de ligne de données
@@ -5764,14 +5769,14 @@ class CleanPDFViewer {
 
         panel.innerHTML = `
             <div class="graph-config-header">
-                <h3><i class="fas fa-chart-line"></i> Configuration du Graphique</h3>
+                <h3><i class="fas fa-chart-line"></i> ${pcT('Configuration du graphique')}</h3>
                 <button class="graph-config-close"><i class="fas fa-times"></i></button>
             </div>
 
             <div class="graph-config-body">
                 <!-- Axes -->
                 <div class="graph-config-section">
-                    <h4><i class="fas fa-arrows-alt"></i> Intervalles des Axes</h4>
+                    <h4><i class="fas fa-arrows-alt"></i> ${pcT('Intervalles des axes')}</h4>
                     <div class="graph-input-group">
                         <div class="graph-input-wrapper">
                             <label>X Min</label>
@@ -5796,34 +5801,34 @@ class CleanPDFViewer {
 
                 <!-- Grille -->
                 <div class="graph-config-section">
-                    <h4><i class="fas fa-th"></i> Grille</h4>
+                    <h4><i class="fas fa-th"></i> ${pcT('Grille')}</h4>
                     <div class="graph-checkbox-wrapper">
                         <input type="checkbox" id="graph-show-grid" ${data.showGrid ? 'checked' : ''}>
-                        <label for="graph-show-grid">Afficher la grille</label>
+                        <label for="graph-show-grid">${pcT('Afficher la grille')}</label>
                     </div>
                     <div class="graph-input-wrapper" style="margin-top: 12px;">
-                        <label>Espacement de la grille</label>
+                        <label>${pcT('Espacement de la grille')}</label>
                         <input type="number" id="graph-grid-spacing" value="${data.gridSpacing}" step="0.5" min="0.1">
                     </div>
                 </div>
 
                 <!-- Fonctions -->
                 <div class="graph-config-section">
-                    <h4><i class="fas fa-function"></i> Fonctions</h4>
+                    <h4><i class="fas fa-function"></i> ${pcT('Fonctions')}</h4>
                     <div class="graph-functions-list" id="graph-functions-list"></div>
                     <button class="graph-add-function-btn" id="graph-add-function">
-                        <i class="fas fa-plus"></i> Ajouter une fonction
+                        <i class="fas fa-plus"></i> ${pcT('Ajouter une fonction')}
                     </button>
                     <div style="margin-top: 12px; padding: 12px; background: #FEF3C7; border-radius: 8px; font-size: 13px; color: #92400E;">
-                        <strong>Syntaxe :</strong> Utilisez <code>x</code> comme variable. Ex: <code>x^2</code>, <code>sin(x)</code>, <code>2*x + 3</code>
-                        <br><strong>Fonctions disponibles :</strong> sin, cos, tan, sqrt, abs, exp, log, pow
+                        <strong>${pcT('Syntaxe :')}</strong> ${pcT('Utilisez {x} comme variable. Ex. : {examples}', {x: '<code>x</code>', examples: '<code>x^2</code>, <code>sin(x)</code>, <code>2*x + 3</code>'})}
+                        <br><strong>${pcT('Fonctions disponibles :')}</strong> sin, cos, tan, sqrt, abs, exp, log, pow
                     </div>
                 </div>
             </div>
 
             <div class="graph-config-footer">
                 <button class="graph-apply-btn" id="graph-apply">
-                    <i class="fas fa-check"></i> Appliquer les modifications
+                    <i class="fas fa-check"></i> ${pcT('Appliquer les modifications')}
                 </button>
             </div>
         `;
@@ -5862,7 +5867,7 @@ class CleanPDFViewer {
 
             // Valider
             if (data.xMin >= data.xMax || data.yMin >= data.yMax) {
-                alert('Les intervalles ne sont pas valides. Min doit être < Max.');
+                alert(pcT('Les intervalles ne sont pas valides. Min doit être < Max.'));
                 return;
             }
 
@@ -5912,7 +5917,7 @@ class CleanPDFViewer {
             item.className = 'graph-function-item';
             item.innerHTML = `
                 <input type="color" class="graph-function-color" value="${func.color}" data-index="${index}">
-                <input type="text" class="graph-function-input" value="${func.expression}" placeholder="Ex: x^2 + 2*x - 1" data-index="${index}" autocapitalize="off" autocorrect="off" spellcheck="false">
+                <input type="text" class="graph-function-input" value="${func.expression}" placeholder="${pcT('Ex. : {expr}', {expr: 'x^2 + 2*x - 1'})}" data-index="${index}" autocapitalize="off" autocorrect="off" spellcheck="false">
                 <button class="graph-function-delete" data-index="${index}">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -8049,7 +8054,8 @@ class CleanPDFViewer {
             top: -36px;
             transform: translateX(-50%);
         `;
-        moveBtn.title = 'Déplacer';
+        moveBtn.title = pcT('Déplacer');
+        moveBtn.dataset.ctrl = 'move';
         moveBtn.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'move'));
         moveBtn.addEventListener('touchstart', (e) => this.startTextBoxDrag(e, 'move'), {passive: false});
         moveBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.startTextBoxDrag(e, 'move'); }, {passive: false});
@@ -8065,7 +8071,8 @@ class CleanPDFViewer {
             border-color: #ff3b30;
             color: #ff3b30;
         `;
-        deleteBtn.title = 'Supprimer';
+        deleteBtn.title = pcT('Supprimer');
+        deleteBtn.dataset.ctrl = 'delete';
         deleteBtn.addEventListener('click', () => this.deleteSelectedTextBox());
         deleteBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); }, {passive: false});
         controlsContainer.appendChild(deleteBtn);
@@ -8078,7 +8085,8 @@ class CleanPDFViewer {
             top: calc(50% - 18px);
             transform: translateY(-50%);
         `;
-        fontSizeUpBtn.title = 'Augmenter la taille';
+        fontSizeUpBtn.title = pcT('Augmenter la taille');
+        fontSizeUpBtn.dataset.ctrl = 'size-up';
         fontSizeUpBtn.addEventListener('click', (e) => { e.stopPropagation(); this.changeFontSize(2); });
         fontSizeUpBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); }, {passive: false});
         controlsContainer.appendChild(fontSizeUpBtn);
@@ -8090,7 +8098,8 @@ class CleanPDFViewer {
             top: calc(50% + 18px);
             transform: translateY(-50%);
         `;
-        fontSizeDownBtn.title = 'Diminuer la taille';
+        fontSizeDownBtn.title = pcT('Diminuer la taille');
+        fontSizeDownBtn.dataset.ctrl = 'size-down';
         fontSizeDownBtn.addEventListener('click', (e) => { e.stopPropagation(); this.changeFontSize(-2); });
         fontSizeDownBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); }, {passive: false});
         controlsContainer.appendChild(fontSizeDownBtn);
@@ -8103,7 +8112,8 @@ class CleanPDFViewer {
             top: 50%;
             transform: translateY(-50%);
         `;
-        fontFamilyBtn.title = 'Police';
+        fontFamilyBtn.title = pcT('Police');
+        fontFamilyBtn.dataset.ctrl = 'font';
         fontFamilyBtn.addEventListener('click', (e) => this.showFontFamilyMenu(e));
         fontFamilyBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); }, {passive: false});
         controlsContainer.appendChild(fontFamilyBtn);
@@ -9467,7 +9477,7 @@ class CleanPDFViewer {
         // fermeture de la boîte : on ignore tout déclenchement < 600 ms après.
         const now = Date.now();
         if (this._lastClearPromptClosed && (now - this._lastClearPromptClosed) < 600) return;
-        const confirmed = confirm('Effacer toutes les annotations de cette page ?');
+        const confirmed = confirm(pcT('Effacer toutes les annotations de cette page ?'));
         this._lastClearPromptClosed = Date.now();
         if (!confirmed) return;
 
@@ -9609,9 +9619,9 @@ class CleanPDFViewer {
         }
 
         // Mettre à jour le contenu
-        const toolName = this.currentTool === 'eraser' ? 'Gomme' :
-                        this.currentTool === 'pen' ? 'Stylo' :
-                        this.currentTool === 'highlighter' ? 'Surligneur' :
+        const toolName = this.currentTool === 'eraser' ? pcT('Gomme') :
+                        this.currentTool === 'pen' ? pcT('Stylo') :
+                        this.currentTool === 'highlighter' ? pcT('Surligneur') :
                         this.currentTool.charAt(0).toUpperCase() + this.currentTool.slice(1);
 
         notification.textContent = toolName;
@@ -10362,7 +10372,7 @@ class CleanPDFViewer {
             panel.className = 'pdf-tracking-panel';
             panel.innerHTML = `
                 <div class="tracking-panel-header">
-                    <h2><i class="fas fa-users"></i> Suivi des élèves</h2>
+                    <h2><i class="fas fa-users"></i> ${pcT('Suivi des élèves')}</h2>
                     <button class="tracking-panel-close" onclick="window.cleanPDFViewer.closeClassManagementModal()">
                         <i class="fas fa-times"></i>
                     </button>
@@ -10633,7 +10643,7 @@ class CleanPDFViewer {
             const ta = panel.querySelector('#qrContent');
             const content = ta ? ta.value.trim() : '';
             if (!currentStudentId || !content) {
-                if (typeof showNotification === 'function') showNotification('error', 'Écrivez une remarque.');
+                if (typeof showNotification === 'function') showNotification('error', pcT('Écrivez une remarque.'));
                 return;
             }
             const cb = panel.querySelector('#qrSendParent');
@@ -10652,7 +10662,7 @@ class CleanPDFViewer {
                 });
                 const data = await resp.json();
                 if (data.success) {
-                    if (typeof showNotification === 'function') showNotification('success', 'Remarque enregistrée');
+                    if (typeof showNotification === 'function') showNotification('success', pcT('Remarque enregistrée'));
                     const row = container.querySelector('.student-attendance[data-student-id="' + currentStudentId + '"]');
                     if (row) row.classList.add('has-remark');
                     // Même rafraîchissement que sur la page : la remarque apparaît
@@ -10663,10 +10673,10 @@ class CleanPDFViewer {
                     }
                     close();
                 } else {
-                    if (typeof showNotification === 'function') showNotification('error', data.error || 'Erreur');
+                    if (typeof showNotification === 'function') showNotification('error', data.error || pcT('Erreur'));
                 }
             } catch (err) {
-                if (typeof showNotification === 'function') showNotification('error', 'Erreur réseau');
+                if (typeof showNotification === 'function') showNotification('error', pcT('Erreur réseau'));
             } finally {
                 saveBtn.disabled = false;
             }
@@ -10781,11 +10791,11 @@ class CleanPDFViewer {
                     }
                 }
             } else {
-                alert(result.message || 'Erreur lors de la mise à jour');
+                alert(result.message || pcT('Erreur lors de la mise à jour'));
             }
         } catch (error) {
             console.error('Erreur:', error);
-            alert('Erreur lors de la communication avec le serveur');
+            alert(pcT('Erreur lors de la communication avec le serveur'));
         }
     }
 
@@ -11139,11 +11149,11 @@ class CleanPDFViewer {
                 }
 
             } else {
-                alert('Erreur lors de la mise à jour de la présence');
+                alert(pcT('Erreur lors de la mise à jour de la présence'));
             }
         } catch (error) {
             console.error('Erreur:', error);
-            alert('Erreur lors de la communication avec le serveur');
+            alert(pcT('Erreur lors de la communication avec le serveur'));
         }
     }
 
@@ -11156,11 +11166,11 @@ class CleanPDFViewer {
 
         if (studentElement.classList.contains('late')) {
             // Élève en retard - bouton pour remettre présent
-            lateButton.title = 'Remettre présent';
+            lateButton.title = pcT('Remettre présent');
             lateButton.innerHTML = '<i class="fas fa-undo"></i>';
         } else {
             // Élève présent ou absent - bouton pour marquer en retard
-            lateButton.title = 'Marquer en retard';
+            lateButton.title = pcT('Marquer en retard');
             lateButton.innerHTML = '<i class="fas fa-clock"></i>';
         }
     }
@@ -11592,18 +11602,18 @@ class CleanPDFViewer {
         `;
 
         menu.innerHTML = `
-            <h3 style="margin: 0 0 16px 0;">Ajouter une page</h3>
+            <h3 style="margin: 0 0 16px 0;">${pcT('Ajouter une page')}</h3>
             <button class="add-blank" style="display: block; width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
-                📄 Page vierge
+                📄 ${pcT('Page vierge')}
             </button>
             <button class="add-graph" style="display: block; width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
-                📊 Page graphique
+                📊 ${pcT('Page graphique')}
             </button>
             <button class="add-timeline" style="display: block; width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
-                📅 Frise chronologique
+                📅 ${pcT('Frise chronologique')}
             </button>
             <button class="add-diagram" style="display: block; width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
-                📊 Page diagramme
+                📊 ${pcT('Page diagramme')}
             </button>
         `;
 
@@ -11737,7 +11747,7 @@ class CleanPDFViewer {
         menu.innerHTML = `
             <div class="context-menu-item" style="padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                 <i class="fas fa-trash" style="color: #dc3545; width: 16px;"></i>
-                <span>Supprimer la page ${pageNumber}</span>
+                <span>${pcT('Supprimer la page {n}', {n: pageNumber})}</span>
             </div>
         `;
 
@@ -11775,7 +11785,7 @@ class CleanPDFViewer {
      */
     async deletePage(pageId, pageNumber) {
         // Demander confirmation
-        if (!confirm(`Voulez-vous vraiment supprimer la page ${pageNumber} ?\n\nCette action supprimera également toutes les annotations de cette page et ne peut pas être annulée.`)) {
+        if (!confirm(pcT('Voulez-vous vraiment supprimer la page {n} ?\n\nCette action supprimera également toutes les annotations de cette page et ne peut pas être annulée.', {n: pageNumber}))) {
             return;
         }
 
@@ -11869,7 +11879,7 @@ class CleanPDFViewer {
             <div class="download-menu-overlay" onclick="window.cleanPDFViewer.closeDownloadMenu()"></div>
             <div class="download-menu-content">
                 <div class="download-menu-header">
-                    <h3><i class="fas fa-download"></i> Télécharger / Envoyer</h3>
+                    <h3><i class="fas fa-download"></i> ${pcT('Télécharger / Envoyer')}</h3>
                     <button class="download-menu-close" onclick="window.cleanPDFViewer.closeDownloadMenu()">
                         <i class="fas fa-times"></i>
                     </button>
@@ -11877,22 +11887,22 @@ class CleanPDFViewer {
                 <div class="download-menu-body">
                     <button class="download-option" onclick="window.cleanPDFViewer.downloadPDF()">
                         <i class="fas fa-file-download"></i>
-                        <span>Télécharger le PDF annoté</span>
+                        <span>${pcT('Télécharger le PDF annoté')}</span>
                     </button>
                     <div class="download-separator"></div>
                     ${window.PC_STUDENTS_SPACE ? '' : '<style>.download-menu-students{display:none !important}</style>'}
-                    <h4 class="download-menu-students">Envoyer aux élèves</h4>
+                    <h4 class="download-menu-students">${pcT('Envoyer aux élèves')}</h4>
                     <button class="download-option download-menu-students" onclick="window.cleanPDFViewer.sendToStudents('all')">
                         <i class="fas fa-users"></i>
-                        <span>Tous les élèves</span>
+                        <span>${pcT('Tous les élèves')}</span>
                     </button>
                     <button class="download-option download-menu-students" onclick="window.cleanPDFViewer.sendToStudents('absent')">
                         <i class="fas fa-user-times"></i>
-                        <span>Élèves absents uniquement</span>
+                        <span>${pcT('Élèves absents uniquement')}</span>
                     </button>
                     <button class="download-option download-menu-students" onclick="window.cleanPDFViewer.openStudentSelectionPanel()">
                         <i class="fas fa-user-check"></i>
-                        <span>Sélectionner des élèves...</span>
+                        <span>${pcT('Sélectionner des élèves…')}</span>
                     </button>
                 </div>
             </div>
@@ -11940,7 +11950,7 @@ class CleanPDFViewer {
 
         } catch (error) {
             console.error('Erreur lors du téléchargement:', error);
-            alert('Erreur lors du téléchargement du PDF');
+            alert(pcT('Erreur lors du téléchargement du PDF'));
         } finally {
             this.showLoading(false);
         }
@@ -11956,7 +11966,7 @@ class CleanPDFViewer {
         const students = this.getStudentsFromPage();
 
         if (!students || students.length === 0) {
-            alert('Aucun élève trouvé dans la classe');
+            alert(pcT('Aucun élève trouvé dans la classe'));
             return;
         }
 
@@ -11967,13 +11977,13 @@ class CleanPDFViewer {
         } else if (mode === 'absent') {
             selectedStudents = students.filter(s => s.status === 'absent');
             if (selectedStudents.length === 0) {
-                alert('Aucun élève absent');
+                alert(pcT('Aucun élève absent'));
                 return;
             }
         }
 
         if (selectedStudents.length === 0) {
-            alert('Aucun élève sélectionné');
+            alert(pcT('Aucun élève sélectionné'));
             return;
         }
 
@@ -11989,7 +11999,7 @@ class CleanPDFViewer {
         const students = this.getStudentsFromPage();
 
         if (!students || students.length === 0) {
-            alert('Aucun élève trouvé dans la classe');
+            alert(pcT('Aucun élève trouvé dans la classe'));
             return;
         }
 
@@ -12005,7 +12015,7 @@ class CleanPDFViewer {
             <label class="student-select-item">
                 <input type="checkbox" value="${s.id}" data-name="${s.name}" ${s.status === 'absent' ? 'data-absent="true"' : ''}>
                 <span class="student-select-name">${s.name}</span>
-                ${s.status === 'absent' ? '<span class="student-absent-badge">Absent</span>' : ''}
+                ${s.status === 'absent' ? '<span class="student-absent-badge">' + pcT('Absent') + '</span>' : ''}
             </label>
         `).join('');
 
@@ -12013,23 +12023,23 @@ class CleanPDFViewer {
             <div class="student-panel-overlay" onclick="window.cleanPDFViewer.closeStudentSelectionPanel()"></div>
             <div class="student-panel-content">
                 <div class="student-panel-header">
-                    <h3><i class="fas fa-users"></i> Sélectionner les élèves</h3>
+                    <h3><i class="fas fa-users"></i> ${pcT('Sélectionner les élèves')}</h3>
                     <button class="student-panel-close" onclick="window.cleanPDFViewer.closeStudentSelectionPanel()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="student-panel-actions">
-                    <button onclick="window.cleanPDFViewer.selectAllStudentsInPanel()">Tout sélectionner</button>
-                    <button onclick="window.cleanPDFViewer.selectAbsentStudentsInPanel()">Absents uniquement</button>
-                    <button onclick="window.cleanPDFViewer.deselectAllStudentsInPanel()">Tout désélectionner</button>
+                    <button onclick="window.cleanPDFViewer.selectAllStudentsInPanel()">${pcT('Tout sélectionner')}</button>
+                    <button onclick="window.cleanPDFViewer.selectAbsentStudentsInPanel()">${pcT('Absents uniquement')}</button>
+                    <button onclick="window.cleanPDFViewer.deselectAllStudentsInPanel()">${pcT('Tout désélectionner')}</button>
                 </div>
                 <div class="student-panel-list">
                     ${studentsHTML}
                 </div>
                 <div class="student-panel-footer">
-                    <span id="selected-count">0 élève(s) sélectionné(s)</span>
+                    <span id="selected-count">${pcT('{count} élève(s) sélectionné(s)', {count: 0})}</span>
                     <button class="btn-send" onclick="window.cleanPDFViewer.sendToSelectedStudents()">
-                        <i class="fas fa-paper-plane"></i> Envoyer
+                        <i class="fas fa-paper-plane"></i> ${pcT('Envoyer')}
                     </button>
                 </div>
             </div>
@@ -12085,7 +12095,7 @@ class CleanPDFViewer {
         const count = document.querySelectorAll('#student-selection-panel input[type="checkbox"]:checked').length;
         const countSpan = document.getElementById('selected-count');
         if (countSpan) {
-            countSpan.textContent = `${count} élève(s) sélectionné(s)`;
+            countSpan.textContent = pcT('{count} élève(s) sélectionné(s)', {count: count});
         }
     }
 
@@ -12100,7 +12110,7 @@ class CleanPDFViewer {
         }));
 
         if (selectedStudents.length === 0) {
-            alert('Veuillez sélectionner au moins un élève');
+            alert(pcT('Veuillez sélectionner au moins un élève.'));
             return;
         }
 
@@ -12162,14 +12172,14 @@ class CleanPDFViewer {
             const result = await response.json();
 
             if (result.success) {
-                alert(`Document partagé avec succès avec ${result.shares_created} élève(s)`);
+                alert(pcT('Document partagé avec succès avec {count} élève(s)', {count: result.shares_created}));
             } else {
-                alert('Erreur: ' + (result.message || 'Erreur inconnue'));
+                alert(pcT('Erreur : {message}', {message: result.message || pcT('Erreur inconnue')}));
             }
 
         } catch (error) {
             console.error('Erreur lors du partage:', error);
-            alert('Erreur lors du partage du document');
+            alert(pcT('Erreur lors du partage du document'));
         } finally {
             this.showLoading(false);
         }
@@ -12457,7 +12467,7 @@ class CleanPDFViewer {
     exportFileName() {
         const brut = (this.options && this.options.fileName) || '';
         const base = brut.replace(/\.[^.]+$/, '').trim();
-        return (base ? base : 'document') + ' (annoté).pdf';
+        return pcT('{name} (annoté).pdf', {name: base ? base : pcT('document')});
     }
 
     /** Retrouve le wrapper d'une page, quel que soit le type de clé (3 vs '3'). */
@@ -13394,7 +13404,7 @@ class CleanPDFViewer {
     showLoading(show, text) {
         this.elements.loading.style.display = show ? 'flex' : 'none';
         const label = this.elements.loading.querySelector('p');
-        if (label) label.textContent = (show && text) ? text : 'Chargement...';
+        if (label) label.textContent = (show && text) ? text : pcT('Chargement…');
 
         // Si on affiche le loading, réinitialiser les états d'interaction
         // pour éviter que le viewer reste bloqué

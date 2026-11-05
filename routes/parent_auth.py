@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
+from flask_babel import gettext as _gettext
 from extensions import db
 from models.parent import Parent, ParentChild, ClassCode
 from models.user import User
@@ -44,7 +45,7 @@ def check_parent_email_verified():
             session['verification_email'] = current_user.email
             logout_user()
             session.pop('user_type', None)
-            flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+            flash(_gettext('Veuillez vérifier votre adresse email avant de continuer.'), 'info')
             return redirect(url_for('parent_auth.verify_email'))
     return None
 
@@ -85,9 +86,9 @@ def parent_required(f):
         if not isinstance(current_user, Parent):
             # Pour les requêtes AJAX, retourner une erreur JSON
             if request.is_json or request.headers.get('Accept') == 'application/json':
-                return jsonify({'error': 'Accès réservé aux parents'}), 403
+                return jsonify({'error': _gettext('Accès réservé aux parents')}), 403
 
-            flash('Accès réservé aux parents', 'error')
+            flash(_gettext('Accès réservé aux parents'), 'error')
             return redirect(url_for('parent_auth.login'))
 
         # Vérifier que l'email est vérifié
@@ -104,8 +105,8 @@ def parent_required(f):
             logout_user()
             session.pop('user_type', None)
             if request.is_json or request.headers.get('Accept') == 'application/json':
-                return jsonify({'error': 'Email non vérifié', 'redirect': url_for('parent_auth.verify_email')}), 403
-            flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+                return jsonify({'error': _gettext('Email non vérifié'), 'redirect': url_for('parent_auth.verify_email')}), 403
+            flash(_gettext('Veuillez vérifier votre adresse email avant de continuer.'), 'info')
             return redirect(url_for('parent_auth.verify_email'))
 
         return f(*args, **kwargs)
@@ -127,8 +128,8 @@ def login():
         
         if not email or not password:
             if request.is_json:
-                return jsonify({'success': False, 'message': 'Email et mot de passe requis'}), 400
-            flash('Email et mot de passe requis', 'error')
+                return jsonify({'success': False, 'message': _gettext('Email et mot de passe requis')}), 400
+            flash(_gettext('Email et mot de passe requis'), 'error')
             return render_template('parent/login.html')
         
         # Rechercher le parent par hash d'email
@@ -169,9 +170,9 @@ def login():
                 if request.is_json:
                     return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email')})
                 if email_sent:
-                    flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                    flash(_gettext('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.'), 'info')
                 else:
-                    flash('Impossible d\'envoyer le code de vérification. Veuillez réessayer.', 'error')
+                    flash(_gettext('Impossible d\'envoyer le code de vérification. Veuillez réessayer.'), 'error')
                 return redirect(url_for('parent_auth.verify_email'))
 
             # C'est bien un parent avec le bon mot de passe
@@ -195,12 +196,12 @@ def login():
             teacher_check = User.query.filter_by(email=email).first()
             if teacher_check:
                 if request.is_json:
-                    return jsonify({'success': False, 'message': 'Cet email appartient à un compte enseignant. Veuillez utiliser la connexion enseignant.'}), 400
-                flash('Cet email appartient à un compte enseignant. Veuillez utiliser la connexion enseignant.', 'error')
+                    return jsonify({'success': False, 'message': _gettext('Cet email appartient à un compte enseignant. Veuillez utiliser la connexion enseignant.')}), 400
+                flash(_gettext('Cet email appartient à un compte enseignant. Veuillez utiliser la connexion enseignant.'), 'error')
             else:
                 if request.is_json:
-                    return jsonify({'success': False, 'message': 'Email ou mot de passe incorrect'}), 401
-                flash('Email ou mot de passe incorrect', 'error')
+                    return jsonify({'success': False, 'message': _gettext('Email ou mot de passe incorrect')}), 401
+                flash(_gettext('Email ou mot de passe incorrect'), 'error')
     
     return render_template('parent/login.html')
 
@@ -223,23 +224,23 @@ def register():
         # Validation
         if not email or not password:
             if request.is_json:
-                return jsonify({'success': False, 'message': 'Email et mot de passe requis'}), 400
-            flash('Email et mot de passe requis', 'error')
+                return jsonify({'success': False, 'message': _gettext('Email et mot de passe requis')}), 400
+            flash(_gettext('Email et mot de passe requis'), 'error')
             return render_template('parent/register.html')
         
         # Validation email
         email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         if not re.match(email_regex, email):
             if request.is_json:
-                return jsonify({'success': False, 'message': 'Format d\'email invalide'}), 400
-            flash('Format d\'email invalide', 'error')
+                return jsonify({'success': False, 'message': _gettext('Format d\'email invalide')}), 400
+            flash(_gettext('Format d\'email invalide'), 'error')
             return render_template('parent/register.html')
         
         # Validation mot de passe
         if len(password) < 6:
             if request.is_json:
-                return jsonify({'success': False, 'message': 'Le mot de passe doit contenir au moins 8 caractères (avec une majuscule et un chiffre)'}), 400
-            flash('Le mot de passe doit contenir au moins 8 caractères (avec une majuscule et un chiffre)', 'error')
+                return jsonify({'success': False, 'message': _gettext('Le mot de passe doit contenir au moins 8 caractères (avec une majuscule et un chiffre)')}), 400
+            flash(_gettext('Le mot de passe doit contenir au moins 8 caractères (avec une majuscule et un chiffre)'), 'error')
             return render_template('parent/register.html')
         
         # Vérifier si l'email existe déjà
@@ -256,14 +257,14 @@ def register():
                     session['pending_user_type'] = 'parent'
                     session['verification_email'] = email
                     if request.is_json:
-                        return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email'), 'message': 'Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.'})
-                    flash('Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.', 'info')
+                        return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email'), 'message': _gettext('Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.')})
+                    flash(_gettext('Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.'), 'info')
                     return redirect(url_for('parent_auth.verify_email'))
                 except Exception:
                     pass
             if request.is_json:
-                return jsonify({'success': False, 'message': 'Un compte avec cet email existe déjà'}), 400
-            flash('Un compte avec cet email existe déjà', 'error')
+                return jsonify({'success': False, 'message': _gettext('Un compte avec cet email existe déjà')}), 400
+            flash(_gettext('Un compte avec cet email existe déjà'), 'error')
             return render_template('parent/register.html')
         
         try:
@@ -293,16 +294,16 @@ def register():
                 return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email')})
 
             if email_sent:
-                flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+                flash(_gettext('Un code de vérification a été envoyé à votre adresse email.'), 'info')
             else:
-                flash('Compte créé, mais impossible d\'envoyer le code. Veuillez réessayer.', 'error')
+                flash(_gettext('Compte créé, mais impossible d\'envoyer le code. Veuillez réessayer.'), 'error')
             return redirect(url_for('parent_auth.verify_email'))
             
         except Exception as e:
             db.session.rollback()
             if request.is_json:
-                return jsonify({'success': False, 'message': 'Erreur lors de la création du compte'}), 500
-            flash('Erreur lors de la création du compte', 'error')
+                return jsonify({'success': False, 'message': _gettext('Erreur lors de la création du compte')}), 500
+            flash(_gettext('Erreur lors de la création du compte'), 'error')
     
     return render_template('parent/register.html')
 
@@ -321,8 +322,8 @@ def link_teacher():
         
         if not teacher_name or not class_code:
             if request.is_json:
-                return jsonify({'success': False, 'message': 'Nom de l\'enseignant et code de classe requis'}), 400
-            flash('Nom de l\'enseignant et code de classe requis', 'error')
+                return jsonify({'success': False, 'message': _gettext('Nom de l\'enseignant et code de classe requis')}), 400
+            flash(_gettext('Nom de l\'enseignant et code de classe requis'), 'error')
             return render_template('parent/link_teacher.html')
         
         try:
@@ -331,8 +332,8 @@ def link_teacher():
             
             if not class_code_obj:
                 if request.is_json:
-                    return jsonify({'success': False, 'message': 'Code de classe introuvable'}), 404
-                flash('Code de classe introuvable', 'error')
+                    return jsonify({'success': False, 'message': _gettext('Code de classe introuvable')}), 404
+                flash(_gettext('Code de classe introuvable'), 'error')
                 return render_template('parent/link_teacher.html')
             
             # Vérifier si le nom de l'enseignant correspond
@@ -343,8 +344,8 @@ def link_teacher():
             if (teacher_name_lower != teacher.username.lower() and 
                 teacher_name_lower != teacher.email.lower()):
                 if request.is_json:
-                    return jsonify({'success': False, 'message': f'Le nom de l\'enseignant ne correspond pas. Enseignant de cette classe : {teacher.username}'}), 400
-                flash(f'Le nom de l\'enseignant ne correspond pas. Enseignant de cette classe : {teacher.username}', 'error')
+                    return jsonify({'success': False, 'message': _gettext("Le nom de l'enseignant ne correspond pas. Enseignant de cette classe : %(teacher)s", teacher=teacher.username)}), 400
+                flash(_gettext("Le nom de l'enseignant ne correspond pas. Enseignant de cette classe : %(teacher)s", teacher=teacher.username), 'error')
                 return render_template('parent/link_teacher.html')
             
             # Lier le parent à l'enseignant
@@ -357,9 +358,9 @@ def link_teacher():
             
             if children_linked > 0:
                 current_user.is_verified = True
-                message = f'Liaison réussie ! {children_linked} enfant(s) trouvé(s) et lié(s) automatiquement.'
+                message = _gettext('Liaison réussie ! %(count)s enfant(s) trouvé(s) et lié(s) automatiquement.', count=children_linked)
             else:
-                message = 'Liaison réussie ! Aucun enfant trouvé avec votre email. Veuillez contacter l\'enseignant.'
+                message = _gettext('Liaison réussie ! Aucun enfant trouvé avec votre email. Veuillez contacter l\'enseignant.')
             
             db.session.commit()
             
@@ -372,8 +373,8 @@ def link_teacher():
         except Exception as e:
             db.session.rollback()
             if request.is_json:
-                return jsonify({'success': False, 'message': 'Erreur lors de la liaison'}), 500
-            flash('Erreur lors de la liaison', 'error')
+                return jsonify({'success': False, 'message': _gettext('Erreur lors de la liaison')}), 500
+            flash(_gettext('Erreur lors de la liaison'), 'error')
     
     return render_template('parent/link_teacher.html')
 
@@ -456,12 +457,12 @@ def verify_email():
             parent.last_login = datetime.utcnow()
             db.session.commit()
 
-            flash('Email vérifié avec succès !', 'success')
+            flash(_gettext('Email vérifié avec succès !'), 'success')
             if parent.teacher_id:
                 return redirect(url_for('parent_auth.dashboard'))
             return redirect(url_for('parent_auth.link_teacher'))
         else:
-            flash('Code invalide ou expiré.', 'error')
+            flash(_gettext('Code invalide ou expiré.'), 'error')
 
     return render_template('parent/verify_email.html', email=parent.email)
 
@@ -481,7 +482,7 @@ def resend_code():
     if last_sent:
         elapsed = (datetime.utcnow() - datetime.fromisoformat(last_sent)).total_seconds()
         if elapsed < 60:
-            flash(f'Veuillez attendre {int(60 - elapsed)} secondes avant de renvoyer un code.', 'error')
+            flash(_gettext('Veuillez attendre %(sec)d secondes avant de renvoyer un code.', sec=int(60 - elapsed)), 'error')
             return redirect(url_for('parent_auth.verify_email'))
 
     verification = EmailVerification.create_verification(parent.email, 'parent')
@@ -491,9 +492,9 @@ def resend_code():
 
     email_sent = send_verification_code(parent.email, verification.code, 'parent')
     if email_sent:
-        flash('Un nouveau code a été envoyé.', 'success')
+        flash(_gettext('Un nouveau code a été envoyé.'), 'success')
     else:
-        flash('Impossible d\'envoyer le code. Veuillez réessayer.', 'error')
+        flash(_gettext('Impossible d\'envoyer le code. Veuillez réessayer.'), 'error')
     return redirect(url_for('parent_auth.verify_email'))
 
 @parent_auth_bp.route('/dashboard')
@@ -513,7 +514,7 @@ def dashboard():
         session['verification_email'] = current_user.email
         logout_user()
         session.pop('user_type', None)
-        flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+        flash(_gettext('Veuillez vérifier votre adresse email avant de continuer.'), 'info')
         return redirect(url_for('parent_auth.verify_email'))
 
     if not current_user.teacher_id:
@@ -569,7 +570,7 @@ def logout():
     """Déconnexion des parents"""
     session.pop('user_type', None)  # Retirer le type d'utilisateur de la session
     logout_user()
-    flash('Vous avez été déconnecté', 'info')
+    flash(_gettext('Vous avez été déconnecté'), 'info')
     return redirect(url_for('parent_auth.login'))
 
 @parent_auth_bp.route('/student/<int:student_id>/attendance')
@@ -583,7 +584,7 @@ def get_student_attendance(student_id):
     ).first()
     
     if not parent_child:
-        return jsonify({'error': 'Accès non autorisé'}), 403
+        return jsonify({'error': _gettext('Accès non autorisé')}), 403
     
     student = Student.query.get_or_404(student_id)
     
@@ -648,7 +649,7 @@ def get_student_grades(student_id):
     ).first()
     
     if not parent_child:
-        return jsonify({'error': 'Accès non autorisé'}), 403
+        return jsonify({'error': _gettext('Accès non autorisé')}), 403
     
     student = Student.query.get_or_404(student_id)
     
@@ -753,7 +754,7 @@ def get_student_sanctions(student_id):
         ).first()
         
         if not parent_child:
-            return jsonify({'error': 'Accès non autorisé'}), 403
+            return jsonify({'error': _gettext('Accès non autorisé')}), 403
         
         student = Student.query.get_or_404(student_id)
         
@@ -825,7 +826,7 @@ def get_student_sanctions(student_id):
         
     except Exception as e:
         print(f"Erreur dans get_student_sanctions: {e}")
-        return jsonify({'error': f'Erreur serveur: {str(e)}'}), 500
+        return jsonify({'error': _gettext('Erreur serveur: %(error)s', error=str(e))}), 500
 
 @parent_auth_bp.route('/teacher-periods/<int:student_id>')
 @parent_required
@@ -843,13 +844,13 @@ def get_teacher_periods(student_id):
         ).first()
         
         if not parent_child:
-            return jsonify({'error': 'Accès non autorisé'}), 403
+            return jsonify({'error': _gettext('Accès non autorisé')}), 403
         
         student = Student.query.get_or_404(student_id)
         
         # Récupérer l'enseignant via la classe de l'élève (plus précis que le parent)
         if not student.classroom or not student.classroom.teacher:
-            return jsonify({'error': 'Classe ou enseignant non trouvé pour cet élève'}), 404
+            return jsonify({'error': _gettext('Classe ou enseignant non trouvé pour cet élève')}), 404
         
         teacher_id = student.classroom.teacher.id
         
@@ -858,7 +859,7 @@ def get_teacher_periods(student_id):
         teacher = User.query.get(teacher_id)
         
         if not teacher:
-            return jsonify({'error': 'Enseignant non trouvé'}), 404
+            return jsonify({'error': _gettext('Enseignant non trouvé')}), 404
         
         # Utiliser la même logique que dans schedule.py pour calculer les périodes
         from datetime import timedelta
@@ -970,7 +971,7 @@ def get_teacher_periods(student_id):
         print(f"Erreur dans get_teacher_periods: {e}")
         print(f"Traceback complet:")
         traceback.print_exc()
-        return jsonify({'error': f'Erreur lors de la récupération des périodes: {str(e)}'}), 500
+        return jsonify({'error': _gettext('Erreur lors de la récupération des périodes: %(error)s', error=str(e))}), 500
 
 @parent_auth_bp.route('/justify-absence', methods=['POST'])
 @parent_required
@@ -986,7 +987,7 @@ def justify_absence():
         ).first()
         
         if not parent_child:
-            return jsonify({'success': False, 'message': 'Accès non autorisé'}), 403
+            return jsonify({'success': False, 'message': _gettext('Accès non autorisé')}), 403
         
         # Récupérer les données du formulaire
         absence_date_str = request.form.get('absence_date')
@@ -1003,16 +1004,16 @@ def justify_absence():
         
         # Validation des champs obligatoires
         if not absence_date_str or not reason_type:
-            return jsonify({'success': False, 'message': 'Date et motif requis'}), 400
+            return jsonify({'success': False, 'message': _gettext('Date et motif requis')}), 400
         
         if not selected_periods:
-            return jsonify({'success': False, 'message': 'Au moins une période requise'}), 400
+            return jsonify({'success': False, 'message': _gettext('Au moins une période requise')}), 400
         
         # Conversion des dates
         try:
             absence_date = datetime.strptime(absence_date_str, '%Y-%m-%d').date()
         except ValueError:
-            return jsonify({'success': False, 'message': 'Format de date invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Format de date invalide')}), 400
         
         dispense_start_date = None
         dispense_end_date = None
@@ -1076,14 +1077,14 @@ def justify_absence():
         
         return jsonify({
             'success': True,
-            'message': 'Justification envoyée avec succès. L\'enseignant sera notifié.',
+            'message': _gettext('Justification envoyée avec succès. L\'enseignant sera notifié.'),
             'justification_id': justification.id
         })
         
     except Exception as e:
         db.session.rollback()
         print(f"Erreur lors de l'envoi de la justification: {e}")
-        return jsonify({'success': False, 'message': 'Erreur lors de l\'envoi de la justification'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur lors de l\'envoi de la justification')}), 500
 
 @parent_auth_bp.route('/add-child', methods=['GET', 'POST'])
 @parent_required
@@ -1097,8 +1098,8 @@ def add_child():
         
         if not teacher_name or not class_code:
             if request.is_json:
-                return jsonify({'success': False, 'message': 'Nom de l\'enseignant et code de classe requis'}), 400
-            flash('Nom de l\'enseignant et code de classe requis', 'error')
+                return jsonify({'success': False, 'message': _gettext('Nom de l\'enseignant et code de classe requis')}), 400
+            flash(_gettext('Nom de l\'enseignant et code de classe requis'), 'error')
             return render_template('parent/add_child.html')
         
         try:
@@ -1107,8 +1108,8 @@ def add_child():
             
             if not class_code_obj:
                 if request.is_json:
-                    return jsonify({'success': False, 'message': 'Code de classe introuvable'}), 404
-                flash('Code de classe introuvable', 'error')
+                    return jsonify({'success': False, 'message': _gettext('Code de classe introuvable')}), 404
+                flash(_gettext('Code de classe introuvable'), 'error')
                 return render_template('parent/add_child.html')
             
             # Vérifier si le nom de l'enseignant correspond
@@ -1119,17 +1120,17 @@ def add_child():
             if (teacher_name_lower != teacher.username.lower() and 
                 teacher_name_lower != teacher.email.lower()):
                 if request.is_json:
-                    return jsonify({'success': False, 'message': f'Le nom de l\'enseignant ne correspond pas. Enseignant de cette classe : {teacher.username}'}), 400
-                flash(f'Le nom de l\'enseignant ne correspond pas. Enseignant de cette classe : {teacher.username}', 'error')
+                    return jsonify({'success': False, 'message': _gettext("Le nom de l'enseignant ne correspond pas. Enseignant de cette classe : %(teacher)s", teacher=teacher.username)}), 400
+                flash(_gettext("Le nom de l'enseignant ne correspond pas. Enseignant de cette classe : %(teacher)s", teacher=teacher.username), 'error')
                 return render_template('parent/add_child.html')
             
             # Rechercher et lier automatiquement les enfants dans cette nouvelle classe
             children_linked = link_children_automatically(current_user, class_code_obj.classroom_id)
             
             if children_linked > 0:
-                message = f'Liaison réussie ! {children_linked} enfant(s) trouvé(s) et lié(s) automatiquement dans la classe de {teacher.username}.'
+                message = _gettext('Liaison réussie ! %(count)s enfant(s) trouvé(s) et lié(s) automatiquement dans la classe de %(teacher)s.', count=children_linked, teacher=teacher.username)
             else:
-                message = f'Liaison réussie avec la classe de {teacher.username} ! Aucun enfant trouvé avec votre email dans cette classe. Veuillez contacter l\'enseignant.'
+                message = _gettext("Liaison réussie avec la classe de %(teacher)s ! Aucun enfant trouvé avec votre email dans cette classe. Veuillez contacter l'enseignant.", teacher=teacher.username)
             
             db.session.commit()
             
@@ -1143,8 +1144,8 @@ def add_child():
             db.session.rollback()
             print(f"Erreur lors de l'ajout d'enfant: {e}")
             if request.is_json:
-                return jsonify({'success': False, 'message': 'Erreur lors de la liaison'}), 500
-            flash('Erreur lors de la liaison', 'error')
+                return jsonify({'success': False, 'message': _gettext('Erreur lors de la liaison')}), 500
+            flash(_gettext('Erreur lors de la liaison'), 'error')
     
     return render_template('parent/add_child.html')
 
@@ -1160,7 +1161,7 @@ def get_student_teachers(student_id):
         ).first()
         
         if not parent_child:
-            return jsonify({'error': 'Accès non autorisé'}), 403
+            return jsonify({'error': _gettext('Accès non autorisé')}), 403
         
         student = Student.query.get_or_404(student_id)
         
@@ -1207,4 +1208,4 @@ def get_student_teachers(student_id):
         
     except Exception as e:
         print(f"Erreur dans get_student_teachers: {e}")
-        return jsonify({'error': f'Erreur lors du chargement des enseignants: {str(e)}'}), 500
+        return jsonify({'error': _gettext('Erreur lors du chargement des enseignants: %(error)s', error=str(e))}), 500

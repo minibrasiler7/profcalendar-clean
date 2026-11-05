@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ current_locale or 'fr' }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Préparation du téléchargement</title>
+<title>{{ _('Préparation du téléchargement') }}</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}?v=1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -62,9 +62,9 @@
 
 <div class="etat" id="etat">
     <i class="fas fa-circle-notch tourne" id="etat-icone"></i>
-    <h1 id="etat-titre">Préparation du document…</h1>
+    <h1 id="etat-titre">{{ _('Préparation du document…') }}</h1>
     <p id="etat-detail">{{ file_name }}</p>
-    <a class="discret" href="/api/class-files/download/{{ file_id }}">Télécharger plutôt le fichier d’origine</a>
+    <a class="discret" href="/api/class-files/download/{{ file_id }}">{{ _('Télécharger plutôt le fichier d’origine') }}</a>
 </div>
 
 <div id="export-viewer"></div>
@@ -78,6 +78,14 @@ if (typeof pdfjsLib !== 'undefined') {
 <script src="{{ url_for('static', filename='js/clean-pdf-tools.js') }}?v=5.5.9"></script>
 <script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}?v=5.5.9"></script>
 <script>
+// Chaînes traduites pour le JS (échappées via |tojson) ; jetons {n}… remplacés en JS.
+const EXPORT_ANNOT_I18N = {
+    started: {{ _('Téléchargement lancé')|tojson }},
+    notStarted: {{ _('Le téléchargement n’a pas démarré ? Cliquez ici')|tojson }},
+    failed: {{ _('Impossible de préparer le document annoté')|tojson }},
+    unknownError: {{ _('Erreur inconnue')|tojson }},
+    downloadOriginal: {{ _('Télécharger le fichier original')|tojson }},
+};
 const FILE_ID = {{ file_id | tojson }};
 const FILE_NAME = {{ file_name | tojson }};
 
@@ -126,16 +134,16 @@ function afficher(icone, classe, titre, detail, lienSecours) {
 
         // Le lien de secours sert si le navigateur a bloqué le téléchargement
         // automatique (cas courant sur iPad).
-        afficher('fa-circle-check', 'ok', 'Téléchargement lancé', nom,
-                 { href: url, download: nom, texte: 'Le téléchargement n’a pas démarré ? Cliquez ici' });
+        afficher('fa-circle-check', 'ok', EXPORT_ANNOT_I18N.started, nom,
+                 { href: url, download: nom, texte: EXPORT_ANNOT_I18N.notStarted });
         setTimeout(() => { try { window.close(); } catch (e) {} }, 2500);
     } catch (e) {
         console.error('[ExportAnnoté] échec :', e);
         afficher('fa-triangle-exclamation', 'ko',
-                 'Impossible de préparer le document annoté',
-                 (e && e.message) || 'Erreur inconnue',
+                 EXPORT_ANNOT_I18N.failed,
+                 (e && e.message) || EXPORT_ANNOT_I18N.unknownError,
                  { href: '/api/class-files/download/' + FILE_ID,
-                   texte: 'Télécharger le fichier original' });
+                   texte: EXPORT_ANNOT_I18N.downloadOriginal });
     } finally {
         // Le lecteur reste en mémoire tant que le blob n'est pas récupéré :
         // on le laisse vivre, l'onglet se ferme juste après.

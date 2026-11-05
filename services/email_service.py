@@ -1,6 +1,9 @@
 import os
 import sys
+from contextlib import nullcontext
+
 import resend
+from flask_babel import gettext as _gettext, force_locale, get_locale as _babel_get_locale
 
 
 def _log(msg):
@@ -9,13 +12,72 @@ def _log(msg):
     sys.stderr.flush()
 
 
-def send_verification_code(email, code, user_type='teacher'):
+# ----------------------------------------------------------------------
+# Langue des e-mails
+# Chaque e-mail part dans la langue du destinataire (User.locale, remplie à
+# l'inscription, à la connexion et au changement de langue). Textes source
+# en français : sans traduction, le français part tel quel.
+# ----------------------------------------------------------------------
+EMAIL_LOCALES = ('fr', 'en', 'es', 'de', 'it')
+
+
+def email_locale(locale):
+    """Langue d'e-mail sûre (fr/en/es/de/it) ; inconnue ou vide → 'fr'.
+
+    À utiliser hors requête (boucles de fond) :
+    ``with force_locale(email_locale(user.locale)): ...``
+    """
+    loc = str(locale or '').strip().lower().replace('-', '_').split('_')[0]
+    return loc if loc in EMAIL_LOCALES else 'fr'
+
+
+def email_language(locale=None):
+    """Contexte de langue pour construire un e-mail.
+
+    - langue connue (fr/en/es/de/it) → imposée (force_locale), même si la page
+      courante est dans une autre langue ;
+    - sinon : langue courante (requête en cours, ou langue déjà imposée par un
+      force_locale englobant) ;
+    - app_context sans requête ni langue imposée (le sélecteur de langue lit la
+      session) → français.
+    """
+    loc = str(locale or '').strip().lower().replace('-', '_').split('_')[0]
+    if loc in EMAIL_LOCALES:
+        return force_locale(loc)
+    try:
+        _babel_get_locale()
+        return nullcontext()
+    except Exception:
+        return force_locale('fr')
+
+
+def get_user_locale(email):
+    """Langue mémorisée du compte enseignant de cette adresse (ou None)."""
+    if not email:
+        return None
+    try:
+        from extensions import db
+        from models.user import User
+        row = db.session.query(User.locale).filter(User.email == email).first()
+        return row[0] if row else None
+    except Exception:
+        try:
+            from extensions import db
+            db.session.rollback()
+        except Exception:
+            pass
+        return None
+
+
+def send_verification_code(email, code, user_type='teacher', locale=None):
     """Envoyer un code de vérification par email via Resend.
 
     Args:
         email: Adresse email du destinataire
         code: Code de vérification à 6 chiffres
         user_type: Type d'utilisateur ('teacher', 'parent', 'student')
+        locale: langue de l'e-mail ; par défaut, celle du compte enseignant
+            (User.locale) ou à défaut la langue de la page courante
 
     Returns:
         True si l'envoi a réussi, False sinon
@@ -40,23 +102,27 @@ def send_verification_code(email, code, user_type='teacher'):
     _log(f"[EMAIL] Envoi via Resend depuis {from_email} vers {email}...")
     resend.api_key = api_key
 
-    type_labels = {
-        'teacher': 'Enseignant',
-        'parent': 'Parent',
-        'student': 'Élève'
-    }
-    user_label = type_labels.get(user_type, 'Utilisateur')
+    if locale is None and user_type == 'teacher':
+        locale = get_user_locale(email)
 
-    html_content = f"""
+    with email_language(locale):
+        type_labels = {
+            'teacher': _gettext('Enseignant'),
+            'parent': _gettext('Parent'),
+            'student': _gettext('Élève'),
+        }
+        user_label = type_labels.get(user_type) or _gettext('Utilisateur')
+
+        html_content = f"""
     <div style="font-family: 'Inter', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 2rem;">
         <div style="text-align: center; margin-bottom: 2rem;">
             <h1 style="color: #2d3748; font-size: 1.5rem;">ProfCalendar</h1>
-            <p style="color: #718096;">Vérification de votre adresse email</p>
+            <p style="color: #718096;">{_gettext('Vérification de votre adresse email')}</p>
         </div>
 
         <div style="background-color: #f7fafc; border-radius: 12px; padding: 2rem; text-align: center;">
             <p style="color: #4a5568; margin-bottom: 1rem;">
-                Votre code de vérification ({user_label}) :
+                {_gettext('Votre code de vérification (%(type)s) :', type=user_label)}
             </p>
             <div style="font-size: 2.5rem; font-weight: 700; letter-spacing: 0.5rem; color: #2d3748;
                         background: white; padding: 1rem 2rem; border-radius: 8px; display: inline-block;
@@ -64,21 +130,22 @@ def send_verification_code(email, code, user_type='teacher'):
                 {code}
             </div>
             <p style="color: #718096; font-size: 0.875rem; margin-top: 1.5rem;">
-                Ce code expire dans 10 minutes.
+                {_gettext('Ce code expire dans 10 minutes.')}
             </p>
         </div>
 
         <p style="color: #a0aec0; font-size: 0.75rem; text-align: center; margin-top: 2rem;">
-            Si vous n'avez pas demandé ce code, ignorez cet email.
+            {_gettext("Si vous n'avez pas demandé ce code, ignorez cet email.")}
         </p>
     </div>
     """
+        subject = _gettext('ProfCalendar - Code de vérification : %(code)s', code=code)
 
     try:
         result = resend.Emails.send({
             "from": from_email,
             "to": [email],
-            "subject": f"ProfCalendar - Code de vérification : {code}",
+            "subject": subject,
             "html": html_content
         })
         _log(f"[EMAIL] SUCCÈS - Email envoyé à {email} - Resend response: {result}")

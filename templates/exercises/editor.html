@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ 'Modifier' if exercise else 'Créer' }} un exercice - L'Atelier{% endblock %}
+{% block title %}{{ _('Modifier un exercice') if exercise else _('Créer un exercice') }} - {{ _("L'Atelier") }}{% endblock %}
 
 {% block extra_head %}
 <!-- KaTeX for math rendering in questions -->
@@ -779,23 +779,23 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- Header + Toolbar combined like PDF viewer -->
         <div style="padding:0.5rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;background:#fafbfc;">
             <h3 style="margin:0;font-size:0.95rem;display:flex;align-items:center;gap:0.4rem;margin-right:0.5rem;">
-                <i class="fas fa-pen-fancy" style="color:#667eea;"></i> Annotation
+                <i class="fas fa-pen-fancy" style="color:#667eea;"></i> {{ _('Annotation') }}
             </h3>
             <div style="width:1px;height:24px;background:#d1d5db;"></div>
             <!-- Tools -->
-            <button class="drawing-tool-btn active" data-tool="pen" onclick="setDrawingTool('pen')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Stylo"><i class="fas fa-pen"></i> Stylo</button>
-            <button class="drawing-tool-btn" data-tool="highlighter" onclick="setDrawingTool('highlighter')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Surligneur"><i class="fas fa-highlighter"></i> Surligneur</button>
-            <button class="drawing-tool-btn" data-tool="eraser" onclick="setDrawingTool('eraser')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Gomme"><i class="fas fa-eraser"></i> Gomme</button>
+            <button class="drawing-tool-btn active" data-tool="pen" onclick="setDrawingTool('pen')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Stylo') }}"><i class="fas fa-pen"></i> {{ _('Stylo') }}</button>
+            <button class="drawing-tool-btn" data-tool="highlighter" onclick="setDrawingTool('highlighter')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Surligneur') }}"><i class="fas fa-highlighter"></i> {{ _('Surligneur') }}</button>
+            <button class="drawing-tool-btn" data-tool="eraser" onclick="setDrawingTool('eraser')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Gomme') }}"><i class="fas fa-eraser"></i> {{ _('Gomme') }}</button>
             <div style="width:1px;height:24px;background:#d1d5db;"></div>
-            <button class="drawing-tool-btn" data-tool="ruler" onclick="setDrawingTool('ruler')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Règle"><i class="fas fa-ruler"></i></button>
-            <button class="drawing-tool-btn" data-tool="compass" onclick="setDrawingTool('compass')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Compas"><i class="far fa-circle"></i></button>
-            <button class="drawing-tool-btn" data-tool="protractor" onclick="setDrawingTool('protractor')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Rapporteur"><i class="fas fa-drafting-compass"></i></button>
-            <button class="drawing-tool-btn" data-tool="arc" onclick="setDrawingTool('arc')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Arc"><i class="fas fa-bezier-curve"></i></button>
-            <button class="drawing-tool-btn" data-tool="text" onclick="setDrawingTool('text')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Texte"><i class="fas fa-font"></i></button>
-            <button class="drawing-tool-btn" data-tool="arrow" onclick="setDrawingTool('arrow')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Flèche"><i class="fas fa-long-arrow-alt-right"></i></button>
-            <button class="drawing-tool-btn" data-tool="rectangle" onclick="setDrawingTool('rectangle')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Rectangle"><i class="far fa-square"></i></button>
-            <button class="drawing-tool-btn" data-tool="circle" onclick="setDrawingTool('circle')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Cercle"><i class="fas fa-circle" style="font-size:0.6rem;"></i></button>
-            <button class="drawing-tool-btn" data-tool="grid" onclick="setDrawingTool('grid')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Grille"><i class="fas fa-th"></i></button>
+            <button class="drawing-tool-btn" data-tool="ruler" onclick="setDrawingTool('ruler')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Règle') }}"><i class="fas fa-ruler"></i></button>
+            <button class="drawing-tool-btn" data-tool="compass" onclick="setDrawingTool('compass')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Compas') }}"><i class="far fa-circle"></i></button>
+            <button class="drawing-tool-btn" data-tool="protractor" onclick="setDrawingTool('protractor')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Rapporteur') }}"><i class="fas fa-drafting-compass"></i></button>
+            <button class="drawing-tool-btn" data-tool="arc" onclick="setDrawingTool('arc')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Arc') }}"><i class="fas fa-bezier-curve"></i></button>
+            <button class="drawing-tool-btn" data-tool="text" onclick="setDrawingTool('text')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Texte') }}"><i class="fas fa-font"></i></button>
+            <button class="drawing-tool-btn" data-tool="arrow" onclick="setDrawingTool('arrow')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Flèche') }}"><i class="fas fa-long-arrow-alt-right"></i></button>
+            <button class="drawing-tool-btn" data-tool="rectangle" onclick="setDrawingTool('rectangle')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Rectangle') }}"><i class="far fa-square"></i></button>
+            <button class="drawing-tool-btn" data-tool="circle" onclick="setDrawingTool('circle')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Cercle') }}"><i class="fas fa-circle" style="font-size:0.6rem;"></i></button>
+            <button class="drawing-tool-btn" data-tool="grid" onclick="setDrawingTool('grid')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="{{ _('Grille') }}"><i class="fas fa-th"></i></button>
             <div style="width:1px;height:24px;background:#d1d5db;"></div>
             <!-- Colors inline -->
             <button onclick="setDrawingColor('#000000')" class="drawing-color-btn" data-color="#000000" style="width:22px;height:22px;border-radius:50%;border:3px solid #667eea;background:#000000;cursor:pointer;padding:0;"></button>
@@ -814,13 +814,13 @@ document.addEventListener('DOMContentLoaded', function() {
             <button onclick="setDrawingStrokeWidth(8)" class="drawing-size-btn" data-size="8" style="width:22px;height:22px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:10px;height:10px;background:#333;border-radius:50%;display:block;"></span></button>
             <div style="width:1px;height:24px;background:#d1d5db;"></div>
             <!-- Undo/Redo/Clear -->
-            <button onclick="undoDrawing()" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;" title="Annuler"><i class="fas fa-undo"></i></button>
-            <button onclick="redoDrawing()" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;" title="Rétablir"><i class="fas fa-redo"></i></button>
-            <button onclick="clearDrawingCanvas()" style="padding:0.3rem 0.5rem;border:2px solid #fecaca;border-radius:8px;cursor:pointer;font-size:0.75rem;background:#fef2f2;color:#dc2626;" title="Effacer tout"><i class="fas fa-trash"></i></button>
+            <button onclick="undoDrawing()" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;" title="{{ _('Annuler la dernière action') }}"><i class="fas fa-undo"></i></button>
+            <button onclick="redoDrawing()" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;" title="{{ _('Rétablir') }}"><i class="fas fa-redo"></i></button>
+            <button onclick="clearDrawingCanvas()" style="padding:0.3rem 0.5rem;border:2px solid #fecaca;border-radius:8px;cursor:pointer;font-size:0.75rem;background:#fef2f2;color:#dc2626;" title="{{ _('Effacer tout') }}"><i class="fas fa-trash"></i></button>
             <!-- Spacer + actions -->
             <div style="flex:1;"></div>
             <span id="drawing-tool-hint" style="font-size:0.7rem;color:#9ca3af;font-style:italic;"></span>
-            <button onclick="saveDrawing()" style="padding:0.4rem 1rem;background:#667eea;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.8rem;"><i class="fas fa-check"></i> Enregistrer</button>
+            <button onclick="saveDrawing()" style="padding:0.4rem 1rem;background:#667eea;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.8rem;"><i class="fas fa-check"></i> {{ _('Enregistrer') }}</button>
             <button onclick="closeDrawingModal()" style="padding:0.4rem 0.6rem;background:none;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.85rem;color:#6b7280;"><i class="fas fa-times"></i></button>
         </div>
         <!-- Canvas area - takes all remaining space -->
@@ -836,20 +836,20 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="atelier-container">
     <!-- Header -->
     <div class="atelier-header">
-        <h1><i class="fas fa-flask"></i> L'Atelier d'Exercices</h1>
+        <h1><i class="fas fa-flask"></i> {{ _("L'Atelier d'Exercices") }}</h1>
         <div class="header-actions">
             <a href="{{ url_for('exercises.index') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Retour
+                <i class="fas fa-arrow-left"></i> {{ _('Retour') }}
             </a>
             <button class="btn btn-secondary" onclick="saveExercise(true)">
-                <i class="fas fa-save"></i> Brouillon
+                <i class="fas fa-save"></i> {{ _('Brouillon') }}
             </button>
             <button class="btn btn-primary" onclick="saveExercise(false)">
-                <i class="fas fa-save"></i> Sauvegarder
+                <i class="fas fa-save"></i> {{ _('Sauvegarder') }}
             </button>
             {% if exercise and exercise.id %}
             <button class="btn btn-success" onclick="showPublishModal()">
-                <i class="fas fa-paper-plane"></i> Publier
+                <i class="fas fa-paper-plane"></i> {{ _('Publier') }}
             </button>
             {% endif %}
         </div>
@@ -859,49 +859,49 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- Zone 1 : Paramètres généraux -->
         <div class="zone-params">
             <div class="zone-card">
-                <div class="zone-title"><i class="fas fa-cog"></i> Paramètres</div>
+                <div class="zone-title"><i class="fas fa-cog"></i> {{ _('Paramètres') }}</div>
                 <div class="zone-body">
                     <div class="form-group">
-                        <label>Titre</label>
-                        <input type="text" id="ex-title" placeholder="Titre de l'exercice" value="{{ exercise.title if exercise else '' }}">
+                        <label>{{ _('Titre') }}</label>
+                        <input type="text" id="ex-title" placeholder="{{ _("Titre de l'exercice") }}" value="{{ exercise.title if exercise else '' }}">
                     </div>
                     <div class="form-group">
-                        <label>Description</label>
-                        <textarea id="ex-description" rows="3" placeholder="Description...">{{ exercise.description if exercise else '' }}</textarea>
+                        <label>{{ _('Description') }}</label>
+                        <textarea id="ex-description" rows="3" placeholder="{{ _('Description...') }}">{{ exercise.description if exercise else '' }}</textarea>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Matière</label>
-                            <input type="text" id="ex-subject" placeholder="Maths, Sciences..." value="{{ exercise.subject if exercise else '' }}">
+                            <label>{{ _('Matière') }}</label>
+                            <input type="text" id="ex-subject" placeholder="{{ _('Maths, Sciences...') }}" value="{{ exercise.subject if exercise else '' }}">
                         </div>
                         <div class="form-group">
-                            <label>Niveau</label>
-                            <input type="text" id="ex-level" placeholder="6e, 5e..." value="{{ exercise.level if exercise else '' }}">
+                            <label>{{ _('Niveau') }}</label>
+                            <input type="text" id="ex-level" placeholder="{{ _('6e, 5e...') }}" value="{{ exercise.level if exercise else '' }}">
                         </div>
                     </div>
                     <div class="form-group">
                         <label style="display: flex; align-items: center; gap: 0.5rem;">
                             <input type="checkbox" id="ex-accept-typos" {{ 'checked' if exercise and exercise.accept_typos }} style="width: auto;">
-                            Tolérer les fautes d'orthographe
+                            {{ _("Tolérer les fautes d'orthographe") }}
                         </label>
-                        <small style="color: #6b7280; font-size: 0.75rem;">Si activé, les réponses texte proches seront acceptées</small>
+                        <small style="color: #6b7280; font-size: 0.75rem;">{{ _('Si activé, les réponses texte proches seront acceptées') }}</small>
                     </div>
                 </div>
             </div>
 
             <!-- Zone 3 : Gamification -->
             <div class="zone-card" style="margin-top: 1rem;">
-                <div class="zone-title orange"><i class="fas fa-gamepad"></i> Gamification</div>
+                <div class="zone-title orange"><i class="fas fa-gamepad"></i> {{ _('Gamification') }}</div>
                 <div class="zone-body">
                     <div class="form-group">
-                        <label>Seuil badge (%)</label>
+                        <label>{{ _('Seuil badge (%%)') }}</label>
                         <input type="number" id="ex-badge-threshold" min="10" max="100" value="{{ exercise.badge_threshold if exercise else 100 }}">
-                        <small style="color: #6b7280; font-size: 0.75rem;">L'élève gagne le badge s'il atteint ce pourcentage</small>
+                        <small style="color: #6b7280; font-size: 0.75rem;">{{ _("L'élève gagne le badge s'il atteint ce pourcentage") }}</small>
                     </div>
 
                     <!-- Aperçu du badge généré aléatoirement -->
                     <div class="form-group" id="badge-preview-container">
-                        <label>Aperçu du badge</label>
+                        <label>{{ _('Aperçu du badge') }}</label>
                         <div id="badge-preview" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
                             {% if exercise and exercise.badge_pattern and exercise.badge_color %}
                                 <div style="width: 80px; height: 80px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
@@ -909,16 +909,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                     {{ render_badge(exercise.badge_pattern, exercise.badge_color, 80, false) }}
                                 </div>
                                 <div style="flex: 1; font-size: 0.8rem; color: #4b5563;">
-                                    Image générée automatiquement.<br>
-                                    <small style="color: #9ca3af;">5×5 cases, couleur aléatoire flashy.</small>
+                                    {{ _('Image générée automatiquement.') }}<br>
+                                    <small style="color: #9ca3af;">{{ _('5×5 cases, couleur aléatoire flashy.') }}</small>
                                 </div>
                             {% else %}
                                 <div style="width: 80px; height: 80px; border-radius: 8px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
                                     <i class="fas fa-question"></i>
                                 </div>
                                 <div style="flex: 1; font-size: 0.8rem; color: #4b5563;">
-                                    Badge généré à la première sauvegarde.<br>
-                                    <small style="color: #9ca3af;">Une grille 5×5 colorée aléatoirement.</small>
+                                    {{ _('Badge généré à la première sauvegarde.') }}<br>
+                                    <small style="color: #9ca3af;">{{ _('Une grille 5×5 colorée aléatoirement.') }}</small>
                                 </div>
                             {% endif %}
                         </div>
@@ -926,8 +926,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     <div style="padding: 0.75rem; background: #fffbeb; border-radius: 8px; font-size: 0.8rem; color: #92400e;">
                         <i class="fas fa-star" style="color: #f59e0b;"></i>
-                        <strong>XP total : <span id="total-xp">0</span></strong>
-                        <br><small>La somme des points de chaque bloc</small>
+                        <strong>{{ _('XP total :') }} <span id="total-xp">0</span></strong>
+                        <br><small>{{ _('La somme des points de chaque bloc') }}</small>
                     </div>
                 </div>
             </div>
@@ -936,25 +936,24 @@ document.addEventListener('DOMContentLoaded', function() {
                Ne s'affiche qu'une fois l'exercice sauvegardé (il faut un ID). #}
             {% if exercise %}
             <div class="zone-card" style="margin-top: 1rem;">
-                <div class="zone-title" style="color: #6366f1;"><i class="fas fa-qrcode"></i> Envoi rapide (classe en cours)</div>
+                <div class="zone-title" style="color: #6366f1;"><i class="fas fa-qrcode"></i> {{ _('Envoi rapide (classe en cours)') }}</div>
                 <div class="zone-body">
                     <p style="font-size: 0.8rem; color: #6b7280; margin: 0 0 0.75rem;">
-                        Scanne ce QR code ou clique le lien pour publier instantanément
-                        cet exercice dans la classe à laquelle tu donnes cours en ce moment.
+                        {{ _('Scannez ce QR code ou cliquez sur le lien pour publier instantanément cet exercice dans la classe à laquelle vous donnez cours en ce moment.') }}
                     </p>
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <img src="{{ url_for('exercises.qr_image', exercise_id=exercise.id) }}"
-                             alt="QR code"
+                             alt="{{ _('QR Code') }}"
                              style="width: 130px; height: 130px; border-radius: 8px; border: 1px solid #e5e7eb; background: white;">
                         <div style="flex: 1;">
                             <a href="{{ url_for('exercises.quick_publish_current_class', exercise_id=exercise.id) }}"
                                target="_blank"
                                style="display: inline-block; padding: 8px 14px; background: #6366f1; color: white; text-decoration: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
-                                <i class="fas fa-paper-plane"></i> Envoyer maintenant
+                                <i class="fas fa-paper-plane"></i> {{ _('Envoyer maintenant') }}
                             </a>
                             <button type="button" onclick="copyQuickPublishLink()"
                                     style="display: inline-block; padding: 8px 14px; background: #f3f4f6; color: #1f2937; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-top: 0.4rem;">
-                                <i class="fas fa-link"></i> Copier le lien
+                                <i class="fas fa-link"></i> {{ _('Copier le lien') }}
                             </button>
                             <input type="hidden" id="quick-publish-url"
                                    value="{{ url_for('exercises.quick_publish_current_class', exercise_id=exercise.id, _external=True) }}">
@@ -968,37 +967,37 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- Zone 2 : Construction de l'exercice -->
         <div class="zone-blocks">
             <div class="zone-card">
-                <div class="zone-title green"><i class="fas fa-puzzle-piece"></i> Construction de l'exercice</div>
+                <div class="zone-title green"><i class="fas fa-puzzle-piece"></i> {{ _("Construction de l'exercice") }}</div>
                 <div class="zone-body">
                     <!-- Boîte à outils -->
                     <div class="toolbox">
                         <button class="tool-btn" onclick="addBlock('qcm')">
                             <i class="fas fa-list-check"></i>
-                            QCM
+                            {{ _('QCM') }}
                         </button>
                         <button class="tool-btn" onclick="addBlock('short_answer')">
                             <i class="fas fa-pen"></i>
-                            Réponse courte
+                            {{ _('Réponse courte') }}
                         </button>
                         <button class="tool-btn" onclick="addBlock('fill_blank')">
                             <i class="fas fa-paragraph"></i>
-                            Texte à trous
+                            {{ _('Texte à trous') }}
                         </button>
                         <button class="tool-btn" onclick="addBlock('sorting')">
                             <i class="fas fa-sort"></i>
-                            Classement
+                            {{ _('Classement') }}
                         </button>
                         <button class="tool-btn" onclick="addBlock('matching')">
                             <i class="fas fa-arrows-alt-h"></i>
-                            Associations
+                            {{ _('Associations') }}
                         </button>
                         <button class="tool-btn" onclick="addBlock('image_position')">
                             <i class="fas fa-image"></i>
-                            Image interactive
+                            {{ _('Image interactive') }}
                         </button>
                         <button class="tool-btn" onclick="addBlock('graph')">
                             <i class="fas fa-chart-line"></i>
-                            Graphique
+                            {{ _('Graphique') }}
                         </button>
                     </div>
 
@@ -1006,8 +1005,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="blocks-area" id="blocks-area">
                         <div class="blocks-empty" id="blocks-empty">
                             <i class="fas fa-puzzle-piece"></i>
-                            <p>Cliquez sur un outil ci-dessus pour ajouter des blocs</p>
-                            <small>Chaque exercice est un assemblage de blocs interactifs</small>
+                            <p>{{ _('Cliquez sur un outil ci-dessus pour ajouter des blocs') }}</p>
+                            <small>{{ _('Chaque exercice est un assemblage de blocs interactifs') }}</small>
                         </div>
                     </div>
                 </div>
@@ -1019,8 +1018,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Publish modal -->
 <div class="modal-overlay" id="publish-modal" style="display: none;">
     <div class="modal-box">
-        <h3><i class="fas fa-paper-plane"></i> Publier l'exercice</h3>
-        <p>Sélectionnez les classes pour lesquelles publier cet exercice :</p>
+        <h3><i class="fas fa-paper-plane"></i> {{ _("Publier l'exercice") }}</h3>
+        <p>{{ _('Sélectionnez les classes pour lesquelles publier cet exercice :') }}</p>
         <ul class="class-checkbox-list" id="publish-class-list">
             {% for classroom in classrooms %}
             <li>
@@ -1030,9 +1029,9 @@ document.addEventListener('DOMContentLoaded', function() {
             {% endfor %}
         </ul>
         <div class="modal-actions">
-            <button class="btn btn-secondary" onclick="closePublishModal()">Annuler</button>
+            <button class="btn btn-secondary" onclick="closePublishModal()">{{ _('Annuler') }}</button>
             <button class="btn btn-success" onclick="publishExercise()">
-                <i class="fas fa-paper-plane"></i> Publier
+                <i class="fas fa-paper-plane"></i> {{ _('Publier') }}
             </button>
         </div>
     </div>
@@ -1041,13 +1040,13 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Folder picker modal -->
 <div class="modal-overlay" id="folder-modal" style="display: none;">
     <div class="modal-box">
-        <h3><i class="fas fa-folder-open"></i> Ranger dans un dossier</h3>
-        <p style="color:#6b7280;font-size:0.9rem;">Choisissez un dossier du gestionnaire de fichiers pour y ranger cet exercice :</p>
+        <h3><i class="fas fa-folder-open"></i> {{ _('Ranger dans un dossier') }}</h3>
+        <p style="color:#6b7280;font-size:0.9rem;">{{ _('Choisissez un dossier du gestionnaire de fichiers pour y ranger cet exercice :') }}</p>
         <div id="folder-list" style="max-height:300px;overflow-y:auto;margin:1rem 0;"></div>
         <div class="modal-actions">
-            <button class="btn btn-secondary" onclick="closeFolderModal()">Passer</button>
+            <button class="btn btn-secondary" onclick="closeFolderModal()">{{ _('Passer') }}</button>
             <button class="btn btn-primary" id="folder-confirm-btn" onclick="confirmFolder()" disabled>
-                <i class="fas fa-check"></i> Ranger ici
+                <i class="fas fa-check"></i> {{ _('Ranger ici') }}
             </button>
         </div>
     </div>
@@ -1058,9 +1057,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="katex-toolbar-header">
         <div class="katex-toolbar-title">
             <i class="fas fa-calculator"></i>
-            <span>Formules Mathématiques</span>
+            <span>{{ _('Formules Mathématiques') }}</span>
         </div>
-        <button class="katex-toolbar-toggle" onclick="toggleKaTeXToolbar()" title="Réduire/Agrandir">
+        <button class="katex-toolbar-toggle" onclick="toggleKaTeXToolbar()" title="{{ _('Réduire/Agrandir') }}">
             <i class="fas fa-chevron-up" id="toolbar-toggle-icon"></i>
         </button>
     </div>
@@ -1068,98 +1067,244 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="katex-toolbar-content">
         <!-- Symbols -->
         <div class="katex-button-group">
-            <div class="katex-button-group-title"><i class="fas fa-icons"></i> Symboles</div>
+            <div class="katex-button-group-title"><i class="fas fa-icons"></i> {{ _('Symboles') }}</div>
             <div class="katex-buttons-grid">
-                <button class="katex-btn" onclick="insertKaTeX('\\frac{}{}')" title="Fraction">
+                <button class="katex-btn" onclick="insertKaTeX('\\frac{}{}')" title="{{ _('Fraction') }}">
                     <i class="fas fa-divide"></i>
-                    <span>Fraction</span>
+                    <span>{{ _('Fraction') }}</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('^{}')" title="Exposant">
+                <button class="katex-btn" onclick="insertKaTeX('^{}')" title="{{ _('Exposant') }}">
                     <i class="fas fa-superscript"></i>
-                    <span>Exposant</span>
+                    <span>{{ _('Exposant') }}</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('_{}')" title="Indice">
+                <button class="katex-btn" onclick="insertKaTeX('_{}')" title="{{ _('Indice') }}">
                     <i class="fas fa-subscript"></i>
-                    <span>Indice</span>
+                    <span>{{ _('Indice') }}</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\sqrt{}')" title="Racine carrée">
+                <button class="katex-btn" onclick="insertKaTeX('\\sqrt{}')" title="{{ _('Racine carrée') }}">
                     <i class="fas fa-square-root-alt"></i>
-                    <span>Racine</span>
+                    <span>{{ _('Racine carrée') }}</span>
                 </button>
                 <button class="katex-btn" onclick="insertKaTeX('\\pi')" title="Pi">
                     <span>π</span>
                     <span>Pi</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\times')" title="Multiplication">
+                <button class="katex-btn" onclick="insertKaTeX('\\times')" title="{{ _('Multiplication') }}">
                     <span>×</span>
-                    <span>Mult.</span>
+                    <span>{{ _('Mult.') }}</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\div')" title="Division">
+                <button class="katex-btn" onclick="insertKaTeX('\\div')" title="{{ _('Division') }}">
                     <span>÷</span>
-                    <span>Div.</span>
+                    <span>{{ _('Div.') }}</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\pm')" title="Plus ou moins">
+                <button class="katex-btn" onclick="insertKaTeX('\\pm')" title="{{ _('Plus ou moins') }}">
                     <span>±</span>
                     <span>±</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\infty')" title="Infini">
+                <button class="katex-btn" onclick="insertKaTeX('\\infty')" title="{{ _('Infini') }}">
                     <span>∞</span>
-                    <span>Infini</span>
+                    <span>{{ _('Infini') }}</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\leq')" title="Inférieur ou égal">
+                <button class="katex-btn" onclick="insertKaTeX('\\leq')" title="{{ _('Inférieur ou égal') }}">
                     <span>≤</span>
                     <span>≤</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\geq')" title="Supérieur ou égal">
+                <button class="katex-btn" onclick="insertKaTeX('\\geq')" title="{{ _('Supérieur ou égal') }}">
                     <span>≥</span>
                     <span>≥</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\neq')" title="Différent de">
+                <button class="katex-btn" onclick="insertKaTeX('\\neq')" title="{{ _('Différent de') }}">
                     <span>≠</span>
                     <span>≠</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\rightarrow')" title="Flèche">
+                <button class="katex-btn" onclick="insertKaTeX('\\rightarrow')" title="{{ _('Flèche') }}">
                     <span>→</span>
-                    <span>Flèche</span>
+                    <span>{{ _('Flèche') }}</span>
                 </button>
             </div>
         </div>
 
         <!-- Structures -->
         <div class="katex-button-group">
-            <div class="katex-button-group-title"><i class="fas fa-building"></i> Structures</div>
+            <div class="katex-button-group-title"><i class="fas fa-building"></i> {{ _('Structures') }}</div>
             <div class="katex-buttons-grid">
-                <button class="katex-btn" onclick="insertKaTeX('\\int')" title="Intégrale">
+                <button class="katex-btn" onclick="insertKaTeX('\\int')" title="{{ _('Intégrale') }}">
                     <span>∫</span>
-                    <span>Intégrale</span>
+                    <span>{{ _('Intégrale') }}</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\sum')" title="Somme">
+                <button class="katex-btn" onclick="insertKaTeX('\\sum')" title="{{ _('Somme') }}">
                     <span>∑</span>
-                    <span>Somme</span>
+                    <span>{{ _('Somme') }}</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\lim')" title="Limite">
+                <button class="katex-btn" onclick="insertKaTeX('\\lim')" title="{{ _('Limite') }}">
                     <i class="fas fa-arrow-right"></i>
-                    <span>Limite</span>
+                    <span>{{ _('Limite') }}</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\begin{pmatrix}\\end{pmatrix}')" title="Matrice">
+                <button class="katex-btn" onclick="insertKaTeX('\\begin{pmatrix}\\end{pmatrix}')" title="{{ _('Matrice') }}">
                     <i class="fas fa-border-all"></i>
-                    <span>Matrice</span>
+                    <span>{{ _('Matrice') }}</span>
                 </button>
             </div>
         </div>
 
         <!-- Preview Section -->
         <div class="katex-preview-section">
-            <div class="katex-preview-label">Aperçu en temps réel</div>
-            <input type="text" id="katex-formula-input" class="katex-formula-input" placeholder="Entrez la formule KaTeX..." oninput="updateKaTeXPreview()">
+            <div class="katex-preview-label">{{ _('Aperçu en temps réel') }}</div>
+            <input type="text" id="katex-formula-input" class="katex-formula-input" placeholder="{{ _('Entrez la formule KaTeX...') }}" oninput="updateKaTeXPreview()">
             <div class="katex-preview-box" id="katex-preview-box">
-                <span style="color:#9ca3af; font-style: italic;">Aperçu ici...</span>
+                <span style="color:#9ca3af; font-style: italic;">{{ _('Aperçu ici...') }}</span>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+// Chaînes traduites pour le JS (échappées via |tojson) ; jetons {n}… remplacés en JS.
+const EXO_EDITOR_I18N = {
+    // Types de blocs (libellés seulement ; les clés qcm, short_answer… restent inchangées)
+    typeQcm: {{ _('QCM')|tojson }},
+    typeShortAnswer: {{ _('Réponse courte')|tojson }},
+    typeFillBlank: {{ _('Texte à trous')|tojson }},
+    typeSorting: {{ _('Classement')|tojson }},
+    typeMatching: {{ _('Associations')|tojson }},
+    typeImagePosition: {{ _('Image interactive')|tojson }},
+    typeGraph: {{ _('Graphique')|tojson }},
+    // En-tête de bloc
+    blockTitlePlaceholder: {{ _('Titre / Question du bloc...')|tojson }},
+    expand: {{ _('Déplier')|tojson }},
+    del: {{ _('Supprimer')|tojson }},
+    unknownBlockType: {{ _('Type de bloc inconnu')|tojson }},
+    // Image / dessin facultatif
+    imageOrDrawing: {{ _('Image / Dessin (optionnel)')|tojson }},
+    changeImage: {{ _("Changer l'image")|tojson }},
+    draw: {{ _('Dessiner')|tojson }},
+    uploadImage: {{ _('Charger une image')|tojson }},
+    imageUrl: {{ _("URL d'image")|tojson }},
+    // QCM / réponse courte
+    question: {{ _('Question')|tojson }},
+    askQuestion: {{ _('Posez votre question...')|tojson }},
+    multipleAnswers: {{ _('Plusieurs bonnes réponses')|tojson }},
+    addOption: {{ _('Ajouter une option')|tojson }},
+    optionText: {{ _("Texte de l'option")|tojson }},
+    feedbackOptional: {{ _('Feedback (optionnel)')|tojson }},
+    answerType: {{ _('Type de réponse')|tojson }},
+    exactText: {{ _('Texte exact')|tojson }},
+    number: {{ _('Nombre')|tojson }},
+    correctAnswer: {{ _('Réponse correcte')|tojson }},
+    tolerance: {{ _('Tolérance (±)')|tojson }},
+    acceptedSynonyms: {{ _('Synonymes acceptés')|tojson }},
+    addSynonym: {{ _('Ajouter un synonyme')|tojson }},
+    // Texte à trous
+    choiceN: {{ _('Choix {n}')|tojson }},
+    correctTag: {{ _('✓ correct')|tojson }},
+    blankN: {{ _('Trou {n} :')|tojson }},
+    distractor: {{ _('Distracteur')|tojson }},
+    wordListsPerBlank: {{ _('Listes de mots par trou')|tojson }},
+    wordListsHelp: {{ _('Chaque trou a sa propre liste de choix. Le premier mot (✓) est la bonne réponse. Ajoutez des distracteurs pour augmenter la difficulté.')|tojson }},
+    autoGenerateLists: {{ _('Auto-générer les listes')|tojson }},
+    answerMode: {{ _('Mode de réponse')|tojson }},
+    freeInput: {{ _('Saisie libre')|tojson }},
+    wordList: {{ _('Liste de mots')|tojson }},
+    textWithBlanks: {{ _('Texte avec trous')|tojson }},
+    blankPlaceholder: {{ _('Utilisez {mot} pour créer un trou. Ex: Le {soleil} brille dans le {ciel}.')|tojson }},
+    blankSyntax: {{ _('Syntaxe : entourez les mots à deviner avec des accolades {mot}')|tojson }},
+    preview: {{ _('Aperçu')|tojson }},
+    noText: {{ _('Aucun texte')|tojson }},
+    // Associations / classement
+    matchingPairs: {{ _("Paires d'associations")|tojson }},
+    matchingHelp: {{ _('Chaque ligne représente une association correcte entre un élément gauche et un élément droit.')|tojson }},
+    addPair: {{ _('Ajouter une paire')|tojson }},
+    leftItem: {{ _('Élément gauche')|tojson }},
+    rightItem: {{ _('Élément droit')|tojson }},
+    itemN: {{ _('Élément {n}')|tojson }},
+    categoryName: {{ _('Nom de la catégorie')|tojson }},
+    item: {{ _('Élément')|tojson }},
+    sortMode: {{ _('Mode de tri')|tojson }},
+    sortOrderOption: {{ _('Ordre (chronologique, croissant...)')|tojson }},
+    sortCategoriesOption: {{ _('Catégories (trier dans des boîtes)')|tojson }},
+    itemsInOrder: {{ _("Éléments (dans l'ordre correct)")|tojson }},
+    categories: {{ _('Catégories')|tojson }},
+    addItem: {{ _('Ajouter un élément')|tojson }},
+    addCategory: {{ _('Ajouter une catégorie')|tojson }},
+    orderHelp: {{ _("Entrez les éléments dans l'ordre correct. L'élève les verra mélangés.")|tojson }},
+    categoriesHelp: {{ _('Glissez les éléments dans les bonnes catégories.')|tojson }},
+    categoryN: {{ _('Catégorie {n}')|tojson }},
+    // Image interactive
+    zoneLabelPlaceholder: {{ _('Label (ex: Coeur)')|tojson }},
+    nPoints: {{ _('{n} point(s)')|tojson }},
+    zoneHelp: {{ _("Cliquez sur l'image pour ajouter des points à cette zone. <strong>Zone active</strong> = sélectionnée ci-dessous.")|tojson }},
+    activeZone: {{ _('Zone active à placer')|tojson }},
+    zoneN: {{ _('Zone {n}')|tojson }},
+    newZone: {{ _('Nouvelle zone')|tojson }},
+    clickToUpload: {{ _('Cliquez pour téléverser une image')|tojson }},
+    zonesAndPoints: {{ _('Zones et points')|tojson }},
+    toleranceRadius: {{ _('Rayon de tolérance (px)')|tojson }},
+    interactionType: {{ _("Type d'interaction")|tojson }},
+    clickableZones: {{ _('Zones cliquables')|tojson }},
+    imageLabels: {{ _('Labels sur image')|tojson }},
+    expectedAnswer: {{ _('Réponse attendue')|tojson }},
+    hintOptional: {{ _('Indice (optionnel)')|tojson }},
+    labelPosition: {{ _("Position : ({x}%%, {y}%%) — Cliquez sur l'image pour repositionner.")|tojson }},
+    placedLabels: {{ _('Labels positionnés')|tojson }},
+    placedLabelsHelp: {{ _("Cliquez sur l'image pour ajouter un label. L'élève devra taper la réponse attendue dans un champ positionné à cet endroit.")|tojson }},
+    imageUploaded: {{ _('Image téléversée')|tojson }},
+    uploadError: {{ _('Erreur upload')|tojson }},
+    imageAdded: {{ _('Image ajoutée')|tojson }},
+    enterImageUrl: {{ _("Entrez l'URL de l'image :")|tojson }},
+    // Outils de dessin
+    textToAdd: {{ _('Texte à ajouter :')|tojson }},
+    hintDrag: {{ _('Glisser pour tracer')|tojson }},
+    hintDragFromCenter: {{ _('Glisser du centre vers le bord')|tojson }},
+    hintProtractor: {{ _('Dessiner le 1er bras, maintenir immobile pour valider, puis dessiner le 2e bras')|tojson }},
+    hintArc: {{ _("Dessiner le rayon, maintenir immobile pour valider, puis dessiner l'arc")|tojson }},
+    hintText: {{ _('Cliquer pour placer le texte')|tojson }},
+    hintGrid: {{ _('Cliquer pour afficher la grille')|tojson }},
+    drawingSaved: {{ _('Dessin sauvegardé')|tojson }},
+    saveError: {{ _('Erreur sauvegarde')|tojson }},
+    // Graphique
+    questionType: {{ _('Type de question')|tojson }},
+    drawLine: {{ _('Tracer une droite (f(x) = ax + b)')|tojson }},
+    drawQuadratic: {{ _('Tracer une courbe quadratique (f(x) = ax² + bx + c)')|tojson }},
+    findExpression: {{ _("Trouver l'expression à partir du graphique")|tojson }},
+    xAxisLabel: {{ _('Axe X : label')|tojson }},
+    yAxisLabel: {{ _('Axe Y : label')|tojson }},
+    correctExpression: {{ _('Expression fonctionnelle correcte')|tojson }},
+    move3Points: {{ _("L'élève devra déplacer <strong>3 points</strong> pour retrouver la courbe.")|tojson }},
+    functionType: {{ _('Type de fonction :')|tojson }},
+    linear: {{ _('Linéaire : f(x) = ax + b')|tojson }},
+    quadratic: {{ _('Quadratique : f(x) = ax² + bx + c')|tojson }},
+    slope: {{ _('a (pente)')|tojson }},
+    intercept: {{ _('b (ordonnée)')|tojson }},
+    findCoefficientsHelp: {{ _("Le graphique sera affiché, l'élève devra trouver les coefficients.")|tojson }},
+    yIntercept: {{ _("b (ordonnée à l'origine)")|tojson }},
+    move2Points: {{ _("L'élève devra déplacer <strong>2 points</strong> pour retrouver la droite.")|tojson }},
+    showGrid: {{ _('Afficher la grille')|tojson }},
+    graphPreview: {{ _('Aperçu du graphique')|tojson }},
+    // Sauvegarde, publication, dossiers, KaTeX
+    untitled: {{ _('Sans titre')|tojson }},
+    draftSaved: {{ _('Brouillon sauvegardé')|tojson }},
+    exerciseSaved: {{ _('Exercice sauvegardé')|tojson }},
+    error: {{ _('Erreur')|tojson }},
+    connectionError: {{ _('Erreur de connexion')|tojson }},
+    linkCopied: {{ _('Lien copié !')|tojson }},
+    cannotCopy: {{ _('Impossible de copier')|tojson }},
+    badgeAutoImage: {{ _('Image générée automatiquement.')|tojson }},
+    badgeGrid: {{ _('5×5 cases, couleur aléatoire flashy.')|tojson }},
+    selectOneClass: {{ _('Sélectionnez au moins une classe')|tojson }},
+    loading: {{ _('Chargement...')|tojson }},
+    root: {{ _('Racine')|tojson }},
+    loadError: {{ _('Erreur de chargement')|tojson }},
+    movedToFolder: {{ _('Exercice rangé dans le dossier')|tojson }},
+    clickFieldFirst: {{ _("Veuillez cliquer dans un champ de texte d'abord")|tojson }},
+    previewHere: {{ _('Aperçu ici...')|tojson }},
+    invalidFormula: {{ _('Erreur : formule invalide')|tojson }},
+};
+function exoEdFmt(str, vars) {
+    return String(str).replace(/\{(\w+)\}/g, function (m, k) {
+        return (vars && Object.prototype.hasOwnProperty.call(vars, k)) ? String(vars[k]) : m;
+    });
+}
+
 // ============================================================
 // STATE
 // ============================================================
@@ -1168,13 +1313,13 @@ let blocks = [];
 let blockCounter = 0;
 
 const BLOCK_TYPES = {
-    qcm: { label: 'QCM', icon: 'list-check' },
-    short_answer: { label: 'Réponse courte', icon: 'pen' },
-    fill_blank: { label: 'Texte à trous', icon: 'paragraph' },
-    sorting: { label: 'Classement', icon: 'sort' },
-    matching: { label: 'Associations', icon: 'arrows-alt-h' },
-    image_position: { label: 'Image interactive', icon: 'image' },
-    graph: { label: 'Graphique', icon: 'chart-line' },
+    qcm: { label: EXO_EDITOR_I18N.typeQcm, icon: 'list-check' },
+    short_answer: { label: EXO_EDITOR_I18N.typeShortAnswer, icon: 'pen' },
+    fill_blank: { label: EXO_EDITOR_I18N.typeFillBlank, icon: 'paragraph' },
+    sorting: { label: EXO_EDITOR_I18N.typeSorting, icon: 'sort' },
+    matching: { label: EXO_EDITOR_I18N.typeMatching, icon: 'arrows-alt-h' },
+    image_position: { label: EXO_EDITOR_I18N.typeImagePosition, icon: 'image' },
+    graph: { label: EXO_EDITOR_I18N.typeGraph, icon: 'chart-line' },
 };
 
 // ============================================================
@@ -1278,7 +1423,7 @@ function renderBlock(block) {
         <div class="block-header" onclick="toggleBlockContent('${block.uid}')">
             <span class="block-drag-handle" onclick="event.stopPropagation()"><i class="fas fa-grip-vertical"></i></span>
             <span class="block-type-badge ${block.block_type}">${typeInfo.label}</span>
-            <input class="block-title-input" type="text" placeholder="Titre / Question du bloc..."
+            <input class="block-title-input" type="text" placeholder="${EXO_EDITOR_I18N.blockTitlePlaceholder}"
                 value="${escapeHtml(block.title || '')}"
                 onclick="event.stopPropagation()"
                 onchange="updateBlockField('${block.uid}', 'title', this.value)">
@@ -1295,8 +1440,8 @@ function renderBlock(block) {
                 </span>
             </div>
             <div class="block-actions" onclick="event.stopPropagation()">
-                <button onclick="toggleBlockContent('${block.uid}')" title="Déplier"><i class="fas fa-chevron-down"></i></button>
-                <button class="delete" onclick="removeBlock('${block.uid}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+                <button onclick="toggleBlockContent('${block.uid}')" title="${EXO_EDITOR_I18N.expand}"><i class="fas fa-chevron-down"></i></button>
+                <button class="delete" onclick="removeBlock('${block.uid}')" title="${EXO_EDITOR_I18N.del}"><i class="fas fa-trash"></i></button>
             </div>
         </div>
         <div class="block-content" id="content-${block.uid}">
@@ -1315,7 +1460,7 @@ function renderBlockEditor(block) {
         case 'sorting': editorHtml = renderSortingEditor(block); break;
         case 'image_position': return renderImagePositionEditor(block);
         case 'graph': return renderGraphEditor(block);
-        default: return '<p>Type de bloc inconnu</p>';
+        default: return '<p>' + EXO_EDITOR_I18N.unknownBlockType + '</p>';
     }
     // Add optional image/drawing section for these block types
     editorHtml += renderBlockImageSection(block);
@@ -1329,7 +1474,7 @@ function renderBlockImageSection(block) {
     let html = `
         <div style="border-top:1px solid #e5e7eb;margin-top:1rem;padding-top:1rem;">
             <label style="font-size:0.85rem;font-weight:600;color:#374151;display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem;">
-                <i class="fas fa-image" style="color:#667eea;"></i> Image / Dessin (optionnel)
+                <i class="fas fa-image" style="color:#667eea;"></i> ${EXO_EDITOR_I18N.imageOrDrawing}
             </label>`;
 
     if (hasImage) {
@@ -1342,23 +1487,23 @@ function renderBlockImageSection(block) {
             </div>
             <div style="display:flex;gap:0.5rem;">
                 <button class="add-item-btn" onclick="changeBlockMediaImage('${block.uid}')" style="font-size:0.75rem;">
-                    <i class="fas fa-exchange-alt"></i> Changer l'image
+                    <i class="fas fa-exchange-alt"></i> ${EXO_EDITOR_I18N.changeImage}
                 </button>
                 <button class="add-item-btn" onclick="openDrawingCanvas('${block.uid}')" style="font-size:0.75rem;">
-                    <i class="fas fa-pen-fancy"></i> Dessiner
+                    <i class="fas fa-pen-fancy"></i> ${EXO_EDITOR_I18N.draw}
                 </button>
             </div>`;
     } else {
         html += `
             <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
                 <button class="add-item-btn" onclick="triggerBlockMediaUpload('${block.uid}')" style="font-size:0.8rem;">
-                    <i class="fas fa-upload"></i> Charger une image
+                    <i class="fas fa-upload"></i> ${EXO_EDITOR_I18N.uploadImage}
                 </button>
                 <button class="add-item-btn" onclick="promptBlockMediaUrl('${block.uid}')" style="font-size:0.8rem;">
-                    <i class="fas fa-link"></i> URL d'image
+                    <i class="fas fa-link"></i> ${EXO_EDITOR_I18N.imageUrl}
                 </button>
                 <button class="add-item-btn" onclick="openDrawingCanvas('${block.uid}')" style="font-size:0.8rem;">
-                    <i class="fas fa-pen-fancy"></i> Dessiner
+                    <i class="fas fa-pen-fancy"></i> ${EXO_EDITOR_I18N.draw}
                 </button>
             </div>`;
     }
@@ -1378,15 +1523,15 @@ function renderQCMEditor(block) {
     const c = block.config_json;
     let html = `
         <div class="form-group">
-            <label>Question</label>
+            <label>${EXO_EDITOR_I18N.question}</label>
             <textarea rows="2" onchange="updateConfig('${block.uid}', 'question', this.value)"
-                placeholder="Posez votre question...">${escapeHtml(c.question || '')}</textarea>
+                placeholder="${EXO_EDITOR_I18N.askQuestion}">${escapeHtml(c.question || '')}</textarea>
         </div>
         <div class="form-group">
             <label style="display:flex;align-items:center;gap:0.5rem;">
                 <input type="checkbox" style="width:auto;" ${c.multiple_answers ? 'checked' : ''}
                     onchange="updateConfig('${block.uid}', 'multiple_answers', this.checked)">
-                Plusieurs bonnes réponses
+                ${EXO_EDITOR_I18N.multipleAnswers}
             </label>
         </div>
         <div id="qcm-options-${block.uid}">
@@ -1396,7 +1541,7 @@ function renderQCMEditor(block) {
     });
     html += `</div>
         <button class="add-item-btn" onclick="addQCMOption('${block.uid}')">
-            <i class="fas fa-plus"></i> Ajouter une option
+            <i class="fas fa-plus"></i> ${EXO_EDITOR_I18N.addOption}
         </button>`;
     return html;
 }
@@ -1408,9 +1553,9 @@ function renderQCMOption(uid, index, opt, isMultiple) {
             <input type="${inputType}" name="qcm-correct-${uid}" ${opt.is_correct ? 'checked' : ''}
                 onchange="updateQCMCorrect('${uid}', ${index}, this.checked)">
             <div class="option-fields">
-                <input type="text" placeholder="Texte de l'option" value="${escapeHtml(opt.text || '')}"
+                <input type="text" placeholder="${EXO_EDITOR_I18N.optionText}" value="${escapeHtml(opt.text || '')}"
                     onchange="updateQCMOptionField('${uid}', ${index}, 'text', this.value)">
-                <input type="text" placeholder="Feedback (optionnel)" value="${escapeHtml(opt.feedback || '')}"
+                <input type="text" placeholder="${EXO_EDITOR_I18N.feedbackOptional}" value="${escapeHtml(opt.feedback || '')}"
                     onchange="updateQCMOptionField('${uid}', ${index}, 'feedback', this.value)">
             </div>
             <button class="remove-option" onclick="removeQCMOption('${uid}', ${index})"><i class="fas fa-times"></i></button>
@@ -1458,35 +1603,35 @@ function renderShortAnswerEditor(block) {
 
     return `
         <div class="form-group">
-            <label>Question</label>
+            <label>${EXO_EDITOR_I18N.question}</label>
             <textarea rows="2" onchange="updateConfig('${block.uid}', 'question', this.value)"
-                placeholder="Posez votre question...">${escapeHtml(c.question || '')}</textarea>
+                placeholder="${EXO_EDITOR_I18N.askQuestion}">${escapeHtml(c.question || '')}</textarea>
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label>Type de réponse</label>
+                <label>${EXO_EDITOR_I18N.answerType}</label>
                 <select onchange="updateConfig('${block.uid}', 'answer_type', this.value)">
-                    <option value="text" ${c.answer_type === 'text' ? 'selected' : ''}>Texte exact</option>
-                    <option value="number" ${c.answer_type === 'number' ? 'selected' : ''}>Nombre</option>
+                    <option value="text" ${c.answer_type === 'text' ? 'selected' : ''}>${EXO_EDITOR_I18N.exactText}</option>
+                    <option value="number" ${c.answer_type === 'number' ? 'selected' : ''}>${EXO_EDITOR_I18N.number}</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Réponse correcte</label>
+                <label>${EXO_EDITOR_I18N.correctAnswer}</label>
                 <input type="text" value="${escapeHtml(c.correct_answer || '')}"
                     onchange="updateConfig('${block.uid}', 'correct_answer', this.value)">
             </div>
         </div>
         ${c.answer_type === 'number' ? `
         <div class="form-group">
-            <label>Tolérance (±)</label>
+            <label>${EXO_EDITOR_I18N.tolerance}</label>
             <input type="number" step="0.01" value="${c.tolerance || 0}"
                 onchange="updateConfig('${block.uid}', 'tolerance', parseFloat(this.value))">
         </div>` : ''}
         <div class="form-group">
-            <label>Synonymes acceptés</label>
+            <label>${EXO_EDITOR_I18N.acceptedSynonyms}</label>
             <div class="items-list" id="synonyms-${block.uid}">${synHtml}</div>
             <button class="add-item-btn" onclick="addSynonym('${block.uid}')">
-                <i class="fas fa-plus"></i> Ajouter un synonyme
+                <i class="fas fa-plus"></i> ${EXO_EDITOR_I18N.addSynonym}
             </button>
         </div>`;
 }
@@ -1526,19 +1671,19 @@ function renderFillBlankEditor(block) {
             const choices = blank.choices || [blank.word];
             const choicesItems = choices.map((w, ci) => `
                 <div style="display:flex;align-items:center;gap:0.3rem;margin-bottom:0.2rem;">
-                    <input type="text" value="${escapeHtml(w)}" placeholder="Choix ${ci+1}"
+                    <input type="text" value="${escapeHtml(w)}" placeholder="${exoEdFmt(EXO_EDITOR_I18N.choiceN, { n: ci + 1 })}"
                         onchange="updateBlankChoice('${block.uid}', ${bi}, ${ci}, this.value)"
                         style="flex:1;padding:0.3rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.85rem;">
-                    ${ci === 0 ? '<span style="font-size:0.65rem;color:#16a34a;font-weight:700;white-space:nowrap;">✓ correct</span>' : ''}
+                    ${ci === 0 ? '<span style="font-size:0.65rem;color:#16a34a;font-weight:700;white-space:nowrap;">' + EXO_EDITOR_I18N.correctTag + '</span>' : ''}
                     <button class="remove-item" style="padding:2px 4px;" onclick="removeBlankChoice('${block.uid}', ${bi}, ${ci})"><i class="fas fa-times" style="font-size:0.7rem;"></i></button>
                 </div>`).join('');
 
             return `
             <div style="border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
-                    <span style="font-weight:700;color:#667eea;font-size:0.85rem;">Trou ${bi+1} : <em>${escapeHtml(blank.word)}</em></span>
+                    <span style="font-weight:700;color:#667eea;font-size:0.85rem;">${exoEdFmt(EXO_EDITOR_I18N.blankN, { n: bi + 1 })} <em>${escapeHtml(blank.word)}</em></span>
                     <button class="add-item-btn" style="padding:0.2rem 0.5rem;font-size:0.75rem;" onclick="addBlankChoice('${block.uid}', ${bi})">
-                        <i class="fas fa-plus"></i> Distracteur
+                        <i class="fas fa-plus"></i> ${EXO_EDITOR_I18N.distractor}
                     </button>
                 </div>
                 ${choicesItems}
@@ -1547,44 +1692,44 @@ function renderFillBlankEditor(block) {
 
         wordPoolHtml = blanks.length > 0 ? `
         <div class="form-group">
-            <label>Listes de mots par trou</label>
-            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">Chaque trou a sa propre liste de choix. Le premier mot (✓) est la bonne réponse. Ajoutez des distracteurs pour augmenter la difficulté.</small>
+            <label>${EXO_EDITOR_I18N.wordListsPerBlank}</label>
+            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">${EXO_EDITOR_I18N.wordListsHelp}</small>
             ${blanksHtml}
             <button class="add-item-btn" style="margin-top:0.5rem;background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;" onclick="autoGenerateBlankChoices('${block.uid}')">
-                <i class="fas fa-magic"></i> Auto-générer les listes
+                <i class="fas fa-magic"></i> ${EXO_EDITOR_I18N.autoGenerateLists}
             </button>
         </div>` : '';
     }
 
     return `
         <div class="form-group">
-            <label>Mode de réponse</label>
+            <label>${EXO_EDITOR_I18N.answerMode}</label>
             <div style="display:flex;gap:0.5rem;">
                 <label class="radio-btn ${c.mode === 'text' ? 'active' : ''}">
                     <input type="radio" name="fill-mode-${block.uid}" value="text" ${c.mode === 'text' ? 'checked' : ''}
-                        onchange="updateFillBlankMode('${block.uid}', 'text')"> Saisie libre
+                        onchange="updateFillBlankMode('${block.uid}', 'text')"> ${EXO_EDITOR_I18N.freeInput}
                 </label>
                 <label class="radio-btn ${c.mode === 'choices' ? 'active' : ''}">
                     <input type="radio" name="fill-mode-${block.uid}" value="choices" ${c.mode === 'choices' ? 'checked' : ''}
-                        onchange="updateFillBlankMode('${block.uid}', 'choices')"> Liste de mots
+                        onchange="updateFillBlankMode('${block.uid}', 'choices')"> ${EXO_EDITOR_I18N.wordList}
                 </label>
             </div>
         </div>
         <div class="form-group">
-            <label>Texte avec trous</label>
-            <textarea rows="4" placeholder="Utilisez {mot} pour créer un trou. Ex: Le {soleil} brille dans le {ciel}."
+            <label>${EXO_EDITOR_I18N.textWithBlanks}</label>
+            <textarea rows="4" placeholder="${EXO_EDITOR_I18N.blankPlaceholder}"
                 onchange="updateFillBlankTemplate('${block.uid}', this.value)">${escapeHtml(c.text_template || '')}</textarea>
-            <small style="color:#6b7280;">Syntaxe : entourez les mots à deviner avec des accolades {mot}</small>
+            <small style="color:#6b7280;">${EXO_EDITOR_I18N.blankSyntax}</small>
         </div>
         ${wordPoolHtml}
         <div class="form-group">
-            <label>Aperçu</label>
+            <label>${EXO_EDITOR_I18N.preview}</label>
             <div class="fill-blank-preview">${preview}</div>
         </div>`;
 }
 
 function parseFillBlank(template) {
-    if (!template) return '<em style="color:#9ca3af;">Aucun texte</em>';
+    if (!template) return '<em style="color:#9ca3af;">' + EXO_EDITOR_I18N.noText + '</em>';
     return template.replace(/\{([^}]+)\}/g, '<span class="blank-slot">____</span>');
 }
 
@@ -1670,21 +1815,21 @@ function renderMatchingEditor(block) {
     const pairsHtml = c.pairs.map((p, i) => `
         <div class="item-row" style="margin-bottom:0.5rem;align-items:center;">
             <span style="font-weight:700;color:#667eea;width:20px;">${i + 1}.</span>
-            <input type="text" value="${escapeHtml(p.left || '')}" placeholder="Élément gauche"
+            <input type="text" value="${escapeHtml(p.left || '')}" placeholder="${EXO_EDITOR_I18N.leftItem}"
                 onchange="updateMatchingPair('${block.uid}', ${i}, 'left', this.value)" style="flex:1;">
             <i class="fas fa-arrows-alt-h" style="color:#9ca3af;margin:0 0.3rem;"></i>
-            <input type="text" value="${escapeHtml(p.right || '')}" placeholder="Élément droit"
+            <input type="text" value="${escapeHtml(p.right || '')}" placeholder="${EXO_EDITOR_I18N.rightItem}"
                 onchange="updateMatchingPair('${block.uid}', ${i}, 'right', this.value)" style="flex:1;">
             <button class="remove-item" onclick="removeMatchingPair('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
         </div>`).join('');
 
     return `
         <div class="form-group">
-            <label>Paires d'associations</label>
-            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">Chaque ligne représente une association correcte entre un élément gauche et un élément droit.</small>
+            <label>${EXO_EDITOR_I18N.matchingPairs}</label>
+            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">${EXO_EDITOR_I18N.matchingHelp}</small>
             <div class="items-list">${pairsHtml}</div>
             <button class="add-item-btn" onclick="addMatchingPair('${block.uid}')" style="margin-top:0.5rem;">
-                <i class="fas fa-plus"></i> Ajouter une paire
+                <i class="fas fa-plus"></i> ${EXO_EDITOR_I18N.addPair}
             </button>
         </div>`;
 }
@@ -1718,7 +1863,7 @@ function renderSortingEditor(block) {
         (c.items || []).forEach((item, i) => {
             itemsHtml += `<div class="item-row">
                 <span style="color:#9ca3af;font-weight:700;width:20px;">${i + 1}.</span>
-                <input type="text" value="${escapeHtml(item)}" placeholder="Élément ${i + 1}"
+                <input type="text" value="${escapeHtml(item)}" placeholder="${exoEdFmt(EXO_EDITOR_I18N.itemN, { n: i + 1 })}"
                     onchange="updateSortingItem('${block.uid}', ${i}, this.value)">
                 <button class="remove-item" onclick="removeSortingItem('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
             </div>`;
@@ -1736,13 +1881,13 @@ function renderSortingEditor(block) {
             });
             itemsHtml += `<div class="category-box">
                 <div class="cat-header">
-                    <input type="text" value="${escapeHtml(cat.name || '')}" placeholder="Nom de la catégorie"
+                    <input type="text" value="${escapeHtml(cat.name || '')}" placeholder="${EXO_EDITOR_I18N.categoryName}"
                         onchange="updateCategoryName('${block.uid}', ${ci}, this.value)">
                     <button class="remove-item" onclick="removeCategory('${block.uid}', ${ci})"><i class="fas fa-times"></i></button>
                 </div>
                 ${catItems}
                 <button class="add-item-btn" onclick="addCategoryItem('${block.uid}', ${ci})">
-                    <i class="fas fa-plus"></i> Élément
+                    <i class="fas fa-plus"></i> ${EXO_EDITOR_I18N.item}
                 </button>
             </div>`;
         });
@@ -1750,22 +1895,22 @@ function renderSortingEditor(block) {
 
     return `
         <div class="form-group">
-            <label>Mode de tri</label>
+            <label>${EXO_EDITOR_I18N.sortMode}</label>
             <select onchange="updateSortingMode('${block.uid}', this.value)">
-                <option value="order" ${c.mode === 'order' ? 'selected' : ''}>Ordre (chronologique, croissant...)</option>
-                <option value="categories" ${c.mode === 'categories' ? 'selected' : ''}>Catégories (trier dans des boîtes)</option>
+                <option value="order" ${c.mode === 'order' ? 'selected' : ''}>${EXO_EDITOR_I18N.sortOrderOption}</option>
+                <option value="categories" ${c.mode === 'categories' ? 'selected' : ''}>${EXO_EDITOR_I18N.sortCategoriesOption}</option>
             </select>
         </div>
         <div class="form-group">
-            <label>${c.mode === 'order' ? 'Éléments (dans l\'ordre correct)' : 'Catégories'}</label>
+            <label>${c.mode === 'order' ? EXO_EDITOR_I18N.itemsInOrder : EXO_EDITOR_I18N.categories}</label>
             <div class="items-list">${itemsHtml}</div>
             ${c.mode === 'order' ?
-                `<button class="add-item-btn" onclick="addSortingItem('${block.uid}')"><i class="fas fa-plus"></i> Ajouter un élément</button>` :
-                `<button class="add-item-btn" onclick="addCategory('${block.uid}')"><i class="fas fa-plus"></i> Ajouter une catégorie</button>`
+                `<button class="add-item-btn" onclick="addSortingItem('${block.uid}')"><i class="fas fa-plus"></i> ${EXO_EDITOR_I18N.addItem}</button>` :
+                `<button class="add-item-btn" onclick="addCategory('${block.uid}')"><i class="fas fa-plus"></i> ${EXO_EDITOR_I18N.addCategory}</button>`
             }
         </div>
         <p style="font-size:0.75rem;color:#6b7280;">
-            ${c.mode === 'order' ? 'Entrez les éléments dans l\'ordre correct. L\'élève les verra mélangés.' : 'Glissez les éléments dans les bonnes catégories.'}
+            ${c.mode === 'order' ? EXO_EDITOR_I18N.orderHelp : EXO_EDITOR_I18N.categoriesHelp}
         </p>`;
 }
 
@@ -1773,7 +1918,7 @@ function updateSortingMode(uid, mode) {
     const block = blocks.find(b => b.uid === uid);
     block.config_json.mode = mode;
     if (mode === 'categories' && (!block.config_json.categories || block.config_json.categories.length === 0)) {
-        block.config_json.categories = [{ name: 'Catégorie 1', items: [] }];
+        block.config_json.categories = [{ name: exoEdFmt(EXO_EDITOR_I18N.categoryN, { n: 1 }), items: [] }];
     }
     refreshBlockContent(uid);
 }
@@ -1852,25 +1997,25 @@ function renderImagePositionEditor(block) {
         zonesHtml += `<div style="border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;">
             <div class="item-row" style="margin-bottom:0.3rem;">
                 <span style="font-weight:700;color:#dc2626;">${i + 1}.</span>
-                <input type="text" placeholder="Label (ex: Coeur)" value="${escapeHtml(z.label || '')}"
+                <input type="text" placeholder="${EXO_EDITOR_I18N.zoneLabelPlaceholder}" value="${escapeHtml(z.label || '')}"
                     onchange="updateZoneField('${block.uid}', ${i}, 'label', this.value)" style="flex:1;">
-                <span style="font-size:0.75rem;color:#6b7280;">${pointCount} point(s)</span>
+                <span style="font-size:0.75rem;color:#6b7280;">${exoEdFmt(EXO_EDITOR_I18N.nPoints, { n: pointCount })}</span>
                 <button class="remove-item" onclick="removeZone('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
             </div>
-            <small style="color:#6b7280;">Cliquez sur l'image pour ajouter des points à cette zone. <strong>Zone active</strong> = sélectionnée ci-dessous.</small>
+            <small style="color:#6b7280;">${EXO_EDITOR_I18N.zoneHelp}</small>
         </div>`;
     });
 
     return `
         ${renderInteractionTypeSelector(block)}
         <div class="form-group">
-            <label>Zone active à placer</label>
+            <label>${EXO_EDITOR_I18N.activeZone}</label>
             <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">
                 <select id="active-zone-${block.uid}" style="flex:1;padding:0.4rem;border:1px solid #d1d5db;border-radius:6px;">
-                    ${(c.zones || []).map((z, i) => `<option value="${i}">${z.label || 'Zone ' + (i+1)}</option>`).join('')}
+                    ${(c.zones || []).map((z, i) => `<option value="${i}">${z.label || exoEdFmt(EXO_EDITOR_I18N.zoneN, { n: i + 1 })}</option>`).join('')}
                 </select>
                 <button class="add-item-btn" onclick="addNewZone('${block.uid}')">
-                    <i class="fas fa-plus"></i> Nouvelle zone
+                    <i class="fas fa-plus"></i> ${EXO_EDITOR_I18N.newZone}
                 </button>
             </div>
         </div>
@@ -1883,11 +2028,11 @@ function renderImagePositionEditor(block) {
                     ${renderAllZonePoints(c)}
                 </div>
                 <button class="btn btn-sm btn-secondary" style="margin-top:0.5rem;" onclick="changeBlockImage('${block.uid}')">
-                    <i class="fas fa-exchange-alt"></i> Changer l'image
+                    <i class="fas fa-exchange-alt"></i> ${EXO_EDITOR_I18N.changeImage}
                 </button>` :
                 `<div class="image-upload-area" onclick="uploadBlockImage('${block.uid}')">
                     <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:#667eea;"></i>
-                    <p>Cliquez pour téléverser une image</p>
+                    <p>${EXO_EDITOR_I18N.clickToUpload}</p>
                     <small>PNG, JPG, GIF</small>
                 </div>`
             }
@@ -1896,10 +2041,10 @@ function renderImagePositionEditor(block) {
         </div>
         ${c.image_url ? `
         <div class="form-group">
-            <label>Zones et points</label>
+            <label>${EXO_EDITOR_I18N.zonesAndPoints}</label>
             <div class="items-list">${zonesHtml}</div>
             <div class="form-group" style="margin-top:0.5rem;">
-                <label>Rayon de tolérance (px)</label>
+                <label>${EXO_EDITOR_I18N.toleranceRadius}</label>
                 <input type="number" value="${c.default_radius || 30}" min="10" max="100"
                     onchange="updateDefaultRadius('${block.uid}', parseInt(this.value))">
             </div>
@@ -1911,15 +2056,15 @@ function renderInteractionTypeSelector(block) {
     const it = c.interaction_type || 'zones';
     return `
         <div class="form-group">
-            <label>Type d'interaction</label>
+            <label>${EXO_EDITOR_I18N.interactionType}</label>
             <div style="display:flex;gap:0.5rem;">
                 <label class="radio-btn ${it === 'zones' ? 'active' : ''}">
                     <input type="radio" name="interaction-type-${block.uid}" value="zones" ${it === 'zones' ? 'checked' : ''}
-                        onchange="updateInteractionType('${block.uid}', 'zones')"> Zones cliquables
+                        onchange="updateInteractionType('${block.uid}', 'zones')"> ${EXO_EDITOR_I18N.clickableZones}
                 </label>
                 <label class="radio-btn ${it === 'labels' ? 'active' : ''}">
                     <input type="radio" name="interaction-type-${block.uid}" value="labels" ${it === 'labels' ? 'checked' : ''}
-                        onchange="updateInteractionType('${block.uid}', 'labels')"> Labels sur image
+                        onchange="updateInteractionType('${block.uid}', 'labels')"> ${EXO_EDITOR_I18N.imageLabels}
                 </label>
             </div>
         </div>`;
@@ -1942,13 +2087,13 @@ function renderImageLabelsEditor(block) {
         <div style="border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;">
             <div class="item-row" style="margin-bottom:0.3rem;">
                 <span style="font-weight:700;color:#16a34a;">${i + 1}.</span>
-                <input type="text" placeholder="Réponse attendue" value="${escapeHtml(lbl.text || '')}"
+                <input type="text" placeholder="${EXO_EDITOR_I18N.expectedAnswer}" value="${escapeHtml(lbl.text || '')}"
                     onchange="updateImageLabel('${block.uid}', ${i}, 'text', this.value)" style="flex:1;">
-                <input type="text" placeholder="Indice (optionnel)" value="${escapeHtml(lbl.hint || '')}"
+                <input type="text" placeholder="${EXO_EDITOR_I18N.hintOptional}" value="${escapeHtml(lbl.hint || '')}"
                     onchange="updateImageLabel('${block.uid}', ${i}, 'hint', this.value)" style="flex:0.6;">
                 <button class="remove-item" onclick="removeImageLabel('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
             </div>
-            <small style="color:#6b7280;">Position : (${Math.round(lbl.x || 0)}%, ${Math.round(lbl.y || 0)}%) — Cliquez sur l'image pour repositionner.</small>
+            <small style="color:#6b7280;">${exoEdFmt(EXO_EDITOR_I18N.labelPosition, { x: Math.round(lbl.x || 0), y: Math.round(lbl.y || 0) })}</small>
         </div>`).join('');
 
     return `
@@ -1962,11 +2107,11 @@ function renderImageLabelsEditor(block) {
                     ${renderAllLabelMarkers(c, block.uid)}
                 </div>
                 <button class="btn btn-sm btn-secondary" style="margin-top:0.5rem;" onclick="changeBlockImage('${block.uid}')">
-                    <i class="fas fa-exchange-alt"></i> Changer l'image
+                    <i class="fas fa-exchange-alt"></i> ${EXO_EDITOR_I18N.changeImage}
                 </button>` :
                 `<div class="image-upload-area" onclick="uploadBlockImage('${block.uid}')">
                     <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:#667eea;"></i>
-                    <p>Cliquez pour téléverser une image</p>
+                    <p>${EXO_EDITOR_I18N.clickToUpload}</p>
                     <small>PNG, JPG, GIF</small>
                 </div>`
             }
@@ -1975,8 +2120,8 @@ function renderImageLabelsEditor(block) {
         </div>
         ${c.image_url ? `
         <div class="form-group">
-            <label>Labels positionnés</label>
-            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">Cliquez sur l'image pour ajouter un label. L'élève devra taper la réponse attendue dans un champ positionné à cet endroit.</small>
+            <label>${EXO_EDITOR_I18N.placedLabels}</label>
+            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">${EXO_EDITOR_I18N.placedLabelsHelp}</small>
             <div class="items-list">${labelsHtml}</div>
         </div>` : ''}`;
 }
@@ -2074,7 +2219,7 @@ function repositionZones(uid) {
 function addNewZone(uid) {
     const block = blocks.find(b => b.uid === uid);
     const idx = (block.config_json.zones || []).length;
-    block.config_json.zones.push({ label: 'Zone ' + (idx + 1), points: [], radius: block.config_json.default_radius || 30 });
+    block.config_json.zones.push({ label: exoEdFmt(EXO_EDITOR_I18N.zoneN, { n: idx + 1 }), points: [], radius: block.config_json.default_radius || 30 });
     refreshBlockContent(uid);
     // Auto-sélectionner la nouvelle zone et repositionner
     setTimeout(() => {
@@ -2156,12 +2301,12 @@ async function handleImageUpload(uid, input) {
             block.config_json.image_url = data.url;  // URL publique via exercises.exercise_block_image
             block.config_json.zones = [];
             refreshBlockContent(uid);
-            showToast('Image téléversée', 'success');
+            showToast(EXO_EDITOR_I18N.imageUploaded, 'success');
         } else {
-            showToast(data.message || 'Erreur upload', 'error');
+            showToast(data.message || EXO_EDITOR_I18N.uploadError, 'error');
         }
     } catch(e) {
-        showToast('Erreur upload', 'error');
+        showToast(EXO_EDITOR_I18N.uploadError, 'error');
     }
 }
 
@@ -2205,24 +2350,24 @@ async function handleBlockMediaUpload(uid, input) {
             block.config_json.block_image_url = data.url;
             block.config_json.block_image_type = 'upload';
             refreshBlockContent(uid);
-            showToast('Image ajoutée', 'success');
+            showToast(EXO_EDITOR_I18N.imageAdded, 'success');
         } else {
-            showToast(data.message || 'Erreur upload', 'error');
+            showToast(data.message || EXO_EDITOR_I18N.uploadError, 'error');
         }
     } catch(e) {
-        showToast('Erreur upload', 'error');
+        showToast(EXO_EDITOR_I18N.uploadError, 'error');
     }
 }
 
 function promptBlockMediaUrl(uid) {
-    const url = prompt('Entrez l\'URL de l\'image :');
+    const url = prompt(EXO_EDITOR_I18N.enterImageUrl);
     if (!url) return;
     const block = blocks.find(b => b.uid === uid);
     block.config_json.block_image_url = url;
     block.config_json.block_image_type = 'url';
     block.config_json.block_image_file_id = null;
     refreshBlockContent(uid);
-    showToast('Image ajoutée', 'success');
+    showToast(EXO_EDITOR_I18N.imageAdded, 'success');
 }
 
 function removeBlockImage(uid) {
@@ -2389,12 +2534,12 @@ function updateToolHint() {
     if (!hint) return;
     const hints = {
         'pen': '', 'highlighter': '', 'eraser': '',
-        'ruler': 'Glisser pour tracer', 'arrow': 'Glisser pour tracer',
-        'rectangle': 'Glisser pour tracer', 'compass': 'Glisser du centre vers le bord',
-        'circle': 'Glisser du centre vers le bord',
-        'protractor': 'Dessiner le 1er bras, maintenir immobile pour valider, puis dessiner le 2e bras',
-        'arc': 'Dessiner le rayon, maintenir immobile pour valider, puis dessiner l\'arc',
-        'text': 'Cliquer pour placer le texte', 'grid': 'Cliquer pour afficher la grille'
+        'ruler': EXO_EDITOR_I18N.hintDrag, 'arrow': EXO_EDITOR_I18N.hintDrag,
+        'rectangle': EXO_EDITOR_I18N.hintDrag, 'compass': EXO_EDITOR_I18N.hintDragFromCenter,
+        'circle': EXO_EDITOR_I18N.hintDragFromCenter,
+        'protractor': EXO_EDITOR_I18N.hintProtractor,
+        'arc': EXO_EDITOR_I18N.hintArc,
+        'text': EXO_EDITOR_I18N.hintText, 'grid': EXO_EDITOR_I18N.hintGrid
     };
     hint.textContent = hints[drawingTool] || '';
 }
@@ -2512,7 +2657,7 @@ function setupDrawingEvents(canvas) {
         }
 
         if (drawingTool === 'text') {
-            const text = prompt('Texte à ajouter :');
+            const text = prompt(EXO_EDITOR_I18N.textToAdd);
             if (text) {
                 drawingCtx.save();
                 drawingCtx.fillStyle = drawingColor;
@@ -3141,9 +3286,9 @@ async function saveDrawing() {
                 block.config_json.block_image_type = 'drawing';
                 refreshBlockContent(drawingCanvasBlockUid);
                 closeDrawingModal();
-                showToast('Dessin sauvegardé', 'success');
-            } else { showToast('Erreur sauvegarde', 'error'); }
-        } catch(e) { showToast('Erreur sauvegarde', 'error'); }
+                showToast(EXO_EDITOR_I18N.drawingSaved, 'success');
+            } else { showToast(EXO_EDITOR_I18N.saveError, 'error'); }
+        } catch(e) { showToast(EXO_EDITOR_I18N.saveError, 'error'); }
     }, 'image/png');
 }
 
@@ -3157,20 +3302,20 @@ function renderGraphEditor(block) {
 
     return `
         <div class="form-group">
-            <label>Type de question</label>
+            <label>${EXO_EDITOR_I18N.questionType}</label>
             <select onchange="changeGraphType('${block.uid}', this.value)">
-                <option value="draw_line" ${isLine ? 'selected' : ''}>Tracer une droite (f(x) = ax + b)</option>
-                <option value="draw_quadratic" ${isQuadratic ? 'selected' : ''}>Tracer une courbe quadratique (f(x) = ax² + bx + c)</option>
-                <option value="find_expression" ${c.question_type === 'find_expression' ? 'selected' : ''}>Trouver l'expression à partir du graphique</option>
+                <option value="draw_line" ${isLine ? 'selected' : ''}>${EXO_EDITOR_I18N.drawLine}</option>
+                <option value="draw_quadratic" ${isQuadratic ? 'selected' : ''}>${EXO_EDITOR_I18N.drawQuadratic}</option>
+                <option value="find_expression" ${c.question_type === 'find_expression' ? 'selected' : ''}>${EXO_EDITOR_I18N.findExpression}</option>
             </select>
         </div>
         <div class="graph-config-grid">
             <div class="form-group">
-                <label>Axe X : label</label>
+                <label>${EXO_EDITOR_I18N.xAxisLabel}</label>
                 <input type="text" value="${escapeHtml(c.x_label || 'x')}" onchange="updateConfig('${block.uid}', 'x_label', this.value)">
             </div>
             <div class="form-group">
-                <label>Axe Y : label</label>
+                <label>${EXO_EDITOR_I18N.yAxisLabel}</label>
                 <input type="text" value="${escapeHtml(c.y_label || 'y')}" onchange="updateConfig('${block.uid}', 'y_label', this.value)">
             </div>
             <div class="form-group">
@@ -3191,7 +3336,7 @@ function renderGraphEditor(block) {
             </div>
         </div>
         <div class="form-group">
-            <label>Expression fonctionnelle correcte</label>
+            <label>${EXO_EDITOR_I18N.correctExpression}</label>
             ${isQuadratic ? `
                 <p style="font-size:0.85rem;color:#4b5563;margin-bottom:0.5rem;">f(x) = <strong>a</strong>x² + <strong>b</strong>x + <strong>c</strong></p>
                 <div class="graph-config-grid" style="grid-template-columns:1fr 1fr 1fr;">
@@ -3211,12 +3356,12 @@ function renderGraphEditor(block) {
                             onchange="updateGraphAnswer('${block.uid}', 'c', parseFloat(this.value)); previewGraph('${block.uid}');">
                     </div>
                 </div>
-                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.3rem;">L'élève devra déplacer <strong>3 points</strong> pour retrouver la courbe.</p>
+                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.3rem;">${EXO_EDITOR_I18N.move3Points}</p>
             ` : c.question_type === 'find_expression' ? `
-                <p style="font-size:0.85rem;color:#4b5563;margin-bottom:0.5rem;">Type de fonction :</p>
+                <p style="font-size:0.85rem;color:#4b5563;margin-bottom:0.5rem;">${EXO_EDITOR_I18N.functionType}</p>
                 <select onchange="updateConfig('${block.uid}', 'find_type', this.value); if(this.value==='quadratic'){updateGraphAnswer('${block.uid}','c',0);} refreshBlockContent('${block.uid}');" style="margin-bottom:0.5rem;">
-                    <option value="linear" ${(c.find_type||'linear')==='linear'?'selected':''}>Linéaire : f(x) = ax + b</option>
-                    <option value="quadratic" ${c.find_type==='quadratic'?'selected':''}>Quadratique : f(x) = ax² + bx + c</option>
+                    <option value="linear" ${(c.find_type||'linear')==='linear'?'selected':''}>${EXO_EDITOR_I18N.linear}</option>
+                    <option value="quadratic" ${c.find_type==='quadratic'?'selected':''}>${EXO_EDITOR_I18N.quadratic}</option>
                 </select>
                 ${c.find_type === 'quadratic' ? `
                 <div class="graph-config-grid" style="grid-template-columns:1fr 1fr 1fr;">
@@ -3225,25 +3370,25 @@ function renderGraphEditor(block) {
                     <div class="form-group"><label>c</label><input type="number" step="0.1" value="${c.correct_answer?.c ?? 0}" onchange="updateGraphAnswer('${block.uid}', 'c', parseFloat(this.value)); previewGraph('${block.uid}');"></div>
                 </div>` : `
                 <div class="form-row">
-                    <div class="form-group"><label>a (pente)</label><input type="number" step="0.1" value="${c.correct_answer?.a ?? 1}" onchange="updateGraphAnswer('${block.uid}', 'a', parseFloat(this.value)); previewGraph('${block.uid}');"></div>
-                    <div class="form-group"><label>b (ordonnée)</label><input type="number" step="0.1" value="${c.correct_answer?.b ?? 0}" onchange="updateGraphAnswer('${block.uid}', 'b', parseFloat(this.value)); previewGraph('${block.uid}');"></div>
+                    <div class="form-group"><label>${EXO_EDITOR_I18N.slope}</label><input type="number" step="0.1" value="${c.correct_answer?.a ?? 1}" onchange="updateGraphAnswer('${block.uid}', 'a', parseFloat(this.value)); previewGraph('${block.uid}');"></div>
+                    <div class="form-group"><label>${EXO_EDITOR_I18N.intercept}</label><input type="number" step="0.1" value="${c.correct_answer?.b ?? 0}" onchange="updateGraphAnswer('${block.uid}', 'b', parseFloat(this.value)); previewGraph('${block.uid}');"></div>
                 </div>`}
-                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.3rem;">Le graphique sera affiché, l'élève devra trouver les coefficients.</p>
+                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.3rem;">${EXO_EDITOR_I18N.findCoefficientsHelp}</p>
             ` : `
                 <p style="font-size:0.85rem;color:#4b5563;margin-bottom:0.5rem;">f(x) = <strong>a</strong>x + <strong>b</strong></p>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>a (pente)</label>
+                        <label>${EXO_EDITOR_I18N.slope}</label>
                         <input type="number" step="0.1" value="${c.correct_answer?.a ?? 1}"
                             onchange="updateGraphAnswer('${block.uid}', 'a', parseFloat(this.value)); previewGraph('${block.uid}');">
                     </div>
                     <div class="form-group">
-                        <label>b (ordonnée à l'origine)</label>
+                        <label>${EXO_EDITOR_I18N.yIntercept}</label>
                         <input type="number" step="0.1" value="${c.correct_answer?.b ?? 0}"
                             onchange="updateGraphAnswer('${block.uid}', 'b', parseFloat(this.value)); previewGraph('${block.uid}');">
                     </div>
                 </div>
-                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.3rem;">L'élève devra déplacer <strong>2 points</strong> pour retrouver la droite.</p>
+                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.3rem;">${EXO_EDITOR_I18N.move2Points}</p>
             `}
         </div>
         <input type="hidden" value="0" onchange="updateConfig('${block.uid}', 'tolerance', 0)">
@@ -3251,11 +3396,11 @@ function renderGraphEditor(block) {
             <label style="display:flex;align-items:center;gap:0.5rem;">
                 <input type="checkbox" style="width:auto;" ${c.grid !== false ? 'checked' : ''}
                     onchange="updateConfig('${block.uid}', 'grid', this.checked); previewGraph('${block.uid}');">
-                Afficher la grille
+                ${EXO_EDITOR_I18N.showGrid}
             </label>
         </div>
         <div class="form-group">
-            <label>Aperçu du graphique</label>
+            <label>${EXO_EDITOR_I18N.graphPreview}</label>
             <div style="border:2px solid #e5e7eb;border-radius:8px;overflow:hidden;text-align:center;">
                 <canvas id="graph-preview-${block.uid}" width="500" height="350"></canvas>
             </div>
@@ -3475,7 +3620,7 @@ function onDragEnd(e) {
 async function saveExercise(asDraft) {
     const data = {
         id: exerciseId,
-        title: document.getElementById('ex-title').value || 'Sans titre',
+        title: document.getElementById('ex-title').value || EXO_EDITOR_I18N.untitled,
         description: document.getElementById('ex-description').value,
         subject: document.getElementById('ex-subject').value,
         level: document.getElementById('ex-level').value,
@@ -3507,7 +3652,7 @@ async function saveExercise(asDraft) {
         if (result.success) {
             const isNew = !data.id;
             exerciseId = result.exercise_id;
-            showToast(asDraft ? 'Brouillon sauvegardé' : 'Exercice sauvegardé', 'success');
+            showToast(asDraft ? EXO_EDITOR_I18N.draftSaved : EXO_EDITOR_I18N.exerciseSaved, 'success');
 
             // Mettre à jour l'aperçu du badge si on vient de le générer
             if (result.badge_pattern && result.badge_color) {
@@ -3521,10 +3666,10 @@ async function saveExercise(asDraft) {
                 showFolderModal();
             }
         } else {
-            showToast(result.message || 'Erreur', 'error');
+            showToast(result.message || EXO_EDITOR_I18N.error, 'error');
         }
     } catch(e) {
-        showToast('Erreur de connexion', 'error');
+        showToast(EXO_EDITOR_I18N.connectionError, 'error');
     }
 }
 
@@ -3552,8 +3697,8 @@ function copyQuickPublishLink() {
     if (!input) return;
     const url = input.value;
     navigator.clipboard.writeText(url).then(
-        () => showToast('Lien copié !', 'success'),
-        () => showToast('Impossible de copier', 'error')
+        () => showToast(EXO_EDITOR_I18N.linkCopied, 'success'),
+        () => showToast(EXO_EDITOR_I18N.cannotCopy, 'error')
     );
 }
 
@@ -3566,8 +3711,8 @@ function updateBadgePreview(pattern, color) {
             ${buildBadgeSVG(pattern, color, 80)}
         </div>
         <div style="flex: 1; font-size: 0.8rem; color: #4b5563;">
-            Image générée automatiquement.<br>
-            <small style="color: #9ca3af;">5×5 cases, couleur aléatoire flashy.</small>
+            ${EXO_EDITOR_I18N.badgeAutoImage}<br>
+            <small style="color: #9ca3af;">${EXO_EDITOR_I18N.badgeGrid}</small>
         </div>
     `;
 }
@@ -3585,7 +3730,7 @@ async function publishExercise() {
     const classroomIds = [...checkboxes].map(cb => parseInt(cb.value));
 
     if (classroomIds.length === 0) {
-        showToast('Sélectionnez au moins une classe', 'error');
+        showToast(EXO_EDITOR_I18N.selectOneClass, 'error');
         return;
     }
 
@@ -3606,10 +3751,10 @@ async function publishExercise() {
             showToast(result.message, 'success');
             closePublishModal();
         } else {
-            showToast(result.message || 'Erreur', 'error');
+            showToast(result.message || EXO_EDITOR_I18N.error, 'error');
         }
     } catch(e) {
-        showToast('Erreur de connexion', 'error');
+        showToast(EXO_EDITOR_I18N.connectionError, 'error');
     }
 }
 
@@ -3637,7 +3782,7 @@ let selectedFolderId = null;
 
 async function showFolderModal() {
     const listEl = document.getElementById('folder-list');
-    listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+    listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> ' + EXO_EDITOR_I18N.loading + '</p>';
     document.getElementById('folder-modal').style.display = 'flex';
     selectedFolderId = null;
     document.getElementById('folder-confirm-btn').disabled = true;
@@ -3650,7 +3795,7 @@ async function showFolderModal() {
         // Option "Racine" always available
         let html = `<div class="folder-pick-item" data-folder-id="root" onclick="pickFolder(null, this)" style="padding:0.6rem 0.8rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;transition:all 0.15s;display:flex;align-items:center;gap:0.5rem;">
             <i class="fas fa-home" style="color:#667eea;"></i>
-            <span style="font-weight:600;font-size:0.9rem;">Racine</span>
+            <span style="font-weight:600;font-size:0.9rem;">${EXO_EDITOR_I18N.root}</span>
         </div>`;
 
         if (folders.length > 0) {
@@ -3680,7 +3825,7 @@ async function showFolderModal() {
 
         listEl.innerHTML = html;
     } catch(e) {
-        listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Erreur de chargement</p>';
+        listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">' + EXO_EDITOR_I18N.loadError + '</p>';
     }
 }
 
@@ -3706,10 +3851,10 @@ async function confirmFolder() {
             },
             body: JSON.stringify({ id: exerciseId, exercise_folder_id: selectedFolderId }),
         });
-        showToast('Exercice rangé dans le dossier', 'success');
+        showToast(EXO_EDITOR_I18N.movedToFolder, 'success');
         closeFolderModal();
     } catch(e) {
-        showToast('Erreur', 'error');
+        showToast(EXO_EDITOR_I18N.error, 'error');
     }
 }
 
@@ -3810,7 +3955,7 @@ function updateInlineMathPreview(field) {
 function insertKaTeX(latexCode) {
     if (!activeTextArea) {
         // Show warning if no textarea focused
-        showToast('Veuillez cliquer dans un champ de texte d\'abord', 'error');
+        showToast(EXO_EDITOR_I18N.clickFieldFirst, 'error');
         return;
     }
 
@@ -3889,7 +4034,7 @@ function updateKaTeXPreview() {
     const formula = input.value.trim();
 
     if (!formula) {
-        previewBox.innerHTML = '<span style="color:#9ca3af; font-style: italic;">Aperçu ici...</span>';
+        previewBox.innerHTML = '<span style="color:#9ca3af; font-style: italic;">' + EXO_EDITOR_I18N.previewHere + '</span>';
         return;
     }
 
@@ -3910,7 +4055,7 @@ function updateKaTeXPreview() {
             });
         }
     } catch (error) {
-        previewBox.innerHTML = '<span style="color:#dc2626; font-size: 0.75rem;">Erreur: formule invalide</span>';
+        previewBox.innerHTML = '<span style="color:#dc2626; font-size: 0.75rem;">' + EXO_EDITOR_I18N.invalidFormula + '</span>';
     }
 }
 </script>

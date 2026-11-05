@@ -15,6 +15,7 @@ ce n'est pas le cas, l'interface ne propose que 'classic' (cf. le champ
 from datetime import datetime, timedelta
 
 from flask import Blueprint, request, jsonify
+from flask_babel import gettext as _gettext, lazy_gettext as _lazy
 from flask_login import login_required, current_user
 
 from extensions import db
@@ -27,9 +28,12 @@ from utils.http_headers import content_disposition
 
 devoirs_bp = Blueprint('devoirs', __name__, url_prefix='/api/devoirs')
 
-_WEEKDAYS_FR = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
-_MONTHS_FR = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
-              'août', 'septembre', 'octobre', 'novembre', 'décembre']
+# Libellés traduits paresseusement : évalués dans la langue de la requête.
+_WEEKDAYS_FR = [_lazy('lundi'), _lazy('mardi'), _lazy('mercredi'), _lazy('jeudi'),
+                _lazy('vendredi'), _lazy('samedi'), _lazy('dimanche')]
+_MONTHS_FR = ['', _lazy('janvier'), _lazy('février'), _lazy('mars'), _lazy('avril'),
+              _lazy('mai'), _lazy('juin'), _lazy('juillet'), _lazy('août'),
+              _lazy('septembre'), _lazy('octobre'), _lazy('novembre'), _lazy('décembre')]
 
 
 def get_upcoming_class_dates(user, classroom, count=8, from_date=None):
@@ -71,7 +75,9 @@ def count_student_accounts(classroom):
 
 
 def _date_label(d):
-    return f"{_WEEKDAYS_FR[d.weekday()]} {d.day} {_MONTHS_FR[d.month]}"
+    # Ordre et ponctuation propres à chaque langue (ex. DE « Montag, 3. November »).
+    return _gettext('%(weekday)s %(day)s %(month)s', weekday=str(_WEEKDAYS_FR[d.weekday()]),
+                    day=d.day, month=str(_MONTHS_FR[d.month]))
 
 
 @devoirs_bp.route('/suggest-dates', methods=['GET'])
@@ -82,9 +88,9 @@ def suggest_dates():
     try:
         classroom_id = int(request.args.get('classroom_id'))
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': 'classroom_id invalide'}), 400
+        return jsonify({'success': False, 'error': _gettext('classroom_id invalide')}), 400
     if not user_can_access_classroom(current_user.id, classroom_id):
-        return jsonify({'success': False, 'error': 'Accès refusé'}), 403
+        return jsonify({'success': False, 'error': _gettext('Accès refusé')}), 403
     classroom = Classroom.query.get_or_404(classroom_id)
     dates = get_upcoming_class_dates(current_user, classroom, count=10)
     return jsonify({
@@ -93,7 +99,7 @@ def suggest_dates():
         # devoir « classique » est utilisable.
         'student_accounts': count_student_accounts(classroom),
         'dates': [
-            {'date': d.isoformat(), 'weekday': _WEEKDAYS_FR[d.weekday()], 'label': _date_label(d)}
+            {'date': d.isoformat(), 'weekday': str(_WEEKDAYS_FR[d.weekday()]), 'label': _date_label(d)}
             for d in dates
         ],
     })
@@ -125,13 +131,13 @@ def create_devoir():
     try:
         classroom_id = int(data.get('classroom_id'))
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': 'classroom_id invalide'}), 400
+        return jsonify({'success': False, 'error': _gettext('classroom_id invalide')}), 400
     if not user_can_access_classroom(current_user.id, classroom_id):
-        return jsonify({'success': False, 'error': 'Accès refusé'}), 403
+        return jsonify({'success': False, 'error': _gettext('Accès refusé')}), 403
 
     title = (data.get('title') or '').strip()
     if not title:
-        return jsonify({'success': False, 'error': 'Titre manquant'}), 400
+        return jsonify({'success': False, 'error': _gettext('Titre manquant')}), 400
 
     devoir_type = data.get('type') if data.get('type') in ('submission', 'exercise', 'classic') else 'submission'
 
@@ -145,7 +151,7 @@ def create_devoir():
     try:
         due_date = datetime.strptime(data.get('due_date'), '%Y-%m-%d').date()
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': 'Date de rendu invalide'}), 400
+        return jsonify({'success': False, 'error': _gettext('Date de rendu invalide')}), 400
 
     due_period = data.get('due_period')
     try:
@@ -158,9 +164,9 @@ def create_devoir():
         try:
             exercise_id = int(data.get('exercise_id'))
         except (TypeError, ValueError):
-            return jsonify({'success': False, 'error': 'Exercice manquant'}), 400
+            return jsonify({'success': False, 'error': _gettext('Exercice manquant')}), 400
         if not Exercise.query.filter_by(id=exercise_id, user_id=current_user.id).first():
-            return jsonify({'success': False, 'error': 'Exercice introuvable'}), 404
+            return jsonify({'success': False, 'error': _gettext('Exercice introuvable')}), 404
 
     devoir = Devoir(
         user_id=current_user.id,
@@ -217,7 +223,7 @@ def list_devoirs():
         try:
             q = q.filter(Devoir.due_date == datetime.strptime(date_str, '%Y-%m-%d').date())
         except ValueError:
-            return jsonify({'success': False, 'error': 'date invalide'}), 400
+            return jsonify({'success': False, 'error': _gettext('date invalide')}), 400
     # context_date : ne renvoyer que les devoirs pertinents pour CE jour —
     # ceux donnés (créés) ce jour-là OU à rendre ce jour-là. Utilisé par la
     # page Leçon pour ne pas afficher les devoirs des autres jours.
@@ -245,7 +251,7 @@ def list_devoirs():
 def delete_devoir(devoir_id):
     devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
     if not devoir:
-        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Devoir introuvable')}), 404
     # Nettoyage R2 : document joint + fichiers des rendus (la cascade DB ne
     # supprime que les lignes, pas les fichiers).
     try:
@@ -277,16 +283,16 @@ def update_devoir(devoir_id):
     rendus déjà déposés. Le document joint se remplace via l'endpoint dédié."""
     devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
     if not devoir:
-        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Devoir introuvable')}), 404
 
     data = request.get_json(silent=True) or {}
     title = (data.get('title') or '').strip()
     if not title:
-        return jsonify({'success': False, 'error': 'Titre manquant'}), 400
+        return jsonify({'success': False, 'error': _gettext('Titre manquant')}), 400
     try:
         due_date = datetime.strptime(data.get('due_date'), '%Y-%m-%d').date()
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': 'Date de rendu invalide'}), 400
+        return jsonify({'success': False, 'error': _gettext('Date de rendu invalide')}), 400
 
     devoir.title = title
     devoir.instructions = ((data.get('instructions') or '').strip() or None)
@@ -330,7 +336,7 @@ def devoir_submissions(devoir_id):
     from models.devoir import Devoir, DevoirSubmission
     devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
     if not devoir:
-        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Devoir introuvable')}), 404
     subs = {s.student_id: s for s in DevoirSubmission.query.filter_by(devoir_id=devoir_id).all()}
     rows = []
     for st in devoir.get_students():
@@ -356,16 +362,16 @@ def _serve_devoir_pdf(submission_id, which):
     from services.r2_storage import download_file_from_r2
     sub = DevoirSubmission.query.get(submission_id)
     if not sub:
-        return "Introuvable", 404
+        return _gettext('Introuvable'), 404
     devoir = Devoir.query.get(sub.devoir_id)
     if not devoir or devoir.user_id != current_user.id:
-        return "Accès refusé", 403
+        return _gettext('Accès refusé'), 403
     fn = sub.pdf_filename if which == 'file' else sub.corrected_filename
     if not fn:
-        return "Aucun fichier", 404
+        return _gettext('Aucun fichier'), 404
     data = download_file_from_r2(devoir.user_id, fn)
     if not data:
-        return "Fichier introuvable", 404
+        return _gettext('Fichier introuvable'), 404
     label = 'rendu.pdf' if which == 'file' else 'correction.pdf'
     return Response(data, mimetype='application/pdf',
                     headers={'Content-Disposition': content_disposition('inline', label)})
@@ -397,19 +403,19 @@ def correct_submission(submission_id):
     from services.r2_storage import upload_file_to_r2, delete_file_from_r2, is_r2_enabled
     sub = DevoirSubmission.query.get(submission_id)
     if not sub:
-        return jsonify({'success': False, 'error': 'Introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Introuvable')}), 404
     devoir = Devoir.query.get(sub.devoir_id)
     if not devoir or devoir.user_id != current_user.id:
-        return jsonify({'success': False, 'error': 'Accès refusé'}), 403
+        return jsonify({'success': False, 'error': _gettext('Accès refusé')}), 403
     pdf_bytes, _pages = _files_to_pdf_bytes(request.files.getlist('correction'))
     if not pdf_bytes:
-        return jsonify({'success': False, 'error': 'Aucun fichier de correction'}), 400
+        return jsonify({'success': False, 'error': _gettext('Aucun fichier de correction')}), 400
     if not is_r2_enabled():
-        return jsonify({'success': False, 'error': 'Stockage indisponible'}), 503
+        return jsonify({'success': False, 'error': _gettext('Stockage indisponible')}), 503
     teacher_id = devoir.user_id
     filename = f"devoir{devoir.id}_eleve{sub.student_id}_corr_{uuid.uuid4().hex[:8]}.pdf"
     if not upload_file_to_r2(pdf_bytes, teacher_id, filename, 'application/pdf'):
-        return jsonify({'success': False, 'error': "Échec de l'envoi"}), 500
+        return jsonify({'success': False, 'error': _gettext("Échec de l'envoi")}), 500
     if sub.corrected_filename:
         try:
             delete_file_from_r2(teacher_id, sub.corrected_filename)
@@ -524,9 +530,9 @@ def devoir_exercise_results(devoir_id):
 
     devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
     if not devoir:
-        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Devoir introuvable')}), 404
     if devoir.devoir_type != 'exercise' or not devoir.exercise_id:
-        return jsonify({'success': False, 'error': "Ce devoir n'est pas un exercice"}), 400
+        return jsonify({'success': False, 'error': _gettext("Ce devoir n'est pas un exercice")}), 400
     exercise = devoir.exercise
     badge_threshold = exercise.badge_threshold if (exercise and exercise.badge_threshold is not None) else 100
 
@@ -598,23 +604,23 @@ def upload_devoir_document(devoir_id):
 
     devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
     if not devoir:
-        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Devoir introuvable')}), 404
     f = request.files.get('document')
     if not f or not f.filename:
-        return jsonify({'success': False, 'error': 'Aucun fichier'}), 400
+        return jsonify({'success': False, 'error': _gettext('Aucun fichier')}), 400
     if not is_r2_enabled():
-        return jsonify({'success': False, 'error': 'Stockage indisponible'}), 503
+        return jsonify({'success': False, 'error': _gettext('Stockage indisponible')}), 503
 
     data = f.read()
     if not data:
-        return jsonify({'success': False, 'error': 'Fichier vide'}), 400
+        return jsonify({'success': False, 'error': _gettext('Fichier vide')}), 400
     if len(data) > 25 * 1024 * 1024:
-        return jsonify({'success': False, 'error': 'Fichier trop volumineux (max 25 Mo)'}), 400
+        return jsonify({'success': False, 'error': _gettext('Fichier trop volumineux (max 25 Mo)')}), 400
 
     ext = _os.path.splitext(f.filename)[1].lower()[:10] or ''
     filename = f"devoir{devoir_id}_doc_{uuid.uuid4().hex[:8]}{ext}"
     if not upload_file_to_r2(data, current_user.id, filename, f.mimetype or 'application/octet-stream'):
-        return jsonify({'success': False, 'error': "Échec de l'envoi"}), 500
+        return jsonify({'success': False, 'error': _gettext("Échec de l'envoi")}), 500
 
     if devoir.document_key:
         try:
@@ -639,10 +645,10 @@ def get_devoir_document(devoir_id):
 
     devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
     if not devoir or not devoir.document_key:
-        return "Aucun document", 404
+        return _gettext('Aucun document'), 404
     data = download_file_from_r2(devoir.user_id, devoir.document_key)
     if not data:
-        return "Fichier introuvable", 404
+        return _gettext('Fichier introuvable'), 404
     mt = mimetypes.guess_type(devoir.document_name or '')[0] or 'application/octet-stream'
     return Response(data, mimetype=mt, headers={
         'Content-Disposition': content_disposition('inline', devoir.document_name or 'document')})

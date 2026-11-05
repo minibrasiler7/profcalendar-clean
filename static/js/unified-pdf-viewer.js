@@ -1,3 +1,4 @@
+if (typeof window.pcT !== 'function') { window.pcT = function (s, v) { return v ? String(s).replace(/\{(\w+)\}/g, function (m, k) { return (k in v) ? String(v[k]) : m; }) : s; }; }
 /**
  * UnifiedPDFViewer - Composant PDF unifié avec outils avancés
  * Version: 2.0.0
@@ -280,7 +281,7 @@ class UnifiedPDFViewer {
             <div class="${containerClasses.join(' ')}" data-mode="${this.options.mode}">
                 ${this.currentMode.layout === 'split' ? `
                 <!-- Bouton de fermeture pour le mode split -->
-                <button class="pdf-close-button" id="pdf-close-button" title="Fermer le lecteur PDF">
+                <button class="pdf-close-button" id="pdf-close-button" title="${pcT('Fermer le lecteur PDF')}">
                     <i class="fas fa-times"></i>
                 </button>
                 ` : ''}
@@ -300,7 +301,7 @@ class UnifiedPDFViewer {
                         <div class="pdf-container" id="pdf-container">
                             <div class="pdf-loading" id="pdf-loading">
                                 <div class="spinner"></div>
-                                <p>Chargement du PDF...</p>
+                                <p>${pcT('Chargement du PDF...')}</p>
                             </div>
                             <div class="pdf-pages-container" id="pdf-pages-container">
                                 <!-- Les pages seront générées dynamiquement ici -->
@@ -820,7 +821,7 @@ class UnifiedPDFViewer {
         if (this.currentMode.features.includes('thumbnails')) {
             tabs.push(`
                 <div class="sidebar-tab${isFirstTab ? ' active' : ''}" data-tab="thumbnails">
-                    <i class="fas fa-th"></i> Pages
+                    <i class="fas fa-th"></i> ${pcT('Pages')}
                 </div>
             `);
             isFirstTab = false;
@@ -888,18 +889,18 @@ class UnifiedPDFViewer {
             };
 
             const names = {
-                'pen': 'Stylo',
-                'highlighter': 'Surligneur',
-                'eraser': 'Gomme',
-                'ruler': 'Règle',
-                'compass': 'Compas',
-                'protractor': 'Rapporteur',
-                'arc': 'Arc',
-                'text': 'Texte',
-                'arrow': 'Flèche',
-                'rectangle': 'Rectangle',
-                'circle': 'Cercle',
-                'grid': 'Grille'
+                'pen': pcT('Stylo'),
+                'highlighter': pcT('Surligneur'),
+                'eraser': pcT('Gomme'),
+                'ruler': pcT('Règle'),
+                'compass': pcT('Compas'),
+                'protractor': pcT('Rapporteur'),
+                'arc': pcT('Arc'),
+                'text': pcT('Texte'),
+                'arrow': pcT('Flèche'),
+                'rectangle': pcT('Rectangle'),
+                'circle': pcT('Cercle'),
+                'grid': pcT('Grille')
             };
 
             tools.push(`
@@ -915,13 +916,13 @@ class UnifiedPDFViewer {
             `<button class="color-btn ${color === this.currentColor ? 'active' : ''}" 
                      data-color="${color}" 
                      style="background-color: ${color}" 
-                     title="Couleur ${color}"></button>`
+                     title="${pcT('Couleur {color}', {color: color})}"></button>`
         ).join('');
 
         // Épaisseur du trait
         const strokeWidths = [1, 2, 3, 5, 8].map(width => 
             `<button class="stroke-btn ${width === this.currentLineWidth ? 'active' : ''}" 
-                     data-width="${width}" title="Épaisseur ${width}px">
+                     data-width="${width}" title="${pcT('Épaisseur {n} px', {n: width})}">
                 <div class="stroke-preview" style="height: ${width}px;"></div>
              </button>`
         ).join('');
@@ -938,24 +939,24 @@ class UnifiedPDFViewer {
             </div>
             ${this.options.enableStudentTracking !== false ? `
             <div class="student-tracking-section">
-                <button class="btn-tool" id="btn-student-tracking" title="Suivi élève">
+                <button class="btn-tool" id="btn-student-tracking" title="${pcT('Suivi élève')}">
                     <i class="fas fa-user-graduate"></i>
                 </button>
             </div>
             ` : ''}
             <div class="annotation-actions">
-                <button class="btn-tool" id="btn-undo" title="Annuler">
+                <button class="btn-tool" id="btn-undo" title="${pcT('Annuler')}">
                     <i class="fas fa-undo"></i>
                 </button>
-                <button class="btn-tool" id="btn-redo" title="Refaire">
+                <button class="btn-tool" id="btn-redo" title="${pcT('Refaire')}">
                     <i class="fas fa-redo"></i>
                 </button>
-                <button class="btn-tool" id="btn-clear-page" title="Effacer la page">
+                <button class="btn-tool" id="btn-clear-page" title="${pcT('Effacer la page')}">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
             <div class="download-menu-container" style="position: relative;">
-                <button class="download-btn" id="btn-download-menu" title="Options de téléchargement" style="position: relative; z-index: 10;">
+                <button class="download-btn" id="btn-download-menu" title="${pcT('Options de téléchargement')}" style="position: relative; z-index: 10;">
                     <i class="fas fa-download"></i>
                 </button>
             </div>
@@ -968,7 +969,7 @@ class UnifiedPDFViewer {
     createNavigationControls() {
         return `
             <div class="nav-left">
-                <button class="btn-nav" id="btn-nav-prev" title="Page précédente">
+                <button class="btn-nav" id="btn-nav-prev" title="${pcT('Page précédente')}">
                     <i class="fas fa-chevron-left"></i>
                 </button>
             </div>
@@ -976,7 +977,7 @@ class UnifiedPDFViewer {
                 <span class="page-indicator" id="page-indicator">1 / 1</span>
             </div>
             <div class="nav-right">
-                <button class="btn-nav" id="btn-nav-next" title="Page suivante">
+                <button class="btn-nav" id="btn-nav-next" title="${pcT('Page suivante')}">
                     <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
@@ -991,15 +992,15 @@ class UnifiedPDFViewer {
             <!-- Dialog de recherche avancée -->
             <div class="dialog" id="search-dialog">
                 <div class="dialog-content">
-                    <h3>Recherche avancée</h3>
+                    <h3>${pcT('Recherche avancée')}</h3>
                     <div class="search-options">
-                        <label><input type="checkbox" id="search-case-sensitive"> Sensible à la casse</label>
-                        <label><input type="checkbox" id="search-whole-words"> Mots entiers uniquement</label>
-                        <label><input type="checkbox" id="search-regex"> Expression régulière</label>
+                        <label><input type="checkbox" id="search-case-sensitive"> ${pcT('Sensible à la casse')}</label>
+                        <label><input type="checkbox" id="search-whole-words"> ${pcT('Mots entiers uniquement')}</label>
+                        <label><input type="checkbox" id="search-regex"> ${pcT('Expression régulière')}</label>
                     </div>
                     <div class="dialog-actions">
-                        <button class="btn-secondary" id="btn-search-cancel">Annuler</button>
-                        <button class="btn-primary" id="btn-search-start">Rechercher</button>
+                        <button class="btn-secondary" id="btn-search-cancel">${pcT('Annuler')}</button>
+                        <button class="btn-primary" id="btn-search-start">${pcT('Rechercher')}</button>
                     </div>
                 </div>
             </div>
@@ -1007,23 +1008,23 @@ class UnifiedPDFViewer {
             <!-- Dialog d'export -->
             <div class="dialog" id="export-dialog">
                 <div class="dialog-content">
-                    <h3>Exporter le document</h3>
+                    <h3>${pcT('Exporter le document')}</h3>
                     <div class="export-options">
-                        <label><input type="radio" name="export-type" value="pdf" checked> PDF avec annotations</label>
-                        <label><input type="radio" name="export-type" value="images"> Images (PNG)</label>
-                        <label><input type="radio" name="export-type" value="annotations"> Annotations uniquement</label>
+                        <label><input type="radio" name="export-type" value="pdf" checked> ${pcT('PDF avec annotations')}</label>
+                        <label><input type="radio" name="export-type" value="images"> ${pcT('Images (PNG)')}</label>
+                        <label><input type="radio" name="export-type" value="annotations"> ${pcT('Annotations uniquement')}</label>
                     </div>
                     <div class="page-range">
-                        <label>Pages :</label>
-                        <label><input type="radio" name="page-range" value="all" checked> Toutes</label>
-                        <label><input type="radio" name="page-range" value="current"> Page actuelle</label>
-                        <label><input type="radio" name="page-range" value="range"> Plage :
-                            <input type="text" id="page-range-input" placeholder="ex: 1-5, 8, 10-12">
+                        <label>${pcT('Pages :')}</label>
+                        <label><input type="radio" name="page-range" value="all" checked> ${pcT('Toutes')}</label>
+                        <label><input type="radio" name="page-range" value="current"> ${pcT('Page actuelle')}</label>
+                        <label><input type="radio" name="page-range" value="range"> ${pcT('Plage :')}
+                            <input type="text" id="page-range-input" placeholder="${pcT('ex : 1-5, 8, 10-12')}">
                         </label>
                     </div>
                     <div class="dialog-actions">
-                        <button class="btn-secondary" id="btn-export-cancel">Annuler</button>
-                        <button class="btn-primary" id="btn-export-start">Exporter</button>
+                        <button class="btn-secondary" id="btn-export-cancel">${pcT('Annuler')}</button>
+                        <button class="btn-primary" id="btn-export-start">${pcT('Exporter')}</button>
                     </div>
                 </div>
             </div>
@@ -2051,7 +2052,7 @@ class UnifiedPDFViewer {
                 icon.className = isContinuous ? 'fas fa-list' : 'fas fa-square';
             }
             
-            this.elements.viewModeBtn.title = isContinuous ? 'Mode page unique' : 'Mode continu';
+            this.elements.viewModeBtn.title = isContinuous ? pcT('Mode page unique') : pcT('Mode continu');
         }
     }
     
@@ -2384,12 +2385,12 @@ class UnifiedPDFViewer {
         dropdown.innerHTML = `
             <div class="download-option" data-action="download" style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; cursor: pointer; transition: background-color 0.2s ease; color: #374151; font-size: 14px; border: none; background: transparent;">
                 <i class="fas fa-download" style="color: #6b7280; width: 16px; text-align: center;"></i>
-                <span style="flex: 1;">Télécharger</span>
+                <span style="flex: 1;">${pcT('Télécharger')}</span>
             </div>
             ${window.PC_STUDENTS_SPACE ? `
             <div class="download-option" data-action="send-students" style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; cursor: pointer; transition: background-color 0.2s ease; color: #374151; font-size: 14px; border: none; background: transparent;">
                 <i class="fas fa-paper-plane" style="color: #6b7280; width: 16px; text-align: center;"></i>
-                <span style="flex: 1;">Envoyer aux élèves</span>
+                <span style="flex: 1;">${pcT('Envoyer aux élèves')}</span>
             </div>` : ''}
         `;
         
@@ -2553,7 +2554,7 @@ class UnifiedPDFViewer {
             }
         } catch (error) {
             console.error('❌ Erreur lors de l’ouverture du panneau de suivi:', error);
-            alert('Erreur lors de l’ouverture du panneau de suivi. Veuillez réessayer.');
+            alert(pcT('Erreur lors de l’ouverture du panneau de suivi. Veuillez réessayer.'));
         }
     }
     
@@ -2620,7 +2621,7 @@ class UnifiedPDFViewer {
             <div class="student-tracking-overlay">
                 <div class="student-tracking-container">
                     <div class="student-tracking-header">
-                        <h2><i class="fas fa-user-check"></i> Suivi des élèves</h2>
+                        <h2><i class="fas fa-user-check"></i> ${pcT('Suivi des élèves')}</h2>
                         <button class="close-btn" onclick="this.closeStudentTracking()">
                             <i class="fas fa-times"></i>
                         </button>
@@ -2629,14 +2630,14 @@ class UnifiedPDFViewer {
                     <div class="attendance-section">
                         <div class="section-header">
                             <h2 class="section-title">
-                                <i class="fas fa-user-check"></i> Suivi des élèves
+                                <i class="fas fa-user-check"></i> ${pcT('Suivi des élèves')}
                             </h2>
                         </div>
 
                         <!-- Onglets de suivi -->
                         <div class="tracking-tabs">
                             <button class="tracking-tab active" onclick="showTrackingTab('attendance')">
-                                <i class="fas fa-user-check"></i> Présences
+                                <i class="fas fa-user-check"></i> ${pcT('Présences')}
                             </button>
                             
                             ${this.shouldShowSanctionsTab() ? `
@@ -2647,7 +2648,7 @@ class UnifiedPDFViewer {
                             
                             ${this.shouldShowSeatingPlanTab() ? `
                             <button class="tracking-tab" onclick="showTrackingTab('seating-plan')">
-                                <i class="fas fa-th"></i> Plan de classe
+                                <i class="fas fa-th"></i> ${pcT('Plan de classe')}
                             </button>
                             ` : ''}
                         </div>
@@ -2657,15 +2658,15 @@ class UnifiedPDFViewer {
                             <div class="attendance-stats">
                                 <div class="stat-item present">
                                     <div class="stat-value" id="presentCount">7</div>
-                                    <div class="stat-label">Présents</div>
+                                    <div class="stat-label">${pcT('Présents')}</div>
                                 </div>
                                 <div class="stat-item absent">
                                     <div class="stat-value" id="absentCount">0</div>
-                                    <div class="stat-label">Absents</div>
+                                    <div class="stat-label">${pcT('Absents')}</div>
                                 </div>
                                 <div class="stat-item late">
                                     <div class="stat-value" id="lateCount">0</div>
-                                    <div class="stat-label">Retards</div>
+                                    <div class="stat-label">${pcT('Retards')}</div>
                                 </div>
                             </div>
 
@@ -2676,7 +2677,7 @@ class UnifiedPDFViewer {
                                     ${this.getClassInfo()}
                                 </h4>
                                 <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: #6b7280;">
-                                    ${this.getStudentCount()} élève(s) dans la classe
+                                    ${this.getStudentCount() === 1 ? pcT('1 élève dans la classe') : pcT('{n} élèves dans la classe', {n: this.getStudentCount()})}
                                 </p>
                             </div>
                             
@@ -2692,7 +2693,7 @@ class UnifiedPDFViewer {
                                 <table class="sanctions-table">
                                     <thead>
                                         <tr>
-                                            <th class="student-column">Élève</th>
+                                            <th class="student-column">${pcT('Élève')}</th>
                                             ${this.generateSanctionHeaders()}
                                         </tr>
                                     </thead>
@@ -2709,11 +2710,11 @@ class UnifiedPDFViewer {
                         <div class="seating-plan-content tracking-content" id="seating-plan-content">
                             <div class="seating-plan-header">
                                 <div class="seating-plan-info">
-                                    <h3><i class="fas fa-th"></i> Plan de classe</h3>
-                                    <p>Cliquez sur les tables pour ajouter des avertissements : jaune → rouge → noir</p>
+                                    <h3><i class="fas fa-th"></i> ${pcT('Plan de classe')}</h3>
+                                    <p>${pcT('Cliquez sur les tables pour ajouter des avertissements : jaune → rouge → noir')}</p>
                                 </div>
                                 <button id="undo-warning-btn" class="btn btn-primary" onclick="undoLastWarning()" disabled="">
-                                    <i class="fas fa-undo"></i> Annuler
+                                    <i class="fas fa-undo"></i> ${pcT('Annuler')}
                                 </button>
                             </div>
                             <div class="seating-plan-container">
@@ -2790,7 +2791,7 @@ class UnifiedPDFViewer {
                 </div>
                 <div class="late-controls">
                     <input type="number" class="late-minutes" id="late-${student.id}" value="" min="1" max="120" placeholder="min">
-                    <button class="btn-late" onclick="setLateStatus(${student.id})" title="Marquer en retard">
+                    <button class="btn-late" onclick="setLateStatus(${student.id})" title="${pcT('Marquer en retard')}">
                         <i class="fas fa-clock"></i>
                     </button>
                 </div>
@@ -2808,7 +2809,7 @@ class UnifiedPDFViewer {
         if (classNameElement) {
             return classNameElement.textContent.trim();
         }
-        return 'Classe entière';
+        return pcT('Classe entière');
     }
     
     /**
@@ -2876,7 +2877,7 @@ class UnifiedPDFViewer {
         const count = mainSanctionHeaders.length;
         
         if (count > 0) {
-            return `Coches (${count})`;
+            return pcT('Coches ({n})', {n: count});
         }
         
         // Compter les types uniques de sanctions depuis les compteurs
@@ -2885,7 +2886,7 @@ class UnifiedPDFViewer {
             sanctionTypes.add(el.dataset.sanction);
         });
         
-        return sanctionTypes.size > 0 ? `Coches (${sanctionTypes.size})` : 'Coches';
+        return sanctionTypes.size > 0 ? pcT('Coches ({n})', {n: sanctionTypes.size}) : pcT('Coches');
     }
     
     /**
@@ -3019,8 +3020,8 @@ class UnifiedPDFViewer {
                 <div class="seating-workspace" id="seating-workspace-pdf" style="transform: translate(0px, 0px) scale(1); transform-origin: 0px 0px 0px;">
                     <div class="seating-plan-empty" style="text-align: center; padding: 40px; color: #6b7280;">
                         <i class="fas fa-th" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
-                        <p>Aucun plan de classe configuré</p>
-                        <p style="font-size: 0.875rem; margin-top: 8px;">Créez un plan de classe dans la gestion des élèves</p>
+                        <p>${pcT('Aucun plan de classe configuré')}</p>
+                        <p style="font-size: 0.875rem; margin-top: 8px;">${pcT('Créez un plan de classe dans la gestion des élèves')}</p>
                     </div>
                 </div>
             `;
@@ -3049,8 +3050,8 @@ class UnifiedPDFViewer {
             <div class="seating-workspace" id="seating-workspace-pdf" style="transform: translate(0px, 0px) scale(1); transform-origin: 0px 0px 0px;">
                 <div class="seating-plan-empty" style="text-align: center; padding: 40px; color: #6b7280;">
                     <i class="fas fa-th" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
-                    <p>Plan de classe vide</p>
-                    <p style="font-size: 0.875rem; margin-top: 8px;">Ajoutez des tables et placez vos élèves</p>
+                    <p>${pcT('Plan de classe vide')}</p>
+                    <p style="font-size: 0.875rem; margin-top: 8px;">${pcT('Ajoutez des tables et placez vos élèves')}</p>
                 </div>
             </div>
         `;
@@ -3648,7 +3649,7 @@ class UnifiedPDFViewer {
         
         const minutes = parseInt(minutesInput.value) || 0;
         if (minutes <= 0) {
-            alert('Veuillez saisir le nombre de minutes de retard');
+            alert(pcT('Veuillez saisir le nombre de minutes de retard'));
             return;
         }
         
@@ -3727,7 +3728,7 @@ class UnifiedPDFViewer {
             <div class="send-to-students-overlay">
                 <div class="send-to-students-container">
                     <div class="send-to-students-header">
-                        <h2><i class="fas fa-paper-plane"></i> Envoyer aux élèves</h2>
+                        <h2><i class="fas fa-paper-plane"></i> ${pcT('Envoyer aux élèves')}</h2>
                         <button class="close-btn" data-action="close">
                             <i class="fas fa-times"></i>
                         </button>
@@ -3735,7 +3736,7 @@ class UnifiedPDFViewer {
                     
                     <div class="send-to-students-content">
                         <div class="send-options">
-                            <h3>Options d'envoi</h3>
+                            <h3>${pcT("Options d'envoi")}</h3>
                             
                             <div class="send-option">
                                 <label class="option-label">
@@ -3743,10 +3744,10 @@ class UnifiedPDFViewer {
                                     <div class="option-content">
                                         <div class="option-title">
                                             <i class="fas fa-users"></i>
-                                            Tous les élèves
+                                            ${pcT('Tous les élèves')}
                                         </div>
                                         <div class="option-description">
-                                            Envoyer le document à tous les élèves de la classe
+                                            ${pcT('Envoyer le document à tous les élèves de la classe')}
                                         </div>
                                     </div>
                                 </label>
@@ -3758,10 +3759,10 @@ class UnifiedPDFViewer {
                                     <div class="option-content">
                                         <div class="option-title">
                                             <i class="fas fa-user-slash"></i>
-                                            Élèves absents
+                                            ${pcT('Élèves absents')}
                                         </div>
                                         <div class="option-description">
-                                            Envoyer uniquement aux élèves marqués comme absents
+                                            ${pcT('Envoyer uniquement aux élèves marqués comme absents')}
                                         </div>
                                     </div>
                                 </label>
@@ -3773,10 +3774,10 @@ class UnifiedPDFViewer {
                                     <div class="option-content">
                                         <div class="option-title">
                                             <i class="fas fa-user-check"></i>
-                                            Sélection personnalisée
+                                            ${pcT('Sélection personnalisée')}
                                         </div>
                                         <div class="option-description">
-                                            Choisir manuellement les élèves destinataires
+                                            ${pcT('Choisir manuellement les élèves destinataires')}
                                         </div>
                                     </div>
                                 </label>
@@ -3784,13 +3785,13 @@ class UnifiedPDFViewer {
                         </div>
                         
                         <div class="students-selection" id="students-selection" style="display: none;">
-                            <h3>Sélectionner les élèves</h3>
+                            <h3>${pcT('Sélectionner les élèves')}</h3>
                             <div class="selection-controls">
                                 <button type="button" class="btn btn-secondary" data-action="select-all">
-                                    <i class="fas fa-check-square"></i> Tous
+                                    <i class="fas fa-check-square"></i> ${pcT('Tous')}
                                 </button>
                                 <button type="button" class="btn btn-secondary" data-action="unselect-all">
-                                    <i class="fas fa-square"></i> Aucun
+                                    <i class="fas fa-square"></i> ${pcT('Aucun')}
                                 </button>
                             </div>
                             <div class="students-list-send">
@@ -3801,24 +3802,24 @@ class UnifiedPDFViewer {
                         <div class="send-summary" id="send-summary">
                             <div class="summary-info">
                                 <i class="fas fa-info-circle"></i>
-                                <span id="send-summary-text">Tous les élèves recevront le document</span>
+                                <span id="send-summary-text">${pcT('Tous les élèves recevront le document')}</span>
                             </div>
                         </div>
                     </div>
                     
                     <div class="send-to-students-footer">
                         <button class="btn btn-secondary" data-action="close">
-                            <i class="fas fa-times"></i> Annuler
+                            <i class="fas fa-times"></i> ${pcT('Annuler')}
                         </button>
                         <button class="btn btn-primary" id="send-confirm-btn" data-action="confirm">
-                            <i class="fas fa-paper-plane"></i> Envoyer
+                            <i class="fas fa-paper-plane"></i> ${pcT('Envoyer')}
                         </button>
                     </div>
                     
                     <div class="send-progress" id="send-progress" style="display: none;">
                         <div class="progress-info">
                             <i class="fas fa-spinner fa-spin"></i>
-                            <span>Envoi en cours...</span>
+                            <span>${pcT('Envoi en cours...')}</span>
                         </div>
                     </div>
                 </div>
@@ -3840,7 +3841,7 @@ class UnifiedPDFViewer {
         }
         
         if (students.length === 0) {
-            return '<p class="no-students">Aucun élève trouvé dans cette classe</p>';
+            return '<p class="no-students">' + pcT('Aucun élève trouvé dans cette classe') + '</p>';
         }
         
         return students.map(student => {
@@ -3859,7 +3860,7 @@ class UnifiedPDFViewer {
                             <div class="student-avatar-small">${avatar}</div>
                             <div class="student-name-select">
                                 <span class="student-name">${displayName}</span>
-                                ${isAbsent ? '<span class="absent-badge">Absent</span>' : '<span class="present-badge">Présent</span>'}
+                                ${isAbsent ? '<span class="absent-badge">' + pcT('Absent') + '</span>' : '<span class="present-badge">' + pcT('Présent') + '</span>'}
                             </div>
                         </div>
                     </label>
@@ -4368,7 +4369,7 @@ class UnifiedPDFViewer {
             `<button class="color-btn ${color === this.currentColor ? 'active' : ''}" 
                      data-color="${color}" 
                      style="background-color: ${color}" 
-                     title="Couleur ${color}"></button>`
+                     title="${pcT('Couleur {color}', {color: color})}"></button>`
         ).join('');
         
         colorPalette.innerHTML = colorButtons;
@@ -6653,7 +6654,7 @@ class UnifiedPDFViewer {
         // === Textarea ===
         const textInput = document.createElement('textarea');
         textInput.className = 'pdf-text-input';
-        textInput.placeholder = 'Tapez votre texte...';
+        textInput.placeholder = pcT('Tapez votre texte...');
         textInput.style.cssText = `
             flex: 1; border: none; outline: none; resize: none;
             font-size: 16px; font-family: Arial, sans-serif;
@@ -8018,14 +8019,14 @@ class UnifiedPDFViewer {
         if (undoBtn) {
             undoBtn.disabled = !canUndo;
             undoBtn.style.opacity = canUndo ? '1' : '0.5';
-            undoBtn.title = canUndo ? `Annuler (${undoCount} action${undoCount > 1 ? 's' : ''})` : 'Aucune action à annuler';
+            undoBtn.title = canUndo ? (undoCount === 1 ? pcT('Annuler (1 action)') : pcT('Annuler ({n} actions)', {n: undoCount})) : pcT('Aucune action à annuler');
         } else {
         }
 
         if (redoBtn) {
             redoBtn.disabled = redoHistory.length === 0;
             redoBtn.style.opacity = redoHistory.length === 0 ? '0.5' : '1';
-            redoBtn.title = redoHistory.length === 0 ? 'Aucune action à refaire' : `Refaire (${redoHistory.length} action${redoHistory.length > 1 ? 's' : ''})`;
+            redoBtn.title = redoHistory.length === 0 ? pcT('Aucune action à refaire') : (redoHistory.length === 1 ? pcT('Refaire (1 action)') : pcT('Refaire ({n} actions)', {n: redoHistory.length}));
         } else {
         }
     }
@@ -8228,7 +8229,7 @@ class UnifiedPDFViewer {
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = '#333';
                 ctx.font = '12px Arial';
-                ctx.fillText(`Page ${pageNum}`, 5, 15);
+                ctx.fillText(pcT('Page {n}', {n: pageNum}), 5, 15);
                 
                 try {
                     await page.render({ canvasContext: ctx, viewport }).promise;
@@ -8852,15 +8853,15 @@ class UnifiedPDFViewer {
         contextMenu.innerHTML = `
             <div class="context-menu-item delete-page" data-action="delete">
                 <i class="fas fa-trash"></i>
-                <span>Supprimer la page</span>
+                <span>${pcT('Supprimer la page')}</span>
             </div>
             <div class="context-menu-item add-page" data-action="add">
                 <i class="fas fa-plus"></i>
-                <span>Ajouter page blanche après</span>
+                <span>${pcT('Ajouter une page blanche après')}</span>
             </div>
             <div class="context-menu-item add-graph" data-action="graph">
                 <i class="fas fa-chart-line"></i>
-                <span>Créer un graphique après cette page</span>
+                <span>${pcT('Créer un graphique après cette page')}</span>
             </div>
         `;
 
@@ -8925,7 +8926,7 @@ class UnifiedPDFViewer {
      */
     async deletePage(pageNumber) {
         if (this.totalPages <= 1) {
-            alert('Impossible de supprimer la dernière page du document.');
+            alert(pcT('Impossible de supprimer la dernière page du document.'));
             return;
         }
 
@@ -8933,7 +8934,7 @@ class UnifiedPDFViewer {
         const pageIdentifier = this.getPageIdentifier(pageNumber);
         
 
-        if (confirm(`Êtes-vous sûr de vouloir supprimer la page ${pageNumber} ?`)) {
+        if (confirm(pcT('Êtes-vous sûr de vouloir supprimer la page {n} ?', {n: pageNumber}))) {
             try {
                 // Sauvegarder les annotations AVANT la suppression, en excluant la page à supprimer
                 this.saveAllAnnotations(pageNumber);
@@ -8965,7 +8966,7 @@ class UnifiedPDFViewer {
                 
             } catch (error) {
                 console.error('❌ Erreur lors de la suppression:', error);
-                alert('Erreur lors de la suppression de la page. Veuillez réessayer.');
+                alert(pcT('Erreur lors de la suppression de la page. Veuillez réessayer.'));
             }
         }
     }
@@ -9490,7 +9491,7 @@ class UnifiedPDFViewer {
      */
     async addBlankPageAfter(pageNumber) {
         
-        if (confirm(`Ajouter une page blanche après la page ${pageNumber} ?`)) {
+        if (confirm(pcT('Ajouter une page blanche après la page {n} ?', {n: pageNumber}))) {
             try {
                 // Créer et insérer la page blanche en utilisant la position d'affichage
                 await this.insertBlankPageAfterDisplayPosition(pageNumber);
@@ -9504,7 +9505,7 @@ class UnifiedPDFViewer {
                 
             } catch (error) {
                 console.error('❌ Erreur lors de l\'ajout de page blanche:', error);
-                alert('Erreur lors de l\'ajout de la page blanche. Veuillez réessayer.');
+                alert(pcT("Erreur lors de l'ajout de la page blanche. Veuillez réessayer."));
             }
         }
     }
@@ -9514,7 +9515,7 @@ class UnifiedPDFViewer {
      */
     async addGraphPageAfter(pageNumber) {
 
-        if (confirm(`Créer une page avec graphique après la page ${pageNumber} ?`)) {
+        if (confirm(pcT('Créer une page avec graphique après la page {n} ?', {n: pageNumber}))) {
             try {
                 // Créer et insérer la page graphique en utilisant la position d'affichage
                 await this.insertGraphPageAfterDisplayPosition(pageNumber);
@@ -9528,7 +9529,7 @@ class UnifiedPDFViewer {
                 
             } catch (error) {
                 console.error('❌ Erreur lors de l\'ajout de page graphique:', error);
-                alert('Erreur lors de l\'ajout de la page graphique. Veuillez réessayer.');
+                alert(pcT("Erreur lors de l'ajout de la page graphique. Veuillez réessayer."));
             }
         }
     }
@@ -10060,10 +10061,13 @@ class UnifiedPDFViewer {
         
         if (isGraphPage) {
             ctx.fillText('📊', canvas.width / 2, canvas.height / 2 - 5);
-            ctx.fillText('Graphique', canvas.width / 2, canvas.height / 2 + 10);
+            ctx.fillText(pcT('Graphique'), canvas.width / 2, canvas.height / 2 + 10);
         } else {
-            ctx.fillText('Page', canvas.width / 2, canvas.height / 2 - 5);
-            ctx.fillText('blanche', canvas.width / 2, canvas.height / 2 + 10);
+            // Libellé sur deux lignes : coupé au premier espace de la traduction
+            const blankLabel = pcT('Page blanche');
+            const blankCut = blankLabel.indexOf(' ');
+            ctx.fillText(blankCut > 0 ? blankLabel.slice(0, blankCut) : blankLabel, canvas.width / 2, canvas.height / 2 - 5);
+            ctx.fillText(blankCut > 0 ? blankLabel.slice(blankCut + 1) : '', canvas.width / 2, canvas.height / 2 + 10);
         }
 
         // Ajouter les événements
@@ -10554,52 +10558,52 @@ class UnifiedPDFViewer {
         panel.className = 'graph-control-panel';
         panel.innerHTML = `
             <div class="graph-control-header">
-                <h3><i class="fas fa-chart-line"></i> Configuration du graphique</h3>
-                <button class="graph-control-close" title="Fermer">
+                <h3><i class="fas fa-chart-line"></i> ${pcT('Configuration du graphique')}</h3>
+                <button class="graph-control-close" title="${pcT('Fermer')}">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             
             <div class="graph-control-content">
                 <div class="graph-section">
-                    <h4>Limites des axes</h4>
+                    <h4>${pcT('Limites des axes')}</h4>
                     <div class="axis-controls">
                         <div class="axis-row">
-                            <label>Axe X:</label>
-                            <input type="number" id="graph-x-min" placeholder="Min" value="-15" step="0.1">
-                            <span>à</span>
-                            <input type="number" id="graph-x-max" placeholder="Max" value="15" step="0.1">
+                            <label>${pcT('Axe X :')}</label>
+                            <input type="number" id="graph-x-min" placeholder="${pcT('Min')}" value="-15" step="0.1">
+                            <span>${pcT('à')}</span>
+                            <input type="number" id="graph-x-max" placeholder="${pcT('Max')}" value="15" step="0.1">
                         </div>
                         <div class="axis-row">
-                            <label>Axe Y:</label>
-                            <input type="number" id="graph-y-min" placeholder="Min" value="-15" step="0.1">
-                            <span>à</span>
-                            <input type="number" id="graph-y-max" placeholder="Max" value="15" step="0.1">
+                            <label>${pcT('Axe Y :')}</label>
+                            <input type="number" id="graph-y-min" placeholder="${pcT('Min')}" value="-15" step="0.1">
+                            <span>${pcT('à')}</span>
+                            <input type="number" id="graph-y-max" placeholder="${pcT('Max')}" value="15" step="0.1">
                         </div>
                         <div class="axis-row">
-                            <label>Grille:</label>
-                            <input type="number" id="graph-grid-size" placeholder="Taille" value="1" step="0.1" min="0.1" max="5">
-                            <span>unité(s)</span>
+                            <label>${pcT('Grille :')}</label>
+                            <input type="number" id="graph-grid-size" placeholder="${pcT('Taille')}" value="1" step="0.1" min="0.1" max="5">
+                            <span>${pcT('unité(s)')}</span>
                         </div>
                         <div style="display: flex; gap: 8px; margin-top: 8px;">
-                            <button id="graph-apply-axes" class="graph-btn primary">Appliquer</button>
-                            <button id="graph-reset-axes" class="graph-btn secondary">Reset</button>
+                            <button id="graph-apply-axes" class="graph-btn primary">${pcT('Appliquer')}</button>
+                            <button id="graph-reset-axes" class="graph-btn secondary">${pcT('Réinitialiser')}</button>
                         </div>
                     </div>
                 </div>
                 
                 <div class="graph-section">
-                    <h4>Fonctions mathématiques</h4>
+                    <h4>${pcT('Fonctions mathématiques')}</h4>
                     <div class="function-controls">
                         <div class="function-input-row">
-                            <input type="text" id="graph-function-input" placeholder="Ex: x^2, sin(x), 2*x+1" title="Fonctions disponibles: sin, cos, tan, log, sqrt, abs, pi, e">
-                            <input type="color" id="graph-function-color" value="#ff0000" title="Couleur de la fonction">
-                            <button id="graph-add-function" class="graph-btn primary" title="Ajouter la fonction">
+                            <input type="text" id="graph-function-input" placeholder="${pcT('Ex. : x^2, sin(x), 2*x+1')}" title="${pcT('Fonctions disponibles : sin, cos, tan, log, sqrt, abs, pi, e')}">
+                            <input type="color" id="graph-function-color" value="#ff0000" title="${pcT('Couleur de la fonction')}">
+                            <button id="graph-add-function" class="graph-btn primary" title="${pcT('Ajouter la fonction')}">
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
                         <div class="function-presets" style="margin-bottom: 12px;">
-                            <label style="font-size: 12px; color: #6b7280;">Fonctions prédéfinies:</label>
+                            <label style="font-size: 12px; color: #6b7280;">${pcT('Fonctions prédéfinies :')}</label>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
                                 <button class="preset-btn" data-function="x">x</button>
                                 <button class="preset-btn" data-function="x^2">x²</button>
@@ -10619,16 +10623,16 @@ class UnifiedPDFViewer {
                 </div>
                 
                 <div class="graph-section">
-                    <h4>Actions</h4>
+                    <h4>${pcT('Actions')}</h4>
                     <div class="graph-actions">
                         <button id="graph-clear-all" class="graph-btn danger">
-                            <i class="fas fa-trash"></i> Effacer tout
+                            <i class="fas fa-trash"></i> ${pcT('Effacer tout')}
                         </button>
                         <button id="graph-save-config" class="graph-btn success">
-                            <i class="fas fa-save"></i> Sauvegarder
+                            <i class="fas fa-save"></i> ${pcT('Sauvegarder')}
                         </button>
                         <button id="graph-export-image" class="graph-btn secondary">
-                            <i class="fas fa-download"></i> Exporter
+                            <i class="fas fa-download"></i> ${pcT('Exporter')}
                         </button>
                     </div>
                 </div>
@@ -11559,7 +11563,7 @@ class UnifiedPDFViewer {
         // Masquer tous les boutons graphiques quand le panneau est ouvert
         this.updateAllGraphButtonsVisibility();
         
-        this.showGraphMessage('Panneau de configuration ouvert', 'info');
+        this.showGraphMessage(pcT('Panneau de configuration ouvert'), 'info');
     }
 
     /**
@@ -11885,24 +11889,24 @@ class UnifiedPDFViewer {
 
         // Validation améliorée
         if (isNaN(xMin) || isNaN(xMax) || isNaN(yMin) || isNaN(yMax)) {
-            this.showGraphMessage('Veuillez entrer des valeurs numériques valides.', 'error');
+            this.showGraphMessage(pcT('Veuillez entrer des valeurs numériques valides.'), 'error');
             return;
         }
 
         if (xMin >= xMax || yMin >= yMax) {
-            this.showGraphMessage('Les valeurs minimales doivent être inférieures aux maximales.', 'error');
+            this.showGraphMessage(pcT('Les valeurs minimales doivent être inférieures aux maximales.'), 'error');
             return;
         }
 
         if (Math.abs(xMax - xMin) < 0.1 || Math.abs(yMax - yMin) < 0.1) {
-            this.showGraphMessage('L\'intervalle des axes est trop petit (minimum 0.1).', 'error');
+            this.showGraphMessage(pcT("L'intervalle des axes est trop petit (minimum 0.1)."), 'error');
             return;
         }
 
         this.updateGraphConfig(this.currentGraphPage, { xMin, xMax, yMin, yMax, gridSize });
         this.redrawCurrentGraphPage();
         
-        this.showGraphMessage('Axes mis à jour avec succès!', 'success');
+        this.showGraphMessage(pcT('Axes mis à jour avec succès !'), 'success');
     }
 
     /**
@@ -11979,7 +11983,7 @@ class UnifiedPDFViewer {
         const expression = input.value.trim();
         
         if (!expression) {
-            this.showGraphMessage('Veuillez entrer une expression mathématique.', 'warning');
+            this.showGraphMessage(pcT('Veuillez entrer une expression mathématique.'), 'warning');
             return;
         }
 
@@ -11993,10 +11997,10 @@ class UnifiedPDFViewer {
             
             // Vérifier qu'au moins une valeur est valide
             if (testResults.every(r => isNaN(r) || !isFinite(r))) {
-                throw new Error('Aucun résultat valide pour les valeurs de test');
+                throw new Error(pcT('Aucun résultat valide pour les valeurs de test'));
             }
         } catch (error) {
-            this.showGraphMessage(`Expression invalide: ${error.message || 'Vérifiez la syntaxe'}`, 'error');
+            this.showGraphMessage(pcT('Expression invalide : {error}', {error: error.message || pcT('Vérifiez la syntaxe')}), 'error');
             return;
         }
 
@@ -12013,7 +12017,7 @@ class UnifiedPDFViewer {
         input.value = '';
         colorInput.value = this.generateRandomColor();
         
-        this.showGraphMessage(`Fonction "${expression}" ajoutée avec succès!`, 'success');
+        this.showGraphMessage(pcT('Fonction « {expr} » ajoutée avec succès !', {expr: expression}), 'success');
     }
 
     /**
@@ -12059,16 +12063,16 @@ class UnifiedPDFViewer {
         if (!list) return;
 
         if (functions.length === 0) {
-            list.innerHTML = '<div style="text-align: center; color: #6b7280; font-style: italic; padding: 20px;">Aucune fonction ajoutée</div>';
+            list.innerHTML = '<div style="text-align: center; color: #6b7280; font-style: italic; padding: 20px;">' + pcT('Aucune fonction ajoutée') + '</div>';
             return;
         }
 
         list.innerHTML = functions.map((func, index) => `
             <div class="function-item" data-id="${func.id}">
-                <div class="function-color" style="background-color: ${func.color}" title="Couleur: ${func.color}"></div>
+                <div class="function-color" style="background-color: ${func.color}" title="${pcT('Couleur {color}', {color: func.color})}"></div>
                 <span class="function-expression" title="${func.expression}">${func.expression}</span>
-                <input type="color" class="function-color-picker" value="${func.color}" data-id="${func.id}" title="Changer la couleur">
-                <button class="function-delete" data-id="${func.id}" title="Supprimer cette fonction">
+                <input type="color" class="function-color-picker" value="${func.color}" data-id="${func.id}" title="${pcT('Changer la couleur')}">
+                <button class="function-delete" data-id="${func.id}" title="${pcT('Supprimer cette fonction')}">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -12118,7 +12122,7 @@ class UnifiedPDFViewer {
                     const removedFunction = pageData.graphConfig.functions.splice(functionIndex, 1)[0];
                     this.updateFunctionsList(pageData.graphConfig.functions);
                     this.redrawCurrentGraphPage();
-                    this.showGraphMessage(`Fonction "${removedFunction.expression}" supprimée`, 'info');
+                    this.showGraphMessage(pcT('Fonction « {expr} » supprimée', {expr: removedFunction.expression}), 'info');
                     // Sauvegarder automatiquement après suppression de fonction
                     this.scheduleAutoSave();
                 }
@@ -12202,8 +12206,8 @@ class UnifiedPDFViewer {
         // Créer le bouton de contrôle
         const controlButton = document.createElement('button');
         controlButton.className = 'graph-control-btn';
-        controlButton.innerHTML = '<i class="fas fa-cog"></i> Configurer';
-        controlButton.title = 'Ouvrir les paramètres du graphique (Raccourci: G)';
+        controlButton.innerHTML = '<i class="fas fa-cog"></i> ' + pcT('Configurer');
+        controlButton.title = pcT('Ouvrir les paramètres du graphique (raccourci : G)');
         
         // Styles inline pour s'assurer qu'ils s'appliquent
         controlButton.style.cssText = `
@@ -12461,7 +12465,7 @@ class UnifiedPDFViewer {
     clearAllFunctions() {
         if (!this.currentGraphPage) return;
 
-        if (confirm('Êtes-vous sûr de vouloir effacer toutes les fonctions ?')) {
+        if (confirm(pcT('Êtes-vous sûr de vouloir effacer toutes les fonctions ?'))) {
             this.updateGraphConfig(this.currentGraphPage, { functions: [] });
             this.updateFunctionsList([]);
             this.redrawCurrentGraphPage();
@@ -12500,11 +12504,11 @@ class UnifiedPDFViewer {
                     
                     localStorage.setItem('graph-configs', JSON.stringify(savedConfigs));
                     
-                    this.showGraphMessage('Configuration sauvegardée avec succès!', 'success');
+                    this.showGraphMessage(pcT('Configuration sauvegardée avec succès !'), 'success');
                 }
             }
         } catch (error) {
-            this.showGraphMessage('Erreur lors de la sauvegarde', 'error');
+            this.showGraphMessage(pcT('Erreur lors de la sauvegarde'), 'error');
         }
     }
 
@@ -12517,7 +12521,7 @@ class UnifiedPDFViewer {
         try {
             const pageElement = this.pageElements.get(this.currentGraphPage);
             if (!pageElement || !pageElement.canvas) {
-                this.showGraphMessage('Impossible d\'exporter: page non trouvée', 'error');
+                this.showGraphMessage(pcT("Impossible d'exporter : page introuvable"), 'error');
                 return;
             }
 
@@ -12543,11 +12547,11 @@ class UnifiedPDFViewer {
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
                 
-                this.showGraphMessage('Image exportée avec succès!', 'success');
+                this.showGraphMessage(pcT('Image exportée avec succès !'), 'success');
             }, 'image/png');
             
         } catch (error) {
-            this.showGraphMessage('Erreur lors de l\'export', 'error');
+            this.showGraphMessage(pcT("Erreur lors de l'export"), 'error');
         }
     }
     
@@ -12573,7 +12577,7 @@ class UnifiedPDFViewer {
         console.trace();
         
         // Afficher un indicateur de progression
-        this.showExportProgress('Préparation de l\'export...');
+        this.showExportProgress(pcT("Préparation de l'export..."));
         
         try {
             // Créer un nouveau PDF avec les annotations
@@ -12597,18 +12601,18 @@ class UnifiedPDFViewer {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
             
-            this.showSuccessMessage('PDF téléchargé avec succès !');
+            this.showSuccessMessage(pcT('PDF téléchargé avec succès !'));
             
         } catch (error) {
             this.hideExportProgress();
-            this.showErrorMessage(`Erreur lors du téléchargement: ${error.message}`);
+            this.showErrorMessage(pcT('Erreur lors du téléchargement : {error}', {error: error.message}));
         }
     }
     
     /**
      * Afficher un indicateur de progression pour l'export
      */
-    showExportProgress(message = 'Export en cours...') {
+    showExportProgress(message = pcT('Export en cours...')) {
         // Supprimer l'indicateur existant s'il y en a un
         this.hideExportProgress();
         
@@ -12780,14 +12784,14 @@ class UnifiedPDFViewer {
             
             if (response.ok) {
                 const result = await response.json();
-                this.showSendSuccess(result.message || 'Document envoyé avec succès!');
+                this.showSendSuccess(result.message || pcT('Document envoyé avec succès !'));
                 this.closeSendToStudentsPanel();
             } else {
-                throw new Error('Erreur serveur');
+                throw new Error(pcT('Erreur serveur'));
             }
         } catch (error) {
             console.error('Erreur lors de l\'envoi aux élèves:', error);
-            this.showSendError('Erreur lors de l\'envoi: ' + error.message);
+            this.showSendError(pcT("Erreur lors de l'envoi : {error}", {error: error.message}));
         } finally {
             this.showSendingProgress(false);
         }
@@ -12798,7 +12802,7 @@ class UnifiedPDFViewer {
      */
     async exportPDFWithAnnotations() {
         if (!this.pdfDoc) {
-            throw new Error('Veuillez d\'abord charger un fichier PDF');
+            throw new Error(pcT("Veuillez d'abord charger un fichier PDF"));
         }
 
         try {
@@ -12831,7 +12835,7 @@ class UnifiedPDFViewer {
                 // Mettre à jour l'indicateur de progression
                 const progressElement = document.querySelector('#export-progress-indicator span');
                 if (progressElement) {
-                    progressElement.textContent = `Export page ${pageNum}/${this.totalPages}...`;
+                    progressElement.textContent = pcT('Export de la page {n}/{total}...', {n: pageNum, total: this.totalPages});
                 }
                 
                 // Obtenir le canvas de la page avec annotations
@@ -12906,11 +12910,11 @@ class UnifiedPDFViewer {
                 if (window.jspdf?.jsPDF || window.jsPDF) {
                     resolve();
                 } else {
-                    reject(new Error('jsPDF chargé mais non trouvé dans window'));
+                    reject(new Error(pcT("Impossible de charger l'outil d'export PDF")));
                 }
             };
             script.onerror = () => {
-                reject(new Error('Impossible de charger jsPDF'));
+                reject(new Error(pcT("Impossible de charger l'outil d'export PDF")));
             };
             document.head.appendChild(script);
         });
@@ -13467,19 +13471,19 @@ class UnifiedPDFViewer {
         if (selectedMode === 'all') {
             const totalStudents = panel.querySelectorAll('.student-checkbox').length;
             studentCount = totalStudents;
-            message = `Tous les élèves (${totalStudents}) recevront le document`;
+            message = pcT('Tous les élèves ({n}) recevront le document', {n: totalStudents});
         } else if (selectedMode === 'absent') {
             const absentStudents = panel.querySelectorAll('.student-checkbox[data-absent="true"]').length;
             studentCount = absentStudents;
             message = absentStudents > 0 
-                ? `Les élèves absents (${absentStudents}) recevront le document`
-                : 'Aucun élève absent trouvé';
+                ? pcT('Les élèves absents ({n}) recevront le document', {n: absentStudents})
+                : pcT('Aucun élève absent trouvé');
         } else if (selectedMode === 'custom') {
             const selectedStudents = panel.querySelectorAll('.student-checkbox:checked');
             studentCount = selectedStudents.length;
             message = selectedStudents.length > 0
-                ? `${selectedStudents.length} élève(s) sélectionné(s) recevront le document`
-                : 'Aucun élève sélectionné';
+                ? (selectedStudents.length === 1 ? pcT('1 élève sélectionné recevra le document') : pcT('{n} élèves sélectionnés recevront le document', {n: selectedStudents.length}))
+                : pcT('Aucun élève sélectionné');
         }
         
         summaryText.textContent = message;
@@ -13520,7 +13524,7 @@ class UnifiedPDFViewer {
         }
         
         if (selectedStudents.length === 0) {
-            this.showSendError('Aucun élève sélectionné pour l\'envoi');
+            this.showSendError(pcT("Aucun élève sélectionné pour l'envoi"));
             return;
         }
         
@@ -13893,9 +13897,9 @@ class UnifiedPDFViewer {
             <div style="position: fixed; top: 20px; right: 20px; background: #f39c12; color: white; 
                         padding: 15px; border-radius: 8px; z-index: 10000; max-width: 300px; 
                         box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 14px;">
-                <strong>🚀 Performance</strong><br>
-                Cache plein détecté. Pour une expérience optimale :<br>
-                <em>Réglages → Safari → Effacer historique et données</em>
+                <strong>🚀 ${pcT('Performance')}</strong><br>
+                ${pcT('Cache plein détecté. Pour une expérience optimale :')}<br>
+                <em>${pcT('Réglages → Safari → Effacer historique et données')}</em>
                 <button onclick="this.parentElement.parentElement.remove()" 
                         style="float: right; background: none; border: none; color: white; font-size: 18px; cursor: pointer;">×</button>
             </div>

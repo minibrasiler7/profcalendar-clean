@@ -22,9 +22,11 @@ import os
 import logging
 from datetime import datetime
 
+from flask_babel import gettext as _gettext, force_locale
+
 from extensions import db
 from models.user import User
-from services.email_service import send_email
+from services.email_service import send_email, email_language, email_locale
 
 logger = logging.getLogger(__name__)
 
@@ -48,21 +50,29 @@ def is_undeliverable(email):
     domain = email.rsplit('@', 1)[-1].strip().lower()
     return domain in UNDELIVERABLE_DOMAINS or domain.endswith(UNDELIVERABLE_SUFFIXES)
 
-# Ce que le prof perd quand l'essai se termine (rappel de valeur).
-LOST_FEATURES = [
-    "la gestion de classe (élèves, groupes)",
-    "les notes & évaluations",
-    "le suivi des présences",
-    "les exercices interactifs",
-    "la collaboration entre enseignants",
-]
+PREMIUM_PRICE = 'CHF&nbsp;4.90'
+
+
+def _lost_features():
+    """Ce que le prof perd quand l'essai se termine (rappel de valeur),
+    dans la langue courante de l'e-mail."""
+    return [
+        _gettext("la gestion de classe (élèves, groupes)"),
+        _gettext("les notes & évaluations"),
+        _gettext("le suivi des présences"),
+        _gettext("les exercices interactifs"),
+        _gettext("la collaboration entre enseignants"),
+    ]
 
 
 def _wrap(title, accent, body_html, cta_label):
-    """Gabarit HTML commun aux emails de relance."""
+    """Gabarit HTML commun aux emails de relance (textes déjà traduits)."""
     features = ''.join(
-        f'<li style="margin-bottom:0.35rem;">{f}</li>' for f in LOST_FEATURES
+        f'<li style="margin-bottom:0.35rem;">{f}</li>' for f in _lost_features()
     )
+    price_line = _gettext('Premium ProfCalendar — dès %(price)s/mois, sans engagement.',
+                          price=PREMIUM_PRICE)
+    footer = _gettext('Vous recevez cet e-mail parce que vous avez un compte ProfCalendar.')
     return f"""
     <div style="font-family: 'Inter', Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 2rem;">
         <div style="text-align:center; margin-bottom:1.5rem;">
@@ -82,52 +92,52 @@ def _wrap(title, accent, body_html, cta_label):
                 </a>
             </div>
             <p style="color:#9CA3AF; font-size:0.8rem; text-align:center; margin-top:1.25rem;">
-                Premium ProfCalendar — dès CHF&nbsp;4.90/mois, sans engagement.
+                {price_line}
             </p>
         </div>
         <p style="color:#A0AEC0; font-size:0.72rem; text-align:center; margin-top:1.5rem;">
-            Vous recevez cet e-mail parce que vous avez un compte ProfCalendar.
+            {footer}
         </p>
     </div>
     """
 
 
-def _content_for_stage(new_stage, days_remaining):
-    """Retourne (sujet, html) pour l'étape donnée."""
-    if new_stage == 1:
-        d = days_remaining
-        subject = f"Plus que {d} jours de Premium sur ProfCalendar"
-        body = (
-            f'<p style="color:#374151; line-height:1.55;">Bonjour,</p>'
-            f'<p style="color:#374151; line-height:1.55;">Il vous reste '
-            f'<strong>{d} jours</strong> d\'essai Premium. C\'est le moment '
-            f'idéal pour profiter pleinement de tout ce que ProfCalendar vous offre '
-            f'avant la fin de la période d\'essai&nbsp;:</p>'
-        )
-        return subject, _wrap("Votre essai Premium continue 🎁", "#6366F1",
-                              body, "Continuer en Premium")
+_P = '<p style="color:#374151; line-height:1.55;">%s</p>'
 
-    if new_stage == 2:
-        subject = "Dernier jour de votre essai Premium ⏳"
-        body = (
-            '<p style="color:#374151; line-height:1.55;">Bonjour,</p>'
-            '<p style="color:#374151; line-height:1.55;">Votre essai Premium se '
-            'termine <strong>demain</strong>. Sans abonnement, vous perdrez '
-            'l\'accès à&nbsp;:</p>'
-        )
-        return subject, _wrap("Votre essai se termine demain", "#D97706",
-                              body, "Garder Premium")
 
-    # new_stage == 3
-    subject = "Votre essai Premium est terminé : réactivez-le en 1 clic"
-    body = (
-        '<p style="color:#374151; line-height:1.55;">Bonjour,</p>'
-        '<p style="color:#374151; line-height:1.55;">Votre essai Premium est '
-        'terminé. Vous gardez l\'accès à la planification de vos cours, mais les '
-        'fonctionnalités suivantes sont désormais verrouillées&nbsp;:</p>'
-    )
-    return subject, _wrap("Réactivez votre accès Premium", "#DC2626",
-                          body, "Passer à Premium")
+def _content_for_stage(new_stage, days_remaining, locale=None):
+    """Retourne (sujet, html) pour l'étape donnée.
+
+    Langue : `locale` si fournie, sinon la langue courante (celle imposée par
+    force_locale dans la boucle d'envoi), à défaut le français.
+    """
+    with email_language(locale):
+        hello = _P % _gettext('Bonjour,')
+        if new_stage == 1:
+            d = days_remaining
+            subject = _gettext('Plus que %(days)s jours de Premium sur ProfCalendar', days=d)
+            body = hello + _P % _gettext(
+                "Il vous reste <strong>%(days)s jours</strong> d'essai Premium. C'est le moment "
+                "idéal pour profiter pleinement de tout ce que ProfCalendar vous offre "
+                "avant la fin de la période d'essai&nbsp;:", days=d)
+            return subject, _wrap(_gettext("Votre essai Premium continue 🎁"), "#6366F1",
+                                  body, _gettext("Continuer en Premium"))
+
+        if new_stage == 2:
+            subject = _gettext("Dernier jour de votre essai Premium ⏳")
+            body = hello + _P % _gettext(
+                "Votre essai Premium se termine <strong>demain</strong>. Sans abonnement, "
+                "vous perdrez l'accès à&nbsp;:")
+            return subject, _wrap(_gettext("Votre essai se termine demain"), "#D97706",
+                                  body, _gettext("Garder Premium"))
+
+        # new_stage == 3
+        subject = _gettext("Votre essai Premium est terminé : réactivez-le en 1 clic")
+        body = hello + _P % _gettext(
+            "Votre essai Premium est terminé. Vous gardez l'accès à la planification de "
+            "vos cours, mais les fonctionnalités suivantes sont désormais verrouillées&nbsp;:")
+        return subject, _wrap(_gettext("Réactivez votre accès Premium"), "#DC2626",
+                              body, _gettext("Passer à Premium"))
 
 
 def send_due_trial_reminders():
@@ -174,8 +184,11 @@ def send_due_trial_reminders():
             continue
 
         new_stage, key, days = decision
-        subject, html = _content_for_stage(new_stage, days)
-        ok = send_email(user.email, subject, html)
+        # Langue du destinataire (boucle de fond : pas de requête, la langue
+        # est imposée pour la construction ET l'envoi).
+        with force_locale(email_locale(user.locale)):
+            subject, html = _content_for_stage(new_stage, days)
+            ok = send_email(user.email, subject, html)
         if ok:
             user.trial_reminder_stage = new_stage
             db.session.commit()

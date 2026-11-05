@@ -53,7 +53,7 @@
                          data-weekday="{{ i }}"
                          data-has-class="{{ 'true' if has_class else 'false' }}"
                          onclick="{% if has_class and not holiday_name %}handleAnnualDayClick(this, '{{ date_str }}'){% endif %}"
-                         title="{{ days[i] }} {{ date.strftime('%d/%m') }}{% if holiday_name %} - {{ holiday_name }}{% endif %}">
+                         title="{{ _(days[i]) }} {{ date.strftime('%d/%m') }}{% if holiday_name %} - {{ holiday_name }}{% endif %}">
                         <div class="annual-day-content">
                             {% if holiday_name %}
                                 <div class="annual-holiday-name">{{ holiday_name[:3] }}</div>

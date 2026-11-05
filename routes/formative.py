@@ -10,6 +10,7 @@ import re
 from datetime import datetime
 
 from flask import Blueprint, request, jsonify
+from flask_babel import gettext as _gettext
 from flask_login import login_required, current_user
 
 from extensions import db
@@ -34,7 +35,7 @@ def _enabled():
 def _require_enabled():
     """Réponse d'erreur si la fonction est désactivée, sinon None."""
     if not _enabled():
-        return jsonify({'success': False, 'error': 'Fonction désactivée'}), 403
+        return jsonify({'success': False, 'error': _gettext('Fonction désactivée')}), 403
     return None
 
 
@@ -68,7 +69,7 @@ def create_level():
     data = request.get_json(silent=True) or {}
     label = (data.get('label') or '').strip()
     if not label:
-        return jsonify({'success': False, 'error': 'Libellé manquant'}), 400
+        return jsonify({'success': False, 'error': _gettext('Libellé manquant')}), 400
     if len(label) > 60:
         label = label[:60]
     last = FormativeLevel.query.filter_by(user_id=current_user.id).order_by(
@@ -86,11 +87,11 @@ def create_level():
 def update_level(level_id):
     level = FormativeLevel.query.filter_by(id=level_id, user_id=current_user.id).first()
     if not level:
-        return jsonify({'success': False, 'error': 'Niveau introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Niveau introuvable')}), 404
     data = request.get_json(silent=True) or {}
     label = (data.get('label') or '').strip()
     if not label:
-        return jsonify({'success': False, 'error': 'Libellé manquant'}), 400
+        return jsonify({'success': False, 'error': _gettext('Libellé manquant')}), 400
     level.label = label[:60]
     db.session.commit()
     return jsonify({'success': True, 'level': level.to_dict()})
@@ -105,7 +106,7 @@ def delete_level(level_id):
     le commentaire et la pastille de l'élève sont conservés."""
     level = FormativeLevel.query.filter_by(id=level_id, user_id=current_user.id).first()
     if not level:
-        return jsonify({'success': False, 'error': 'Niveau introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Niveau introuvable')}), 404
     FormativeEntry.query.filter_by(level_id=level.id).update(
         {'level_id': None}, synchronize_session=False)
     db.session.delete(level)
@@ -148,9 +149,9 @@ def list_assessments():
     try:
         classroom_id = int(request.args.get('classroom_id'))
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': 'classroom_id invalide'}), 400
+        return jsonify({'success': False, 'error': _gettext('classroom_id invalide')}), 400
     if not user_can_access_classroom(current_user.id, classroom_id):
-        return jsonify({'success': False, 'error': 'Accès refusé'}), 403
+        return jsonify({'success': False, 'error': _gettext('Accès refusé')}), 403
 
     classroom = Classroom.query.get_or_404(classroom_id)
     assessments = FormativeAssessment.query.filter_by(
@@ -189,13 +190,13 @@ def create_assessment():
     try:
         classroom_id = int(data.get('classroom_id'))
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': 'classroom_id invalide'}), 400
+        return jsonify({'success': False, 'error': _gettext('classroom_id invalide')}), 400
     if not user_can_access_classroom(current_user.id, classroom_id):
-        return jsonify({'success': False, 'error': 'Accès refusé'}), 403
+        return jsonify({'success': False, 'error': _gettext('Accès refusé')}), 403
 
     title = (data.get('title') or '').strip()
     if not title:
-        return jsonify({'success': False, 'error': 'Titre manquant'}), 400
+        return jsonify({'success': False, 'error': _gettext('Titre manquant')}), 400
 
     try:
         date = datetime.strptime(data.get('date'), '%Y-%m-%d').date()
@@ -218,7 +219,7 @@ def update_assessment(assessment_id):
         return err
     assessment = _owned_assessment(assessment_id)
     if not assessment:
-        return jsonify({'success': False, 'error': 'Évaluation introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Évaluation introuvable')}), 404
     data = request.get_json(silent=True) or {}
     title = (data.get('title') or '').strip()
     if title:
@@ -227,7 +228,7 @@ def update_assessment(assessment_id):
         try:
             assessment.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
         except ValueError:
-            return jsonify({'success': False, 'error': 'Date invalide'}), 400
+            return jsonify({'success': False, 'error': _gettext('Date invalide')}), 400
     db.session.commit()
     return jsonify({'success': True, 'assessment': assessment.to_dict()})
 
@@ -241,7 +242,7 @@ def delete_assessment(assessment_id):
         return err
     assessment = _owned_assessment(assessment_id)
     if not assessment:
-        return jsonify({'success': False, 'error': 'Évaluation introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Évaluation introuvable')}), 404
     db.session.delete(assessment)     # cascade sur les entrées
     db.session.commit()
     return jsonify({'success': True})
@@ -264,15 +265,15 @@ def upsert_entry():
         assessment_id = int(data.get('assessment_id'))
         student_id = int(data.get('student_id'))
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': 'Paramètres invalides'}), 400
+        return jsonify({'success': False, 'error': _gettext('Paramètres invalides')}), 400
 
     assessment = _owned_assessment(assessment_id)
     if not assessment:
-        return jsonify({'success': False, 'error': 'Évaluation introuvable'}), 404
+        return jsonify({'success': False, 'error': _gettext('Évaluation introuvable')}), 404
 
     # L'élève doit bien appartenir au roster de la classe visée.
     if student_id not in {s.id for s in assessment.classroom.get_students()}:
-        return jsonify({'success': False, 'error': 'Élève hors de cette classe'}), 403
+        return jsonify({'success': False, 'error': _gettext('Élève hors de cette classe')}), 403
 
     # Une clé ABSENTE du corps signifie « colonne désactivée dans les
     # paramètres » : on laisse la valeur déjà enregistrée intacte. Sans ça,
@@ -287,9 +288,9 @@ def upsert_entry():
             try:
                 level_id = int(level_id)
             except (TypeError, ValueError):
-                return jsonify({'success': False, 'error': 'Niveau invalide'}), 400
+                return jsonify({'success': False, 'error': _gettext('Niveau invalide')}), 400
             if not FormativeLevel.query.filter_by(id=level_id, user_id=current_user.id).first():
-                return jsonify({'success': False, 'error': 'Niveau introuvable'}), 404
+                return jsonify({'success': False, 'error': _gettext('Niveau introuvable')}), 404
 
     comment = (data.get('comment') or '').strip() or None
     color = _clean_color(data.get('color'))
@@ -332,7 +333,7 @@ def student_formative(student_id):
     """
     from routes.planning import user_can_access_student
     if not user_can_access_student(current_user.id, student_id):
-        return jsonify({'success': False, 'error': 'Accès refusé'}), 404
+        return jsonify({'success': False, 'error': _gettext('Accès refusé')}), 404
     if not _enabled():
         return jsonify({'success': True, 'enabled': False, 'items': []})
 

@@ -1,3 +1,4 @@
+if (typeof window.pcT !== 'function') { window.pcT = function (s, v) { return v ? String(s).replace(/\{(\w+)\}/g, function (m, k) { return (k in v) ? String(v[k]) : m; }) : s; }; }
 /**
  * Système de gestion des mémos de classe et remarques élèves - Version 2.0
  * Workflow avec boutons et formulaires déroulants
@@ -131,7 +132,7 @@ class LessonMemosManager {
             html += `
                 <span class="student-tag">
                     ${student.first_name} ${student.last_name}
-                    <button type="button" class="remove-student" onclick="lessonMemosManager.removeSelectedStudent(${student.id})" title="Retirer">
+                    <button type="button" class="remove-student" onclick="lessonMemosManager.removeSelectedStudent(${student.id})" title="${pcT('Retirer')}">
                         <i class="fas fa-times"></i>
                     </button>
                 </span>
@@ -187,23 +188,23 @@ class LessonMemosManager {
 
         // Afficher les mémos
         memos.forEach(memo => {
-            const dateStr = memo.target_date ? new Date(memo.target_date).toLocaleDateString('fr-FR') : 'Non défini';
+            const dateStr = memo.target_date ? new Date(memo.target_date).toLocaleDateString('fr-FR') : pcT('Non défini');
             html += `
                 <div class="memo-item" data-id="${memo.id}" data-type="memo">
                     <div class="memo-content">
                         <div class="memo-header">
-                            <span class="memo-type-badge">MÉMO</span>
+                            <span class="memo-type-badge">${pcT('MÉMO')}</span>
                             <span class="memo-date">📅 ${dateStr}</span>
                         </div>
                         <div class="memo-text">${this.escapeHtml(memo.content)}</div>
                     </div>
                     <div class="memo-actions">
                         ${showEditButton ? `
-                        <button class="memo-action-btn" onclick="lessonMemosManager.editMemo(${memo.id})" title="Modifier">
+                        <button class="memo-action-btn" onclick="lessonMemosManager.editMemo(${memo.id})" title="${pcT('Modifier')}">
                             <i class="fas fa-edit"></i>
                         </button>
                         ` : ''}
-                        <button class="memo-action-btn delete" onclick="lessonMemosManager.deleteMemo(${memo.id})" title="Supprimer">
+                        <button class="memo-action-btn delete" onclick="lessonMemosManager.deleteMemo(${memo.id})" title="${pcT('Supprimer')}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -217,18 +218,18 @@ class LessonMemosManager {
                 <div class="remark-item" data-id="${remark.id}" data-type="remark">
                     <div class="memo-content">
                         <div class="memo-header">
-                            <span class="memo-type-badge">REMARQUE</span>
+                            <span class="memo-type-badge">${pcT('REMARQUE')}</span>
                             <span class="memo-student-name">${this.escapeHtml(remark.student_name)}</span>
                         </div>
                         <div class="memo-text">${this.escapeHtml(remark.content)}</div>
                     </div>
                     <div class="memo-actions">
                         ${showEditButton ? `
-                        <button class="memo-action-btn" onclick="lessonMemosManager.editRemark(${remark.id})" title="Modifier">
+                        <button class="memo-action-btn" onclick="lessonMemosManager.editRemark(${remark.id})" title="${pcT('Modifier')}">
                             <i class="fas fa-edit"></i>
                         </button>
                         ` : ''}
-                        <button class="memo-action-btn delete" onclick="lessonMemosManager.deleteRemark(${remark.id})" title="Supprimer">
+                        <button class="memo-action-btn delete" onclick="lessonMemosManager.deleteRemark(${remark.id})" title="${pcT('Supprimer')}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -244,12 +245,12 @@ class LessonMemosManager {
         const content = document.getElementById('memoContent').value.trim();
 
         if (!dateType) {
-            alert('Veuillez choisir une date de rappel');
+            alert(pcT('Veuillez choisir une date de rappel'));
             return;
         }
 
         if (!content) {
-            alert('Veuillez entrer le contenu du mémo');
+            alert(pcT('Veuillez entrer le contenu du mémo'));
             return;
         }
 
@@ -258,7 +259,7 @@ class LessonMemosManager {
         if (dateType === 'custom') {
             targetDate = document.getElementById('memoCustomDate').value;
             if (!targetDate) {
-                alert('Veuillez sélectionner une date');
+                alert(pcT('Veuillez sélectionner une date'));
                 return;
             }
         }
@@ -287,11 +288,11 @@ class LessonMemosManager {
                 this.loadExistingMemosAndRemarks();
                 // Pas de notification - ajout silencieux
             } else {
-                alert(data.error || 'Erreur lors de la création du mémo');
+                alert(data.error || pcT('Erreur lors de la création du mémo'));
             }
         } catch (error) {
             console.error('Erreur:', error);
-            alert('Erreur lors de la communication avec le serveur');
+            alert(pcT('Erreur lors de la communication avec le serveur'));
         }
     }
 
@@ -300,12 +301,12 @@ class LessonMemosManager {
         const sendToParentAndStudent = document.getElementById('sendToParentAndStudent').checked;
 
         if (this.selectedStudents.length === 0) {
-            alert('Veuillez sélectionner au moins un élève');
+            alert(pcT('Veuillez sélectionner au moins un élève'));
             return;
         }
 
         if (!content) {
-            alert('Veuillez entrer le contenu de la remarque');
+            alert(pcT('Veuillez entrer le contenu de la remarque'));
             return;
         }
 
@@ -328,7 +329,7 @@ class LessonMemosManager {
 
                 const data = await response.json();
                 if (!data.success) {
-                    alert(`Erreur pour ${student.first_name} ${student.last_name}: ${data.error}`);
+                    alert(pcT('Erreur pour {name} : {error}', {name: student.first_name + ' ' + student.last_name, error: data.error}));
                     return;
                 }
             }
@@ -338,12 +339,12 @@ class LessonMemosManager {
             // Pas de notification - ajout silencieux
         } catch (error) {
             console.error('Erreur:', error);
-            alert('Erreur lors de la communication avec le serveur');
+            alert(pcT('Erreur lors de la communication avec le serveur'));
         }
     }
 
     async editMemo(id) {
-        const newContent = prompt('Modifier le mémo:');
+        const newContent = prompt(pcT('Modifier le mémo :'));
         if (!newContent) return;
 
         try {
@@ -366,7 +367,7 @@ class LessonMemosManager {
     }
 
     async deleteMemo(id) {
-        if (!confirm('Supprimer ce mémo ?')) return;
+        if (!confirm(pcT('Supprimer ce mémo ?'))) return;
 
         try {
             const response = await fetch(`/planning/delete_lesson_memo/${id}`, {
@@ -384,7 +385,7 @@ class LessonMemosManager {
     }
 
     async editRemark(id) {
-        const newContent = prompt('Modifier la remarque:');
+        const newContent = prompt(pcT('Modifier la remarque :'));
         if (!newContent) return;
 
         try {
@@ -407,7 +408,7 @@ class LessonMemosManager {
     }
 
     async deleteRemark(id) {
-        if (!confirm('Supprimer cette remarque ?')) return;
+        if (!confirm(pcT('Supprimer cette remarque ?'))) return;
 
         try {
             const response = await fetch(`/planning/delete_student_remark/${id}`, {
@@ -502,7 +503,7 @@ function cancelRemarkCreation() {
 
 function confirmStudentSelection() {
     if (lessonMemosManager.selectedStudents.length === 0) {
-        alert('Veuillez sélectionner au moins un élève');
+        alert(pcT('Veuillez sélectionner au moins un élève'));
         return;
     }
 

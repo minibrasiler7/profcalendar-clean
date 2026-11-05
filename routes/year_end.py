@@ -8,6 +8,7 @@ from flask import (
     flash, session, jsonify, make_response, current_app
 )
 from flask_login import login_required, current_user
+from flask_babel import gettext as _gettext
 from extensions import db
 
 year_end_bp = Blueprint('year_end', __name__, url_prefix='/year-end')
@@ -402,11 +403,11 @@ def step3_post():
         new_start = datetime.strptime(request.form['school_year_start'], '%Y-%m-%d').date()
         new_end = datetime.strptime(request.form['school_year_end'], '%Y-%m-%d').date()
     except (KeyError, ValueError):
-        flash('Veuillez entrer des dates valides.', 'error')
+        flash(_gettext('Veuillez entrer des dates valides.'), 'error')
         return redirect(url_for('year_end.step3'))
 
     if new_end <= new_start:
-        flash('La date de fin doit être après la date de début.', 'error')
+        flash(_gettext('La date de fin doit être après la date de début.'), 'error')
         return redirect(url_for('year_end.step3'))
 
     holiday_action = request.form.get('holiday_action', 'clear')
@@ -432,7 +433,7 @@ def confirm():
     dates_info = session.get('year_end_dates', {})
 
     if not dates_info:
-        flash('Veuillez d\'abord configurer les nouvelles dates.', 'error')
+        flash(_gettext('Veuillez d\'abord configurer les nouvelles dates.'), 'error')
         return redirect(url_for('year_end.step3'))
 
     # Construire le récapitulatif
@@ -478,12 +479,12 @@ def execute():
     dates_info = session.get('year_end_dates', {})
 
     if not dates_info:
-        flash('Données de session expirées. Veuillez recommencer.', 'error')
+        flash(_gettext('Données de session expirées. Veuillez recommencer.'), 'error')
         return redirect(url_for('year_end.step1'))
 
     # Vérifier la confirmation
     if not request.form.get('confirm_checkbox'):
-        flash('Veuillez cocher la case de confirmation.', 'error')
+        flash(_gettext('Veuillez cocher la case de confirmation.'), 'error')
         return redirect(url_for('year_end.confirm'))
 
     try:
@@ -507,17 +508,21 @@ def execute():
         session.pop('year_end_dates', None)
 
         flash(
-            f'Nouvelle année scolaire configurée avec succès ! '
-            f'{summary["plannings_deleted"]} plannings supprimés, '
-            f'{summary["attendance_deleted"]} présences supprimées, '
-            f'{summary["classes_deleted"]} classes supprimées, '
-            f'{summary["classes_renamed"]} classes renommées. '
-            f'Configurez maintenant vos nouvelles vacances scolaires.',
+            _gettext('Nouvelle année scolaire configurée avec succès ! '
+                     '%(plannings)s plannings supprimés, '
+                     '%(attendance)s présences supprimées, '
+                     '%(deleted)s classes supprimées, '
+                     '%(renamed)s classes renommées. '
+                     'Configurez maintenant vos nouvelles vacances scolaires.',
+                     plannings=summary["plannings_deleted"],
+                     attendance=summary["attendance_deleted"],
+                     deleted=summary["classes_deleted"],
+                     renamed=summary["classes_renamed"]),
             'success'
         )
         return redirect(url_for('setup.manage_holidays'))
 
     except Exception as e:
         db.session.rollback()
-        flash(f'Erreur lors du nettoyage : {str(e)}', 'error')
+        flash(_gettext('Erreur lors du nettoyage : %(error)s', error=str(e)), 'error')
         return redirect(url_for('year_end.confirm'))

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Suivi des Absences{% endblock %}
+{% block title %}{{ _('Suivi des absences') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -417,9 +417,9 @@
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-calendar-check"></i> Suivi des Absences</h1>
+        <h1><i class="fas fa-calendar-check"></i> {{ _('Suivi des absences') }}</h1>
         <a href="{{ url_for('planning.dashboard') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+            <i class="fas fa-arrow-left"></i> {{ _('Retour au tableau de bord') }}
         </a>
     </div>
 
@@ -427,17 +427,17 @@
     <ul class="nav nav-tabs attendance-tabs" id="attendanceTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="absences-tab" data-bs-toggle="tab" data-bs-target="#absences" type="button" role="tab" aria-controls="absences" aria-selected="true">
-                <i class="fas fa-user-times"></i> Absences
+                <i class="fas fa-user-times"></i> {{ _('Absences') }}
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="late-arrivals-tab" data-bs-toggle="tab" data-bs-target="#late-arrivals" type="button" role="tab" aria-controls="late-arrivals" aria-selected="false">
-                <i class="fas fa-clock"></i> Retards
+                <i class="fas fa-clock"></i> {{ _('Retards') }}
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="justified-tab" data-bs-toggle="tab" data-bs-target="#justified" type="button" role="tab" aria-controls="justified" aria-selected="false">
-                <i class="fas fa-check-circle"></i> Absences justifiées
+                <i class="fas fa-check-circle"></i> {{ _('Absences justifiées') }}
             </button>
         </li>
     </ul>
@@ -449,7 +449,7 @@
             <!-- Bouton filtres avancés -->
             <div class="filters-toggle">
                 <button class="btn-filter-toggle" onclick="toggleFilters('absences')">
-                    <i class="fas fa-filter"></i> Filtres avancés
+                    <i class="fas fa-filter"></i> {{ _('Filtres avancés') }}
                 </button>
             </div>
             
@@ -457,36 +457,36 @@
             <div class="filters-section" id="filters-absences">
                 <div class="date-filters">
                     <div class="form-group">
-                        <label class="form-label">Date de début</label>
+                        <label class="form-label">{{ _('Date de début') }}</label>
                         <input type="date" class="form-control" id="start-date-absences">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Date de fin</label>
+                        <label class="form-label">{{ _('Date de fin') }}</label>
                         <input type="date" class="form-control" id="end-date-absences">
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
-                        <label class="form-label">Classe</label>
+                        <label class="form-label">{{ _('Classe') }}</label>
                         <select class="form-select" id="classroom-filter-absences">
-                            <option value="">Toutes les classes</option>
+                            <option value="">{{ _('Toutes les classes') }}</option>
                             {% for classroom in classrooms %}
                             <option value="{{ classroom.id }}">{{ classroom.name }} - {{ classroom.subject }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Nom de l'élève</label>
-                        <input type="text" class="form-control" id="student-name-absences" placeholder="Rechercher un élève...">
+                        <label class="form-label">{{ _("Nom de l'élève") }}</label>
+                        <input type="text" class="form-control" id="student-name-absences" placeholder="{{ _('Rechercher un élève...') }}">
                     </div>
                 </div>
                 <div class="row mt-3">
                     <div class="col-12">
                         <button class="btn btn-primary" onclick="loadAbsences()">
-                            <i class="fas fa-search"></i> Appliquer les filtres
+                            <i class="fas fa-search"></i> {{ _('Appliquer les filtres') }}
                         </button>
                         <button class="btn btn-outline-secondary" onclick="clearFiltersAbsences()">
-                            <i class="fas fa-times"></i> Réinitialiser
+                            <i class="fas fa-times"></i> {{ _('Réinitialiser') }}
                         </button>
                     </div>
                 </div>
@@ -499,25 +499,25 @@
             <div class="attendance-table">
                 <div class="loading-spinner" id="loading-absences">
                     <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Chargement...</span>
+                        <span class="visually-hidden">{{ _('Chargement...') }}</span>
                     </div>
                 </div>
                 <table class="attendance-table mb-0" id="absences-table" style="display: none;">
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>Élève</th>
-                            <th>Classe</th>
-                            <th>Période(s)</th>
-                            <th>Horaires</th>
-                            <th>Commentaire</th>
+                            <th>{{ _('Date') }}</th>
+                            <th>{{ _('Élève') }}</th>
+                            <th>{{ _('Classe') }}</th>
+                            <th>{{ _('Période(s)') }}</th>
+                            <th>{{ _('Horaires') }}</th>
+                            <th>{{ _('Commentaire') }}</th>
                         </tr>
                     </thead>
                     <tbody id="absences-tbody"></tbody>
                 </table>
                 <div class="no-data" id="no-absences" style="display: none;">
                     <i class="fas fa-inbox fa-3x mb-3"></i>
-                    <p>Aucune absence trouvée pour les critères sélectionnés.</p>
+                    <p>{{ _('Aucune absence trouvée pour les critères sélectionnés.') }}</p>
                 </div>
             </div>
         </div>
@@ -527,7 +527,7 @@
             <!-- Bouton filtres avancés -->
             <div class="filters-toggle">
                 <button class="btn-filter-toggle" onclick="toggleFilters('late')">
-                    <i class="fas fa-filter"></i> Filtres avancés
+                    <i class="fas fa-filter"></i> {{ _('Filtres avancés') }}
                 </button>
             </div>
             
@@ -535,36 +535,36 @@
             <div class="filters-section" id="filters-late">
                 <div class="date-filters">
                     <div class="form-group">
-                        <label class="form-label">Date de début</label>
+                        <label class="form-label">{{ _('Date de début') }}</label>
                         <input type="date" class="form-control" id="start-date-late">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Date de fin</label>
+                        <label class="form-label">{{ _('Date de fin') }}</label>
                         <input type="date" class="form-control" id="end-date-late">
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
-                        <label class="form-label">Classe</label>
+                        <label class="form-label">{{ _('Classe') }}</label>
                         <select class="form-select" id="classroom-filter-late">
-                            <option value="">Toutes les classes</option>
+                            <option value="">{{ _('Toutes les classes') }}</option>
                             {% for classroom in classrooms %}
                             <option value="{{ classroom.id }}">{{ classroom.name }} - {{ classroom.subject }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Nom de l'élève</label>
-                        <input type="text" class="form-control" id="student-name-late" placeholder="Rechercher un élève...">
+                        <label class="form-label">{{ _("Nom de l'élève") }}</label>
+                        <input type="text" class="form-control" id="student-name-late" placeholder="{{ _('Rechercher un élève...') }}">
                     </div>
                 </div>
                 <div class="row mt-3">
                     <div class="col-12">
                         <button class="btn btn-primary" onclick="loadLateArrivals()">
-                            <i class="fas fa-search"></i> Appliquer les filtres
+                            <i class="fas fa-search"></i> {{ _('Appliquer les filtres') }}
                         </button>
                         <button class="btn btn-outline-secondary" onclick="clearFiltersLate()">
-                            <i class="fas fa-times"></i> Réinitialiser
+                            <i class="fas fa-times"></i> {{ _('Réinitialiser') }}
                         </button>
                     </div>
                 </div>
@@ -577,26 +577,26 @@
             <div class="attendance-table">
                 <div class="loading-spinner" id="loading-late">
                     <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Chargement...</span>
+                        <span class="visually-hidden">{{ _('Chargement...') }}</span>
                     </div>
                 </div>
                 <table class="attendance-table mb-0" id="late-table" style="display: none;">
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>Élève</th>
-                            <th>Classe</th>
-                            <th>Période(s)</th>
-                            <th>Horaires</th>
-                            <th>Minutes de retard</th>
-                            <th>Commentaire</th>
+                            <th>{{ _('Date') }}</th>
+                            <th>{{ _('Élève') }}</th>
+                            <th>{{ _('Classe') }}</th>
+                            <th>{{ _('Période(s)') }}</th>
+                            <th>{{ _('Horaires') }}</th>
+                            <th>{{ _('Minutes de retard') }}</th>
+                            <th>{{ _('Commentaire') }}</th>
                         </tr>
                     </thead>
                     <tbody id="late-tbody"></tbody>
                 </table>
                 <div class="no-data" id="no-late" style="display: none;">
                     <i class="fas fa-inbox fa-3x mb-3"></i>
-                    <p>Aucun retard trouvé pour les critères sélectionnés.</p>
+                    <p>{{ _('Aucun retard trouvé pour les critères sélectionnés.') }}</p>
                 </div>
             </div>
         </div>
@@ -606,7 +606,7 @@
             <!-- Bouton filtres avancés -->
             <div class="filters-toggle">
                 <button class="btn-filter-toggle" onclick="toggleFilters('justified')">
-                    <i class="fas fa-filter"></i> Filtres avancés
+                    <i class="fas fa-filter"></i> {{ _('Filtres avancés') }}
                 </button>
             </div>
             
@@ -614,45 +614,45 @@
             <div class="filters-section" id="filters-justified">
                 <div class="date-filters">
                     <div class="form-group">
-                        <label class="form-label">Date de début</label>
+                        <label class="form-label">{{ _('Date de début') }}</label>
                         <input type="date" class="form-control" id="start-date-justified">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Date de fin</label>
+                        <label class="form-label">{{ _('Date de fin') }}</label>
                         <input type="date" class="form-control" id="end-date-justified">
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-4">
-                        <label class="form-label">Classe</label>
+                        <label class="form-label">{{ _('Classe') }}</label>
                         <select class="form-select" id="classroom-filter-justified">
-                            <option value="">Toutes les classes</option>
+                            <option value="">{{ _('Toutes les classes') }}</option>
                             {% for classroom in classrooms %}
                             <option value="{{ classroom.id }}">{{ classroom.name }} - {{ classroom.subject }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Nom de l'élève</label>
-                        <input type="text" class="form-control" id="student-name-justified" placeholder="Rechercher un élève...">
+                        <label class="form-label">{{ _("Nom de l'élève") }}</label>
+                        <input type="text" class="form-control" id="student-name-justified" placeholder="{{ _('Rechercher un élève...') }}">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Statut</label>
+                        <label class="form-label">{{ _('Statut') }}</label>
                         <select class="form-select" id="status-filter-justified">
-                            <option value="">Tous les statuts</option>
-                            <option value="pending">En attente</option>
-                            <option value="approved">Approuvée</option>
-                            <option value="rejected">Refusée</option>
+                            <option value="">{{ _('Tous les statuts') }}</option>
+                            <option value="pending">{{ _('En attente') }}</option>
+                            <option value="approved">{{ _('Approuvée') }}</option>
+                            <option value="rejected">{{ _('Refusée') }}</option>
                         </select>
                     </div>
                 </div>
                 <div class="row mt-3">
                     <div class="col-12">
                         <button class="btn btn-primary" onclick="loadJustifications()">
-                            <i class="fas fa-search"></i> Appliquer les filtres
+                            <i class="fas fa-search"></i> {{ _('Appliquer les filtres') }}
                         </button>
                         <button class="btn btn-outline-secondary" onclick="clearFiltersJustified()">
-                            <i class="fas fa-times"></i> Réinitialiser
+                            <i class="fas fa-times"></i> {{ _('Réinitialiser') }}
                         </button>
                     </div>
                 </div>
@@ -662,13 +662,13 @@
             <div class="attendance-table">
                 <div class="loading-spinner" id="loading-justified">
                     <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Chargement...</span>
+                        <span class="visually-hidden">{{ _('Chargement...') }}</span>
                     </div>
                 </div>
                 <div id="justifications-container" style="display: none;"></div>
                 <div class="no-data" id="no-justified" style="display: none;">
                     <i class="fas fa-inbox fa-3x mb-3"></i>
-                    <p>Aucune justification trouvée pour les critères sélectionnés.</p>
+                    <p>{{ _('Aucune justification trouvée pour les critères sélectionnés.') }}</p>
                 </div>
             </div>
         </div>
@@ -676,6 +676,30 @@
 </div>
 
 <script>
+// Chaînes traduites pour le JS : jetons {error}/{n}/{pct}/{date} remplacés en JS
+// (un « % » littéral s'écrit %% dans le msgid).
+const ATTENDANCE_I18N = {
+    advancedFilters: {{ _('Filtres avancés')|tojson }},
+    hideFilters: {{ _('Masquer les filtres')|tojson }},
+    loadAbsencesError: {{ _('Erreur lors du chargement des absences : {error}')|tojson }},
+    loadLateError: {{ _('Erreur lors du chargement des retards : {error}')|tojson }},
+    loadJustificationsError: {{ _('Erreur lors du chargement des justifications : {error}')|tojson }},
+    connectionError: {{ _('Erreur de connexion : {error}')|tojson }},
+    nMin: {{ _('{n} min')|tojson }},
+    totalRecords: {{ _("Total d'enregistrements")|tojson }},
+    presentPct: {{ _('Présents ({pct}%%)')|tojson }},
+    absentPct: {{ _('Absents ({pct}%%)')|tojson }},
+    latePct: {{ _('Retards ({pct}%%)')|tojson }},
+    none: {{ _('Aucune')|tojson }},
+    submittedOn: {{ _('Soumis le {date}')|tojson }},
+    periods: {{ _('Périodes')|tojson }},
+    times: {{ _('Horaires')|tojson }},
+    notSet: {{ _('Non défini')|tojson }},
+    reason: {{ _('Motif')|tojson }},
+    processedOn: {{ _('Traité le')|tojson }},
+    teacherResponse: {{ _("Réponse de l'enseignant")|tojson }}
+};
+
 // Variables globales
 let currentTab = 'absences';
 
@@ -686,10 +710,10 @@ function toggleFilters(type) {
     
     if (filtersSection.classList.contains('show')) {
         filtersSection.classList.remove('show');
-        button.innerHTML = '<i class="fas fa-filter"></i> Filtres avancés';
+        button.innerHTML = '<i class="fas fa-filter"></i> ' + ATTENDANCE_I18N.advancedFilters;
     } else {
         filtersSection.classList.add('show');
-        button.innerHTML = '<i class="fas fa-filter"></i> Masquer les filtres';
+        button.innerHTML = '<i class="fas fa-filter"></i> ' + ATTENDANCE_I18N.hideFilters;
     }
 }
 
@@ -776,12 +800,12 @@ function loadAbsences() {
                 displayAbsences(data.absences);
                 loadStats('absences');
             } else {
-                showError('Erreur lors du chargement des absences: ' + data.message);
+                showError(ATTENDANCE_I18N.loadAbsencesError.replace('{error}', data.message));
             }
         })
         .catch(error => {
             hideLoading('absences');
-            showError('Erreur de connexion: ' + error.message);
+            showError(ATTENDANCE_I18N.connectionError.replace('{error}', error.message));
         });
 }
 
@@ -804,12 +828,12 @@ function loadLateArrivals() {
                 displayLateArrivals(data.late_arrivals);
                 loadStats('late');
             } else {
-                showError('Erreur lors du chargement des retards: ' + data.message);
+                showError(ATTENDANCE_I18N.loadLateError.replace('{error}', data.message));
             }
         })
         .catch(error => {
             hideLoading('late');
-            showError('Erreur de connexion: ' + error.message);
+            showError(ATTENDANCE_I18N.connectionError.replace('{error}', error.message));
         });
 }
 
@@ -884,7 +908,7 @@ function displayLateArrivals(lateArrivals) {
             <td>${late.classroom_name}</td>
             <td>${late.periods}</td>
             <td>${late.time_range}</td>
-            <td><span class="badge bg-warning">${late.late_minutes} min</span></td>
+            <td><span class="badge bg-warning">${ATTENDANCE_I18N.nMin.replace('{n}', late.late_minutes)}</span></td>
             <td>${late.comment || '-'}</td>
         `;
     });
@@ -899,19 +923,19 @@ function displayStats(stats, type) {
     container.innerHTML = `
         <div class="stat-card">
             <div class="stat-value">${stats.total_records}</div>
-            <div class="stat-label">Total d'enregistrements</div>
+            <div class="stat-label">${ATTENDANCE_I18N.totalRecords}</div>
         </div>
         <div class="stat-card">
             <div class="stat-value">${stats.present}</div>
-            <div class="stat-label">Présents (${stats.present_percentage}%)</div>
+            <div class="stat-label">${ATTENDANCE_I18N.presentPct.replace('{pct}', stats.present_percentage)}</div>
         </div>
         <div class="stat-card">
             <div class="stat-value">${stats.absent}</div>
-            <div class="stat-label">Absents (${stats.absent_percentage}%)</div>
+            <div class="stat-label">${ATTENDANCE_I18N.absentPct.replace('{pct}', stats.absent_percentage)}</div>
         </div>
         <div class="stat-card">
             <div class="stat-value">${stats.late}</div>
-            <div class="stat-label">Retards (${stats.late_percentage}%)</div>
+            <div class="stat-label">${ATTENDANCE_I18N.latePct.replace('{pct}', stats.late_percentage)}</div>
         </div>
     `;
 }
@@ -963,12 +987,12 @@ function loadJustifications() {
             if (data.success) {
                 displayJustifications(data.justifications);
             } else {
-                showError('Erreur lors du chargement des justifications: ' + data.message);
+                showError(ATTENDANCE_I18N.loadJustificationsError.replace('{error}', data.message));
             }
         })
         .catch(error => {
             hideLoading('justified');
-            showError('Erreur de connexion: ' + error.message);
+            showError(ATTENDANCE_I18N.connectionError.replace('{error}', error.message));
         });
 }
 
@@ -997,14 +1021,14 @@ function displayJustifications(justifications) {
         
         const periodsHtml = justification.periods ? 
             justification.periods.split(', ').map(p => `<span class="period-tag">${p}</span>`).join('') : 
-            '<span class="text-muted">Aucune</span>';
+            '<span class="text-muted">' + ATTENDANCE_I18N.none + '</span>';
         
         card.innerHTML = `
             <div class="justification-header">
                 <div class="justification-info">
                     <h4>${justification.student_name}</h4>
                     <div class="justification-meta">
-                        ${justification.classroom_name} • ${justification.date} • Soumis le ${justification.created_at}
+                        ${justification.classroom_name} • ${justification.date} • ${ATTENDANCE_I18N.submittedOn.replace('{date}', justification.created_at)}
                     </div>
                 </div>
                 <div class="justification-status">
@@ -1018,26 +1042,26 @@ function displayJustifications(justifications) {
             </div>
             <div class="justification-details">
                 <div class="detail-item">
-                    <div class="detail-label">Périodes</div>
+                    <div class="detail-label">${ATTENDANCE_I18N.periods}</div>
                     <div class="detail-value period-tags">${periodsHtml}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Horaires</div>
-                    <div class="detail-value">${justification.time_range || 'Non défini'}</div>
+                    <div class="detail-label">${ATTENDANCE_I18N.times}</div>
+                    <div class="detail-value">${justification.time_range || ATTENDANCE_I18N.notSet}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Motif</div>
+                    <div class="detail-label">${ATTENDANCE_I18N.reason}</div>
                     <div class="detail-value">${reasonDisplay}</div>
                 </div>
                 ${justification.processed_at ? `
                 <div class="detail-item">
-                    <div class="detail-label">Traité le</div>
+                    <div class="detail-label">${ATTENDANCE_I18N.processedOn}</div>
                     <div class="detail-value">${justification.processed_at}</div>
                 </div>
                 ` : ''}
                 ${justification.teacher_response ? `
                 <div class="teacher-response">
-                    <div class="detail-label">Réponse de l'enseignant</div>
+                    <div class="detail-label">${ATTENDANCE_I18N.teacherResponse}</div>
                     <div class="detail-value">${justification.teacher_response}</div>
                 </div>
                 ` : ''}

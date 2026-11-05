@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Horaire type - ProfCalendar{% endblock %}
+{% block title %}{{ _('Horaire type') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/calendar.css') }}">
@@ -367,8 +367,8 @@
         <div class="schedule-title">
             <i class="fas fa-calendar-week"></i>
             <div>
-                <h1>Horaire type</h1>
-                <p>Consultez et modifiez votre emploi du temps hebdomadaire</p>
+                <h1>{{ _('Horaire type') }}</h1>
+                <p>{{ _('Consultez et modifiez votre emploi du temps hebdomadaire') }}</p>
             </div>
         </div>
     </div>
@@ -377,9 +377,10 @@
         <table class="schedule-table">
             <thead>
                 <tr>
-                    <th style="width: 80px;">Période</th>
+                    <th style="width: 80px;">{{ _('Période') }}</th>
+                    {% set day_labels = {'Lundi': _('Lundi'), 'Mardi': _('Mardi'), 'Mercredi': _('Mercredi'), 'Jeudi': _('Jeudi'), 'Vendredi': _('Vendredi')} %}
                     {% for day in days %}
-                    <th>{{ day }}</th>
+                    <th>{{ day_labels.get(day, day) }}</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -441,7 +442,7 @@
                                     {% if schedule.room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule.room }}</div>{% endif %}
                                 {% elif schedule.custom_task_title %}
                                     <div class="class-name"><i class="fas fa-tasks"></i> {{ schedule.custom_task_title }}</div>
-                                    <div class="class-subject">Autre</div>
+                                    <div class="class-subject">{{ _('Autre') }}</div>
                                 {% endif %}
                                 
                                 <!-- Indicateur de durée pour les périodes fusionnées -->
@@ -460,10 +461,10 @@
                                         {% endif %}
                                     {% endfor %}
                                     {% set total_duration = next_periods_count * (current_user.period_duration or 45) %}
-                                    <div class="merged-duration">{{ total_duration }}min</div>
+                                    <div class="merged-duration">{{ _('%(n)s min', n=total_duration) }}</div>
                                 {% endif %}
                             {% else %}
-                                <div class="empty-slot">Cliquez pour ajouter</div>
+                                <div class="empty-slot">{{ _('Cliquez pour ajouter') }}</div>
                             {% endif %}
                         </div>
                         
@@ -496,14 +497,14 @@
                                     <div class="class-option-info">
                                         <div class="class-option-name">
                                             <i class="fas fa-tasks" style="margin-right: 0.25rem;"></i>
-                                            Autre tâche
+                                            {{ _('Autre tâche') }}
                                         </div>
-                                        <div class="class-option-subject">Tâche personnalisée</div>
+                                        <div class="class-option-subject">{{ _('Tâche personnalisée') }}</div>
                                     </div>
                                 </div>
                             </div>
                             <div class="remove-option">
-                                <i class="fas fa-times"></i> Retirer
+                                <i class="fas fa-times"></i> {{ _('Retirer') }}
                             </div>
                         </div>
                     </td>
@@ -537,7 +538,7 @@
                                  data-weekday="{{ day_index }}" 
                                  data-period-start="{{ period.number }}" 
                                  data-period-end="{{ next_period.number }}"
-                                 title="{% if is_merged %}Cliquez pour séparer ces périodes{% else %}Cliquez pour fusionner ces périodes{% endif %}">
+                                 title="{% if is_merged %}{{ _('Cliquez pour séparer ces périodes') }}{% else %}{{ _('Cliquez pour fusionner ces périodes') }}{% endif %}">
                                 <i class="fas {% if is_merged %}fa-unlink{% else %}fa-link{% endif %}"></i>
                             </div>
                             {% endif %}
@@ -567,10 +568,10 @@
 
     <div class="action-buttons">
         <a href="{{ url_for('planning.dashboard') }}" class="btn btn-outline">
-            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+            <i class="fas fa-arrow-left"></i> {{ _('Retour au tableau de bord') }}
         </a>
         <button type="button" class="btn btn-primary" onclick="saveAllChanges()">
-            <i class="fas fa-save"></i> Enregistrer les modifications
+            <i class="fas fa-save"></i> {{ _('Enregistrer les modifications') }}
         </button>
     </div>
 </div>
@@ -578,23 +579,23 @@
 <!-- Modal pour tâche personnalisée -->
 <div id="customTaskModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 2000;">
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 0.5rem; min-width: min(400px, 92vw); max-width: 92vw;">
-        <h3 style="margin-bottom: 1rem;">Ajouter une tâche personnalisée</h3>
+        <h3 style="margin-bottom: 1rem;">{{ _('Ajouter une tâche personnalisée') }}</h3>
         <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Titre de la tâche :</label>
-            <input type="text" id="customTaskTitle" placeholder="Ex: Surveillance, Réunion, etc." style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{{ _('Titre de la tâche :') }}</label>
+            <input type="text" id="customTaskTitle" placeholder="{{ _('Ex: Surveillance, Réunion, etc.') }}" style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
             <div style="margin-top: 1rem;">
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Horaire exact (optionnel) :</label>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{{ _('Horaire exact (optionnel) :') }}</label>
                 <div style="display: flex; gap: 0.75rem; align-items: center;">
                     <input type="time" id="customTaskStart" style="padding: 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
                     <span style="color: #6B7280;">→</span>
                     <input type="time" id="customTaskEnd" style="padding: 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
                 </div>
-                <p style="font-size: 0.78rem; color: #6B7280; margin-top: 0.35rem;">Sans horaire, la tâche occupe toute la période.</p>
+                <p style="font-size: 0.78rem; color: #6B7280; margin-top: 0.35rem;">{{ _('Sans horaire, la tâche occupe toute la période.') }}</p>
             </div>
         </div>
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-            <button onclick="closeCustomTaskModal()" style="padding: 0.75rem 1.5rem; border: 1px solid #D1D5DB; background: white; border-radius: 0.25rem; cursor: pointer;">Annuler</button>
-            <button onclick="saveCustomTask()" style="padding: 0.75rem 1.5rem; background: #3B82F6; color: white; border: none; border-radius: 0.25rem; cursor: pointer;">Ajouter</button>
+            <button onclick="closeCustomTaskModal()" style="padding: 0.75rem 1.5rem; border: 1px solid #D1D5DB; background: white; border-radius: 0.25rem; cursor: pointer;">{{ _('Annuler') }}</button>
+            <button onclick="saveCustomTask()" style="padding: 0.75rem 1.5rem; background: #3B82F6; color: white; border: none; border-radius: 0.25rem; cursor: pointer;">{{ _('Ajouter') }}</button>
         </div>
     </div>
 </div>
@@ -605,30 +606,46 @@
      onclick="event.stopPropagation()">
     <div id="roomConfirmClassName" style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;"></div>
     <label style="display:block; font-size: 0.75rem; font-weight: 600; color: #6B7280; margin-bottom: 0.25rem;">
-        <i class="fas fa-door-open"></i> Salle (optionnel)
+        <i class="fas fa-door-open"></i> {{ _('Salle (optionnel)') }}
     </label>
-    <input type="text" id="viewRoomInput" maxlength="50" placeholder="Ex : B204"
+    <input type="text" id="viewRoomInput" maxlength="50" placeholder="{{ _('Ex : B204') }}"
            style="width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem; font-size: 0.85rem;"
            onkeydown="if (event.key === 'Enter') { event.preventDefault(); confirmRoomSelection(); }">
     <div style="display:flex; gap: 0.5rem; margin-top: 0.6rem;">
         <button type="button" onclick="confirmRoomSelection()"
                 style="flex:1; background:#4F46E5; color:white; border:none; padding:0.45rem 0.6rem; border-radius:0.3rem; font-weight:600; cursor:pointer;">
-            <i class="fas fa-check"></i> Valider
+            <i class="fas fa-check"></i> {{ _('Valider') }}
         </button>
         <button type="button" onclick="cancelRoomSelection()"
                 style="background:#F3F4F6; color:#374151; border:1px solid #D1D5DB; padding:0.45rem 0.6rem; border-radius:0.3rem; cursor:pointer;">
-            Annuler
+            {{ _('Annuler') }}
         </button>
     </div>
 </div>
 
 <div class="save-status" id="saveStatus">
-    <i class="fas fa-check"></i> Modifications enregistrées !
+    <i class="fas fa-check"></i> {{ _('Modifications enregistrées !') }}
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Chaînes traduites pour le JS (jetons {error}/{n} remplacés en JS).
+const SCHEDULE_VIEW_I18N = {
+    other: {{ _('Autre')|tojson }},
+    clickToAdd: {{ _('Cliquez pour ajouter')|tojson }},
+    saveError: {{ _('Erreur lors de la sauvegarde : {error}')|tojson }},
+    saveConnectionError: {{ _('Erreur de connexion lors de la sauvegarde')|tojson }},
+    taskTitleRequired: {{ _('Veuillez saisir un titre pour la tâche')|tojson }},
+    mergeError: {{ _('Erreur lors de la fusion : {error}')|tojson }},
+    mergeConnectionError: {{ _('Erreur de connexion lors de la fusion')|tojson }},
+    splitError: {{ _('Erreur lors de la séparation : {error}')|tojson }},
+    splitConnectionError: {{ _('Erreur de connexion lors de la séparation')|tojson }},
+    clickToSplit: {{ _('Cliquez pour séparer ces périodes')|tojson }},
+    clickToMerge: {{ _('Cliquez pour fusionner ces périodes')|tojson }},
+    nMin: {{ _('{n} min')|tojson }}
+};
+
 // Variables globales
 const classrooms = {{ classrooms_json | tojson }};
 const periods = {{ periods_json | tojson }};
@@ -785,7 +802,7 @@ function selectClass(weekday, period, itemId, itemType = 'classroom', room = '')
         item = {
             id: null,
             name: itemId,
-            subject: 'Autre',
+            subject: SCHEDULE_VIEW_I18N.other,
             color: '#6B7280',
             type: 'custom'
         };
@@ -869,7 +886,7 @@ function updateSlotUI(weekday, period, item, room = '') {
         slot.removeAttribute('data-custom-task');
         slot.removeAttribute('data-type');
         slot.dataset.room = '';
-        slot.innerHTML = '<div class="empty-slot">Cliquez pour ajouter</div>';
+        slot.innerHTML = '<div class="empty-slot">' + SCHEDULE_VIEW_I18N.clickToAdd + '</div>';
     }
 }
 
@@ -903,11 +920,11 @@ async function saveScheduleSlot(weekday, period, itemId, itemType = 'classroom',
             showSaveStatus();
         } else {
             console.error('Erreur lors de la sauvegarde:', result.message);
-            alert('Erreur lors de la sauvegarde: ' + result.message);
+            alert(SCHEDULE_VIEW_I18N.saveError.replace('{error}', result.message));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur de connexion lors de la sauvegarde');
+        alert(SCHEDULE_VIEW_I18N.saveConnectionError);
     }
 }
 
@@ -955,7 +972,7 @@ function closeCustomTaskModal() {
 function saveCustomTask() {
     const title = document.getElementById('customTaskTitle').value.trim();
     if (!title) {
-        alert('Veuillez saisir un titre pour la tâche');
+        alert(SCHEDULE_VIEW_I18N.taskTitleRequired);
         return;
     }
 
@@ -1026,11 +1043,11 @@ async function mergePeriods(weekday, periodStart, periodEnd) {
             showSaveStatus();
         } else {
             console.error('Erreur lors de la fusion:', result.message);
-            alert('Erreur lors de la fusion: ' + result.message);
+            alert(SCHEDULE_VIEW_I18N.mergeError.replace('{error}', result.message));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur de connexion lors de la fusion');
+        alert(SCHEDULE_VIEW_I18N.mergeConnectionError);
     }
 }
 
@@ -1056,11 +1073,11 @@ async function separatePeriods(weekday, periodStart, periodEnd) {
             showSaveStatus();
         } else {
             console.error('Erreur lors de la séparation:', result.message);
-            alert('Erreur lors de la séparation: ' + result.message);
+            alert(SCHEDULE_VIEW_I18N.splitError.replace('{error}', result.message));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur de connexion lors de la séparation');
+        alert(SCHEDULE_VIEW_I18N.splitConnectionError);
     }
 }
 
@@ -1077,11 +1094,11 @@ function updateMergedPeriodsUI(weekday, periodStart, periodEnd, isMerged) {
     if (connector) {
         if (isMerged) {
             connector.classList.add('break-mode');
-            connector.title = 'Cliquez pour séparer ces périodes';
+            connector.title = SCHEDULE_VIEW_I18N.clickToSplit;
             connector.querySelector('i').className = 'fas fa-unlink';
         } else {
             connector.classList.remove('break-mode');
-            connector.title = 'Cliquez pour fusionner ces périodes';
+            connector.title = SCHEDULE_VIEW_I18N.clickToMerge;
             connector.querySelector('i').className = 'fas fa-link';
         }
     }
@@ -1098,7 +1115,7 @@ function updateMergedPeriodsUI(weekday, periodStart, periodEnd, isMerged) {
                     const duration = (periodEnd - periodStart + 1) * (currentUser.period_duration || 45);
                     const durationElement = document.createElement('div');
                     durationElement.className = 'merged-duration';
-                    durationElement.textContent = `${duration}min`;
+                    durationElement.textContent = SCHEDULE_VIEW_I18N.nMin.replace('{n}', duration);
                     slot.appendChild(durationElement);
                 } else if (period === periodEnd) {
                     slot.classList.add('merged-end');

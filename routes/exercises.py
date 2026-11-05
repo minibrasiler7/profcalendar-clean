@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, send_file
+from flask_babel import gettext as _gettext
 from flask_login import login_required, current_user
 from extensions import db
 import io
@@ -59,7 +60,7 @@ def edit(exercise_id):
     """Modifier un exercice existant"""
     exercise = Exercise.query.get_or_404(exercise_id)
     if exercise.user_id != current_user.id:
-        flash('Vous n\'avez pas accès à cet exercice.', 'error')
+        flash(_gettext("Vous n'avez pas accès à cet exercice."), 'error')
         return redirect(url_for('exercises.index'))
 
     classrooms = Classroom.query.filter_by(user_id=current_user.id).all()
@@ -75,7 +76,7 @@ def save():
     """Sauvegarder un exercice (AJAX)"""
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+        return jsonify({'success': False, 'message': _gettext('Données manquantes')}), 400
 
     exercise_id = data.get('id')
 
@@ -84,7 +85,7 @@ def save():
             # Mise à jour
             exercise = Exercise.query.get(exercise_id)
             if not exercise or exercise.user_id != current_user.id:
-                return jsonify({'success': False, 'message': 'Exercice non trouvé'}), 404
+                return jsonify({'success': False, 'message': _gettext('Exercice non trouvé')}), 404
         else:
             # Création
             exercise = Exercise(user_id=current_user.id)
@@ -174,7 +175,7 @@ def save():
         return jsonify({
             'success': True,
             'exercise_id': exercise.id,
-            'message': 'Exercice sauvegardé',
+            'message': _gettext('Exercice sauvegardé'),
             # Image du badge : permet à l'éditeur d'afficher l'aperçu
             # juste après la première sauvegarde, sans recharger la page.
             'badge_pattern': exercise.badge_pattern,
@@ -237,18 +238,18 @@ def publish_to_class():
     classroom_id = data.get('classroom_id')
 
     if not exercise_id or not classroom_id:
-        return jsonify({'success': False, 'error': 'exercise_id et classroom_id requis'}), 400
+        return jsonify({'success': False, 'error': _gettext('exercise_id et classroom_id requis')}), 400
 
     # Convertir en int pour éviter les erreurs SQL de type cast (VARCHAR vs INTEGER)
     try:
         exercise_id = int(exercise_id)
         classroom_id = int(classroom_id)
     except (ValueError, TypeError):
-        return jsonify({'success': False, 'error': 'IDs invalides'}), 400
+        return jsonify({'success': False, 'error': _gettext('IDs invalides')}), 400
 
     exercise = Exercise.query.get(exercise_id)
     if not exercise or exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'error': 'Exercice non trouvé'}), 404
+        return jsonify({'success': False, 'error': _gettext('Exercice non trouvé')}), 404
 
     from models.exercise_progress import ExercisePublication
     from datetime import datetime
@@ -260,7 +261,7 @@ def publish_to_class():
     ).first()
 
     if existing:
-        return jsonify({'success': True, 'message': 'Exercice déjà dans cette classe'})
+        return jsonify({'success': True, 'message': _gettext('Exercice déjà dans cette classe')})
 
     pub = ExercisePublication(
         exercise_id=exercise.id,
@@ -277,7 +278,7 @@ def publish_to_class():
     exercise.classroom_id = int(classroom_id)
 
     db.session.commit()
-    return jsonify({'success': True, 'message': 'Exercice publié'})
+    return jsonify({'success': True, 'message': _gettext('Exercice publié')})
 
 
 @exercises_bp.route('/unlink-from-class', methods=['POST'])
@@ -290,17 +291,17 @@ def unlink_from_class():
     classroom_id = data.get('classroom_id')
 
     if not exercise_id or not classroom_id:
-        return jsonify({'success': False, 'error': 'exercise_id et classroom_id requis'}), 400
+        return jsonify({'success': False, 'error': _gettext('exercise_id et classroom_id requis')}), 400
 
     try:
         exercise_id = int(exercise_id)
         classroom_id = int(classroom_id)
     except (ValueError, TypeError):
-        return jsonify({'success': False, 'error': 'IDs invalides'}), 400
+        return jsonify({'success': False, 'error': _gettext('IDs invalides')}), 400
 
     exercise = Exercise.query.get(exercise_id)
     if not exercise or exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'error': 'Exercice non trouvé'}), 404
+        return jsonify({'success': False, 'error': _gettext('Exercice non trouvé')}), 404
 
     # Retirer le lien avec la classe
     if exercise.classroom_id == classroom_id:
@@ -319,7 +320,7 @@ def unlink_from_class():
         pass
 
     db.session.commit()
-    return jsonify({'success': True, 'message': 'Exercice retiré de la classe'})
+    return jsonify({'success': True, 'message': _gettext('Exercice retiré de la classe')})
 
 
 @exercises_bp.route('/<int:exercise_id>/delete', methods=['DELETE'])
@@ -329,7 +330,7 @@ def delete(exercise_id):
     """Supprimer un exercice et toutes ses publications/tentatives élèves"""
     exercise = Exercise.query.get_or_404(exercise_id)
     if exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Non autorisé')}), 403
 
     try:
         # Nettoyer dans l'ordre inverse des FK:
@@ -351,7 +352,7 @@ def delete(exercise_id):
 
         db.session.delete(exercise)
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Exercice supprimé'})
+        return jsonify({'success': True, 'message': _gettext('Exercice supprimé')})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -364,7 +365,7 @@ def duplicate(exercise_id):
     """Dupliquer un exercice"""
     exercise = Exercise.query.get_or_404(exercise_id)
     if exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Non autorisé')}), 403
 
     try:
         new_exercise = Exercise(
@@ -399,7 +400,7 @@ def duplicate(exercise_id):
         return jsonify({
             'success': True,
             'exercise_id': new_exercise.id,
-            'message': 'Exercice dupliqué'
+            'message': _gettext('Exercice dupliqué')
         })
     except Exception as e:
         db.session.rollback()
@@ -413,14 +414,14 @@ def publish(exercise_id):
     """Publier un exercice vers une ou plusieurs classes"""
     exercise = Exercise.query.get_or_404(exercise_id)
     if exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Non autorisé')}), 403
 
     data = request.get_json()
     classroom_ids = data.get('classroom_ids', [])
     planning_id = data.get('planning_id')
 
     if not classroom_ids:
-        return jsonify({'success': False, 'message': 'Sélectionnez au moins une classe'}), 400
+        return jsonify({'success': False, 'message': _gettext('Sélectionnez au moins une classe')}), 400
 
     try:
         for cid in classroom_ids:
@@ -451,7 +452,7 @@ def publish(exercise_id):
 
         return jsonify({
             'success': True,
-            'message': f'Exercice publié pour {len(classroom_ids)} classe(s)'
+            'message': _gettext('Exercice publié pour %(count)s classe(s)', count=len(classroom_ids))
         })
     except Exception as e:
         db.session.rollback()
@@ -465,7 +466,7 @@ def preview(exercise_id):
     """Prévisualiser un exercice comme un élève"""
     exercise = Exercise.query.get_or_404(exercise_id)
     if exercise.user_id != current_user.id:
-        flash('Non autorisé', 'error')
+        flash(_gettext('Non autorisé'), 'error')
         return redirect(url_for('exercises.index'))
 
     blocks = exercise.blocks.order_by(ExerciseBlock.position).all()
@@ -479,7 +480,7 @@ def stats(exercise_id):
     """Statistiques d'un exercice"""
     exercise = Exercise.query.get_or_404(exercise_id)
     if exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Non autorisé')}), 403
 
     attempts = StudentExerciseAttempt.query.filter_by(exercise_id=exercise.id).all()
     completed = [a for a in attempts if a.is_completed]
@@ -502,7 +503,7 @@ def get_exercise_data(exercise_id):
     """Récupérer les données JSON d'un exercice (pour l'éditeur)"""
     exercise = Exercise.query.get_or_404(exercise_id)
     if exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Non autorisé')}), 403
 
     return jsonify({
         'success': True,
@@ -528,11 +529,11 @@ def launch_exercise():
         mode = 'classique'  # le combat RPG est masqué
 
     if not exercise_id or not classroom_id:
-        return jsonify({'success': False, 'error': 'exercise_id et classroom_id requis'}), 400
+        return jsonify({'success': False, 'error': _gettext('exercise_id et classroom_id requis')}), 400
 
     exercise = Exercise.query.get(exercise_id)
     if not exercise or exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'error': 'Exercice non trouvé'}), 404
+        return jsonify({'success': False, 'error': _gettext('Exercice non trouvé')}), 404
 
     # Vérifier si déjà publié pour cette classe
     existing = ExercisePublication.query.filter_by(
@@ -564,7 +565,7 @@ def launch_exercise():
         'success': True,
         'publication_id': pub_obj.id,
         'mode': mode,
-        'message': f'Exercice lancé en mode {mode}'
+        'message': _gettext('Exercice lancé en mode %(mode)s', mode=mode)
     }
 
     # Si mode combat, créer une CombatSession automatiquement
@@ -595,7 +596,7 @@ def toggle_active(pub_id):
     pub = ExercisePublication.query.get_or_404(pub_id)
     exercise = Exercise.query.get(pub.exercise_id)
     if not exercise or exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'error': _gettext('Non autorisé')}), 403
 
     pub.is_active = not pub.is_active
     db.session.commit()
@@ -610,7 +611,7 @@ def live_tracking(pub_id):
     pub = ExercisePublication.query.get_or_404(pub_id)
     exercise = Exercise.query.get(pub.exercise_id)
     if not exercise or exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'error': _gettext('Non autorisé')}), 403
 
     from models.student import Student
 
@@ -749,17 +750,17 @@ def live_tracking(pub_id):
 def upload_block_image():
     """Upload d'une image pour un bloc (image interactive)"""
     if 'file' not in request.files:
-        return jsonify({'success': False, 'message': 'Aucun fichier'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucun fichier')}), 400
 
     file = request.files['file']
     if not file.filename:
-        return jsonify({'success': False, 'message': 'Nom de fichier vide'}), 400
+        return jsonify({'success': False, 'message': _gettext('Nom de fichier vide')}), 400
 
     # Vérifier le type
     allowed = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
     if ext not in allowed:
-        return jsonify({'success': False, 'message': 'Type de fichier non supporté'}), 400
+        return jsonify({'success': False, 'message': _gettext('Type de fichier non supporté')}), 400
 
     try:
         from models.file_manager import UserFile, FileFolder
@@ -850,13 +851,13 @@ def manager_create_folder():
     data = request.get_json(silent=True) or {}
     name = data.get('name', '').strip()
     if not name:
-        return jsonify({'success': False, 'message': 'Nom requis'}), 400
+        return jsonify({'success': False, 'message': _gettext('Nom requis')}), 400
 
     parent_id = data.get('parent_id')
     if parent_id:
         parent = ExerciseFolder.query.get(parent_id)
         if not parent or parent.user_id != current_user.id:
-            return jsonify({'success': False, 'message': 'Dossier parent invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Dossier parent invalide')}), 400
 
     folder = ExerciseFolder(
         user_id=current_user.id,
@@ -880,12 +881,12 @@ def manager_rename_folder(folder_id):
     from models.exercise import ExerciseFolder
     folder = ExerciseFolder.query.get_or_404(folder_id)
     if folder.user_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Non autorisé')}), 403
 
     data = request.get_json(silent=True) or {}
     name = data.get('name', '').strip()
     if not name:
-        return jsonify({'success': False, 'message': 'Nom requis'}), 400
+        return jsonify({'success': False, 'message': _gettext('Nom requis')}), 400
 
     folder.name = name
     if 'color' in data:
@@ -902,7 +903,7 @@ def manager_delete_folder(folder_id):
     from models.exercise import ExerciseFolder
     folder = ExerciseFolder.query.get_or_404(folder_id)
     if folder.user_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+        return jsonify({'success': False, 'message': _gettext('Non autorisé')}), 403
 
     # Move exercises in this folder to root (null folder)
     Exercise.query.filter_by(exercise_folder_id=folder_id).update({'exercise_folder_id': None})
@@ -965,13 +966,13 @@ def manager_move_exercise():
 
     exercise = Exercise.query.get(exercise_id)
     if not exercise or exercise.user_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Exercice non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Exercice non trouvé')}), 404
 
     if folder_id:
         from models.exercise import ExerciseFolder
         folder = ExerciseFolder.query.get(folder_id)
         if not folder or folder.user_id != current_user.id:
-            return jsonify({'success': False, 'message': 'Dossier invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Dossier invalide')}), 400
 
     exercise.exercise_folder_id = folder_id
     exercise.updated_at = datetime.utcnow()
@@ -991,18 +992,18 @@ def manager_move_folder():
 
     folder = ExerciseFolder.query.get(folder_id)
     if not folder or folder.user_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Dossier non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Dossier non trouvé')}), 404
 
     # Prevent moving a folder into its own subtree
     if new_parent_id:
         parent = ExerciseFolder.query.get(new_parent_id)
         if not parent or parent.user_id != current_user.id:
-            return jsonify({'success': False, 'message': 'Dossier parent invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Dossier parent invalide')}), 400
         # Check for circular reference
         check = parent
         while check:
             if check.id == folder.id:
-                return jsonify({'success': False, 'message': 'Référence circulaire'}), 400
+                return jsonify({'success': False, 'message': _gettext('Référence circulaire')}), 400
             check = check.parent
 
     folder.parent_id = new_parent_id
@@ -1044,22 +1045,22 @@ def quick_publish_current_class(exercise_id):
 
     exercise = Exercise.query.get_or_404(exercise_id)
     if exercise.user_id != current_user.id:
-        flash("Vous n'avez pas accès à cet exercice.", 'error')
+        flash(_gettext("Vous n'avez pas accès à cet exercice."), 'error')
         return redirect(url_for('exercises.index'))
 
     result = get_current_or_next_lesson(current_user)
     if not result:
-        flash("Aucun cours en cours pour le moment.", 'warning')
+        flash(_gettext('Aucun cours en cours pour le moment.'), 'warning')
         return redirect(url_for('exercises.edit', exercise_id=exercise_id))
 
     lesson, is_now, lesson_date = result
     if not lesson or not lesson.classroom_id:
-        flash("Pas de classe associée au cours actuel.", 'warning')
+        flash(_gettext('Pas de classe associée au cours actuel.'), 'warning')
         return redirect(url_for('exercises.edit', exercise_id=exercise_id))
 
     classroom_id = lesson.classroom_id
     classroom = Classroom.query.get(classroom_id)
-    classroom_name = classroom.name if classroom else f'Classe #{classroom_id}'
+    classroom_name = classroom.name if classroom else _gettext('Classe #%(id)s', id=classroom_id)
 
     # Créer ou réutiliser la publication
     existing = ExercisePublication.query.filter_by(
@@ -1082,9 +1083,9 @@ def quick_publish_current_class(exercise_id):
         if not exercise.classroom_id:
             exercise.classroom_id = classroom_id
         db.session.commit()
-        flash(f'« {exercise.title} » envoyé à la classe {classroom_name}.', 'success')
+        flash(_gettext('« %(title)s » envoyé à la classe %(classroom)s.', title=exercise.title, classroom=classroom_name), 'success')
     else:
-        flash(f'« {exercise.title} » est déjà publié dans la classe {classroom_name}.', 'info')
+        flash(_gettext('« %(title)s » est déjà publié dans la classe %(classroom)s.', title=exercise.title, classroom=classroom_name), 'info')
 
     return render_template('exercises/quick_publish_confirmation.html',
                            exercise=exercise,

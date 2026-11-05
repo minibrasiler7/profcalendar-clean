@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
+from flask_babel import gettext as _gettext
 from extensions import db
 from functools import wraps
 from models.class_collaboration import ClassMaster, TeacherAccessCode, TeacherCollaboration, SharedClassroom, StudentClassroomLink
@@ -19,9 +20,9 @@ def teacher_required(f):
         if not isinstance(current_user, User):
             # Pour les requêtes AJAX, retourner une erreur JSON
             if request.is_json or request.headers.get('Accept') == 'application/json':
-                return jsonify({'error': 'Accès réservé aux enseignants'}), 403
+                return jsonify({'error': _gettext('Accès réservé aux enseignants')}), 403
             
-            flash('Accès réservé aux enseignants', 'error')
+            flash(_gettext('Accès réservé aux enseignants'), 'error')
             return redirect(url_for('auth.login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -255,7 +256,7 @@ def create_teacher_code():
         
         return jsonify({
             'success': True,
-            'message': 'Code enseignant créé avec succès',
+            'message': _gettext('Code enseignant créé avec succès'),
             'code': new_code.code
         })
         
@@ -275,7 +276,7 @@ def regenerate_teacher_code():
         ).first()
         
         if not current_code:
-            return jsonify({'success': False, 'message': 'Aucun code actuel trouvé'}), 404
+            return jsonify({'success': False, 'message': _gettext('Aucun code actuel trouvé')}), 404
         
         # Désactiver l'ancien code
         current_code.is_active = False
@@ -292,7 +293,7 @@ def regenerate_teacher_code():
         
         return jsonify({
             'success': True,
-            'message': 'Code enseignant régénéré avec succès',
+            'message': _gettext('Code enseignant régénéré avec succès'),
             'code': new_code.code
         })
         
@@ -316,7 +317,7 @@ def create_shared_class():
     all_classroom_ids = request.form.get('all_classroom_ids', '').strip()
     
     if not all([collaboration_id, original_classroom_id, subject]):
-        flash('Tous les champs sont requis', 'error')
+        flash(_gettext('Tous les champs sont requis'), 'error')
         return redirect(request.referrer)
     
     collaboration = TeacherCollaboration.query.get_or_404(collaboration_id)
@@ -333,7 +334,7 @@ def create_shared_class():
     
     # Vérifier les permissions
     if collaboration.specialized_teacher_id != current_user.id:
-        flash('Accès non autorisé', 'error')
+        flash(_gettext('Accès non autorisé'), 'error')
         return redirect(url_for('collaboration.index'))
     
     # Vérifier qu'il n'y a pas déjà une classe partagée pour cette collaboration/classe/matière
@@ -344,7 +345,7 @@ def create_shared_class():
     ).first()
     
     if existing_shared:
-        flash('Une classe existe déjà pour cette matière', 'error')
+        flash(_gettext('Une classe existe déjà pour cette matière'), 'error')
         return redirect(request.referrer)
     
     # Créer la nouvelle classe dérivée
@@ -414,8 +415,11 @@ def create_shared_class():
     
     db.session.commit()
     
-    group_info = f" (groupe {original_classroom.class_group})" if is_multi_subject else ""
-    flash(f'Classe "{new_class_name}" créée avec succès{group_info}', 'success')
+    if is_multi_subject:
+        flash(_gettext('Classe "%(name)s" créée avec succès (groupe %(group)s)',
+                       name=new_class_name, group=original_classroom.class_group), 'success')
+    else:
+        flash(_gettext('Classe "%(name)s" créée avec succès', name=new_class_name), 'success')
     return redirect(url_for('planning.manage_classes'))
 
 @collaboration_bp.route('/deactivate-code/<int:code_id>')
@@ -425,13 +429,13 @@ def deactivate_code(code_id):
     access_code = TeacherAccessCode.query.get_or_404(code_id)
     
     if access_code.master_teacher_id != current_user.id:
-        flash('Accès non autorisé', 'error')
+        flash(_gettext('Accès non autorisé'), 'error')
         return redirect(url_for('collaboration.index'))
     
     access_code.is_active = False
     db.session.commit()
     
-    flash('Code d\'accès désactivé', 'success')
+    flash(_gettext('Code d\'accès désactivé'), 'success')
     return redirect(url_for('collaboration.index'))
 
 @collaboration_bp.route('/end-collaboration/<int:collaboration_id>')
@@ -442,13 +446,13 @@ def end_collaboration(collaboration_id):
     
     # Vérifier que l'utilisateur est soit le maître soit l'enseignant spécialisé
     if collaboration.specialized_teacher_id != current_user.id and collaboration.master_teacher_id != current_user.id:
-        flash('Accès non autorisé', 'error')
+        flash(_gettext('Accès non autorisé'), 'error')
         return redirect(url_for('collaboration.index'))
     
     collaboration.is_active = False
     db.session.commit()
     
-    flash('Collaboration terminée', 'success')
+    flash(_gettext('Collaboration terminée'), 'success')
     return redirect(url_for('collaboration.index'))
 
 @collaboration_bp.route('/delete-collaboration/<int:collaboration_id>')
@@ -459,7 +463,7 @@ def delete_collaboration(collaboration_id):
     
     # Vérifier que l'utilisateur est l'enseignant spécialisé de cette collaboration
     if collaboration.specialized_teacher_id != current_user.id:
-        flash('Seul l\'enseignant spécialisé peut supprimer sa collaboration', 'error')
+        flash(_gettext('Seul l\'enseignant spécialisé peut supprimer sa collaboration'), 'error')
         return redirect(url_for('collaboration.index'))
     
     try:
@@ -479,10 +483,10 @@ def delete_collaboration(collaboration_id):
         db.session.delete(collaboration)
         
         db.session.commit()
-        flash('Collaboration et classes associées supprimées avec succès', 'success')
+        flash(_gettext('Collaboration et classes associées supprimées avec succès'), 'success')
         
     except Exception as e:
         db.session.rollback()
-        flash(f'Erreur lors de la suppression : {str(e)}', 'error')
+        flash(_gettext('Erreur lors de la suppression : %(error)s', error=str(e)), 'error')
     
     return redirect(url_for('collaboration.index'))

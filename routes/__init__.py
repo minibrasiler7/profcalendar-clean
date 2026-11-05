@@ -3,6 +3,7 @@
 from functools import wraps
 from flask import redirect, url_for, flash
 from flask_login import login_required, current_user
+from flask_babel import gettext as _gettext
 
 
 def teacher_required(f):
@@ -14,10 +15,10 @@ def teacher_required(f):
         from models.student import Student
 
         if isinstance(current_user, Parent):
-            flash('Accès réservé aux enseignants', 'error')
+            flash(_gettext('Accès réservé aux enseignants'), 'error')
             return redirect(url_for('parent_auth.dashboard'))
         elif isinstance(current_user, Student):
-            flash('Accès réservé aux enseignants', 'error')
+            flash(_gettext('Accès réservé aux enseignants'), 'error')
             return redirect(url_for('student_auth.dashboard'))
         return f(*args, **kwargs)
     return decorated_function
@@ -31,11 +32,11 @@ def premium_required(f):
         from models.user import User
 
         if not isinstance(current_user, User):
-            flash('Accès réservé aux enseignants premium', 'error')
+            flash(_gettext('Accès réservé aux enseignants premium'), 'error')
             return redirect(url_for('auth.login'))
 
         if not current_user.has_premium_access():
-            flash('Cette fonctionnalité nécessite un abonnement premium.', 'warning')
+            flash(_gettext('Cette fonctionnalité nécessite un abonnement premium.'), 'warning')
             return redirect(url_for('subscription.pricing'))
 
         return f(*args, **kwargs)
@@ -50,7 +51,7 @@ def admin_required(f):
         from models.user import User
 
         if not isinstance(current_user, User) or not current_user.is_admin:
-            flash('Accès réservé aux administrateurs', 'error')
+            flash(_gettext('Accès réservé aux administrateurs'), 'error')
             return redirect(url_for('planning.dashboard'))
 
         return f(*args, **kwargs)

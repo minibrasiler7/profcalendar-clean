@@ -1,3 +1,4 @@
+if (typeof window.pcT !== 'function') { window.pcT = function (s, v) { return v ? String(s).replace(/\{(\w+)\}/g, function (m, k) { return (k in v) ? String(v[k]) : m; }) : s; }; }
 // Gestion de la planification des cours
 let currentPlanningData = {};
 
@@ -173,7 +174,7 @@ function openPlanningModal(cell, fromAnnualView = false) {
             document.getElementById('modalClassroom').disabled = true;
             document.getElementById('modalPlanningTitle').disabled = true;
             descriptionContainer.innerHTML = `
-                <label class="form-label">Description</label>
+                <label class="form-label">${pcT('Description')}</label>
                 <div id="pastPeriodDescription" class="past-period-description"></div>
             `;
             saveButton.style.display = 'none';
@@ -183,11 +184,11 @@ function openPlanningModal(cell, fromAnnualView = false) {
             document.getElementById('modalPlanningTitle').disabled = false;
             if (!descriptionContainer.querySelector('textarea')) {
                 descriptionContainer.innerHTML = `
-                    <label class="form-label">Description</label>
+                    <label class="form-label">${pcT('Description')}</label>
                     <textarea id="modalDescription" class="form-control" rows="3"
-                              placeholder="Détails du cours, exercices prévus..."></textarea>
+                              placeholder="${pcT('Détails du cours, exercices prévus...')}"></textarea>
                     <div class="checklist-help" style="font-size: 0.75rem; color: var(--gray-color); margin-top: 0.5rem; font-style: italic;">
-                        Astuce : Commencez une ligne par "-" pour créer une case à cocher
+                        ${pcT('Astuce : Commencez une ligne par "-" pour créer une case à cocher')}
                     </div>
                 `;
                 // Réattacher l'événement de conversion des tirets
@@ -198,12 +199,12 @@ function openPlanningModal(cell, fromAnnualView = false) {
 
         // Mettre à jour le titre du modal
         const dateObj = new Date(date);
-        const dateStr = dateObj.toLocaleDateString('fr-FR', {
+        const dateStr = dateObj.toLocaleDateString(document.documentElement.lang || 'fr', {
             weekday: 'long',
             day: 'numeric',
             month: 'long'
         });
-        document.getElementById('modalTitle').textContent = `Planifier - ${dateStr} - Période ${displayPeriod}`;
+        document.getElementById('modalTitle').textContent = pcT('Planifier - {date} - Période {n}', {date: dateStr, n: displayPeriod});
 
         // Afficher le modal (utiliser style.display pour cohérence avec closePlanningModal)
         const planningModal = document.getElementById('planningModal');
@@ -278,7 +279,7 @@ function displayPastPeriodDescription(description, checklistStates = {}) {
         }
     }
 
-    container.innerHTML = html || '<p style="color: var(--gray-color);">Aucune description</p>';
+    container.innerHTML = html || '<p style="color: var(--gray-color);">' + pcT('Aucune description') + '</p>';
 }
 
 // Fonction pour échapper le HTML
@@ -335,7 +336,7 @@ function openDayPlanningModal(date, classroomId = null) {
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
-                <h3>Planifier pour le ${new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
+                <h3>${pcT('Planifier pour le {date}', {date: new Date(date).toLocaleDateString(document.documentElement.lang || 'fr', { weekday: 'long', day: 'numeric', month: 'long' })})}</h3>
                 <button class="modal-close" onclick="closeDayPlanningModal(this)">
                     <i class="fas fa-times"></i>
                 </button>
@@ -344,14 +345,14 @@ function openDayPlanningModal(date, classroomId = null) {
                 <div id="dayPlanningContainer" style="display: flex; flex-direction: column; gap: 1.5rem;">
                     <div class="loading-spinner" style="text-align: center; padding: 2rem;">
                         <i class="fas fa-spinner fa-spin fa-2x"></i>
-                        <p>Chargement des périodes...</p>
+                        <p>${pcT('Chargement des périodes...')}</p>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeDayPlanningModal(this)">Annuler</button>
+                <button class="btn btn-outline" onclick="closeDayPlanningModal(this)">${pcT('Annuler')}</button>
                 <button class="btn btn-primary" onclick="saveDayPlanning('${date}', this)">
-                    <i class="fas fa-save"></i> Enregistrer tout
+                    <i class="fas fa-save"></i> ${pcT('Enregistrer tout')}
                 </button>
             </div>
         </div>
@@ -389,7 +390,7 @@ async function loadDayPeriods(date, filterByClassroomId = null) {
                     titleDiv.innerHTML = `
                         <p style="margin: 0; color: #1E40AF; font-weight: 500;">
                             <i class="fas fa-info-circle"></i>
-                            Planification pour la classe <strong>${classroom.name} - ${classroom.subject}</strong>
+                            ${pcT('Planification pour la classe {classe}', {classe: '<strong>' + classroom.name + ' - ' + classroom.subject + '</strong>'})}
                         </p>
                     `;
                     container.appendChild(titleDiv);
@@ -460,22 +461,22 @@ async function loadDayPeriods(date, filterByClassroomId = null) {
                     periodDiv.innerHTML = `
                         <h4 style="margin-bottom: 1rem; color: #4b5563; display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-clock"></i>
-                            Période ${period.number} (${period.start} - ${period.end})
-                            <span style="font-size: 0.75rem; color: #6B7280; margin-left: auto;">Période terminée</span>
+                            ${pcT('Période {n} ({start} - {end})', {n: period.number, start: period.start, end: period.end})}
+                            <span style="font-size: 0.75rem; color: #6B7280; margin-left: auto;">${pcT('Période terminée')}</span>
                         </h4>
 
                         <div class="form-group">
-                            <label class="form-label">Classe</label>
-                            <input type="text" class="form-control" value="${classrooms.find(c => c.id == existingClassroomId)?.name || 'Aucune classe'}" disabled>
+                            <label class="form-label">${pcT('Classe')}</label>
+                            <input type="text" class="form-control" value="${classrooms.find(c => c.id == existingClassroomId)?.name || pcT('Aucune classe')}" disabled>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Titre du cours</label>
+                            <label class="form-label">${pcT('Titre du cours')}</label>
                             <input type="text" class="form-control" value="${existingTitle}" disabled>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Description</label>
+                            <label class="form-label">${pcT('Description')}</label>
                             <div class="past-period-description" id="past-desc-${period.number}"></div>
                         </div>
                     `;
@@ -493,13 +494,13 @@ async function loadDayPeriods(date, filterByClassroomId = null) {
                     periodDiv.innerHTML = `
                         <h4 style="margin-bottom: 1rem; color: #4b5563; display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-clock"></i>
-                            Période ${period.number} (${period.start} - ${period.end})
+                            ${pcT('Période {n} ({start} - {end})', {n: period.number, start: period.start, end: period.end})}
                         </h4>
 
                         <div class="form-group">
-                            <label class="form-label">Classe</label>
+                            <label class="form-label">${pcT('Classe')}</label>
                             <select class="form-control" data-period="${period.number}" data-field="classroom">
-                                <option value="">-- Pas de cours --</option>
+                                <option value="">${pcT('-- Pas de cours --')}</option>
                                 ${classrooms.map(c => `
                                     <option value="${c.id}" ${existingClassroomId == c.id ? 'selected' : ''}>
                                         ${c.name} - ${c.subject}
@@ -509,22 +510,22 @@ async function loadDayPeriods(date, filterByClassroomId = null) {
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Titre du cours</label>
+                            <label class="form-label">${pcT('Titre du cours')}</label>
                             <input type="text" class="form-control"
                                    data-period="${period.number}"
                                    data-field="title"
                                    value="${existingTitle}"
-                                   placeholder="Ex: Introduction aux fractions">
+                                   placeholder="${pcT('Ex: Introduction aux fractions')}">
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Description</label>
+                            <label class="form-label">${pcT('Description')}</label>
                             <textarea class="form-control day-planning-description" rows="2"
                                       data-period="${period.number}"
                                       data-field="description"
-                                      placeholder="Détails du cours, exercices prévus...">${existingDescription}</textarea>
+                                      placeholder="${pcT('Détails du cours, exercices prévus...')}">${existingDescription}</textarea>
                             <div class="checklist-help" style="font-size: 0.75rem; color: var(--gray-color); margin-top: 0.5rem; font-style: italic;">
-                                Astuce : Commencez une ligne par "-" pour créer une case à cocher
+                                ${pcT('Astuce : Commencez une ligne par "-" pour créer une case à cocher')}
                             </div>
                         </div>
                     `;
@@ -540,19 +541,19 @@ async function loadDayPeriods(date, filterByClassroomId = null) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 2rem; color: #6B7280;">
                         <i class="fas fa-calendar-times" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                        <p>Aucune période avec ${classroomName || 'cette classe'} ce jour-là selon votre horaire type.</p>
-                        <p style="font-size: 0.875rem; margin-top: 0.5rem;">Vérifiez que vous avez bien configuré cette classe dans votre horaire type pour ce jour de la semaine.</p>
+                        <p>${classroomName ? pcT('Aucune période avec {classe} ce jour-là selon votre horaire type.', {classe: classroomName}) : pcT('Aucune période avec cette classe ce jour-là selon votre horaire type.')}</p>
+                        <p style="font-size: 0.875rem; margin-top: 0.5rem;">${pcT('Vérifiez que vous avez bien configuré cette classe dans votre horaire type pour ce jour de la semaine.')}</p>
                     </div>
                 `;
             } else if (!hasRelevantPeriods) {
-                container.innerHTML = '<p>Aucune période disponible pour cette date.</p>';
+                container.innerHTML = '<p>' + pcT('Aucune période disponible pour cette date.') + '</p>';
             }
         } else {
-            container.innerHTML = '<p>Aucune période disponible pour cette date.</p>';
+            container.innerHTML = '<p>' + pcT('Aucune période disponible pour cette date.') + '</p>';
         }
     } catch (error) {
         console.error('Erreur lors du chargement des périodes:', error);
-        document.getElementById('dayPlanningContainer').innerHTML = '<p>Erreur lors du chargement des périodes.</p>';
+        document.getElementById('dayPlanningContainer').innerHTML = '<p>' + pcT('Erreur lors du chargement des périodes.') + '</p>';
     }
 }
 
@@ -590,7 +591,7 @@ function displayPastPeriodDescriptionInContainer(description, checklistStates, c
         }
     }
 
-    container.innerHTML = html || '<p style="color: var(--gray-color);">Aucune description</p>';
+    container.innerHTML = html || '<p style="color: var(--gray-color);">' + pcT('Aucune description') + '</p>';
 }
 
 // Attacher la conversion des tirets à toutes les textareas de planification journalière
@@ -638,7 +639,7 @@ async function saveDayPlanning(date, buttonElement) {
 
     // Désactiver le bouton pendant la sauvegarde
     buttonElement.disabled = true;
-    buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+    buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + pcT('Enregistrement...');
 
     let hasErrors = false;
 
@@ -696,11 +697,11 @@ async function saveDayPlanning(date, buttonElement) {
     }
 
     if (hasErrors) {
-        showNotification('error', 'Certaines planifications n\'ont pas pu être sauvegardées');
+        showNotification('error', pcT("Certaines planifications n'ont pas pu être enregistrées"));
         buttonElement.disabled = false;
-        buttonElement.innerHTML = '<i class="fas fa-save"></i> Enregistrer tout';
+        buttonElement.innerHTML = '<i class="fas fa-save"></i> ' + pcT('Enregistrer tout');
     } else {
-        showNotification('success', 'Toutes les planifications ont été enregistrées');
+        showNotification('success', pcT('Toutes les planifications ont été enregistrées'));
         modal.remove();
         // Mettre à jour les vues pour tous les créneaux sauvegardés
         updateAllViewsAfterDaySave();
@@ -804,21 +805,21 @@ async function savePlanning() {
                 const patternResult = await patternResponse.json();
                 
                 if (patternResult.success) {
-                    showNotification('success', `Planification enregistrée! ${patternResult.message}`);
+                    showNotification('success', pcT('Planification enregistrée !') + ' ' + (patternResult.message || ''));
                 } else {
-                    showNotification('warning', `Planification enregistrée, mais erreur lors de l'application du pattern: ${patternResult.message}`);
+                    showNotification('warning', pcT("Planification enregistrée, mais la répétition n'a pas pu être appliquée : {message}", {message: patternResult.message || ''}));
                 }
             }
             
             // Mettre à jour les vues sans recharger la page
             updateViewsAfterSave(date, period, classroomId, title, description);
-            showNotification('success', 'Planification enregistrée!');
+            showNotification('success', pcT('Planification enregistrée !'));
         } else {
-            showNotification('error', result.message || 'Erreur lors de la sauvegarde');
+            showNotification('error', result.message || pcT('Erreur lors de la sauvegarde'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la sauvegarde');
+        showNotification('error', pcT('Erreur lors de la sauvegarde'));
     }
 }
 
@@ -933,7 +934,7 @@ function updateWeeklyCellAfterSave(date, period, classroomId, title, description
             customBlock.style.backgroundColor = '#6B7280'; // Couleur grise pour les tâches personnalisées
             customBlock.style.color = 'white'; // Texte blanc sur fond gris
             customBlock.innerHTML = `
-                <div class="class-name"><i class="fas fa-tasks"></i> Tâche personnalisée</div>
+                <div class="class-name"><i class="fas fa-tasks"></i> ${pcT('Tâche personnalisée')}</div>
                 <div class="planning-title">${title}</div>
             `;
             cell.appendChild(customBlock);

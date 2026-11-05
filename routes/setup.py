@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session, abort
 from flask_login import login_required, current_user
+from flask_babel import gettext as _gettext, lazy_gettext as _lf
 from extensions import db
 from models.user import User, Holiday, Break
 from models.classroom import Classroom
@@ -125,13 +126,13 @@ def _handle_join_by_access_code(request, current_user):
     
     # Validation des champs
     if not all([access_code, target_classroom_id, personal_class_name]) or not disciplines:
-        flash('Code, classe cible, nom personnalisé et au moins une discipline requis', 'error')
+        flash(_gettext('Code, classe cible, nom personnalisé et au moins une discipline requis'), 'error')
         return None
     
     # 1. Vérifier le code d'accès
     code_obj = TeacherAccessCode.query.filter_by(code=access_code).first()
     if not code_obj or not code_obj.is_valid():
-        flash('Code d\'accès invalide ou expiré', 'error')
+        flash(_gettext('Code d\'accès invalide ou expiré'), 'error')
         return None
     
     master_teacher = code_obj.master_teacher
@@ -143,7 +144,7 @@ def _handle_join_by_access_code(request, current_user):
     ).first()
     
     if not target_classroom:
-        flash('Classe cible introuvable', 'error')
+        flash(_gettext('Classe cible introuvable'), 'error')
         return None
     
     # 3. Vérifier l'unicité pour chaque discipline
@@ -155,7 +156,7 @@ def _handle_join_by_access_code(request, current_user):
         ).first()
         
         if existing_class:
-            flash(f'Vous avez déjà une classe avec le nom \"{personal_class_name}\" en {discipline["subject"]}', 'error')
+            flash(_gettext('Vous avez déjà une classe avec le nom "%(name)s" en %(subject)s', name=personal_class_name, subject=discipline["subject"]), 'error')
             return None
     
     # 4. Créer ou récupérer la collaboration
@@ -225,11 +226,11 @@ def _handle_join_by_access_code(request, current_user):
     try:
         db.session.commit()
         disciplines_list = ', '.join(created_classes)
-        flash(f'Classes "{personal_class_name}" créées avec succès ! Disciplines: {disciplines_list}. {total_copied_students} élèves copiés de la classe de {master_teacher.username}', 'success')
+        flash(_gettext('Classes "%(name)s" créées avec succès ! Disciplines: %(subjects)s. %(count)s élèves copiés de la classe de %(teacher)s', name=personal_class_name, subjects=disciplines_list, count=total_copied_students, teacher=master_teacher.username), 'success')
         return redirect(url_for('setup.manage_classrooms'))
     except Exception as e:
         db.session.rollback()
-        flash(f'Erreur lors de la création : {str(e)}', 'error')
+        flash(_gettext('Erreur lors de la création : %(error)s', error=str(e)), 'error')
         return None
 
 def _handle_invitation_request(request, current_user):
@@ -262,7 +263,7 @@ def _handle_invitation_request(request, current_user):
     
     # Validation
     if not all([master_teacher_name, target_classroom_id, personal_class_name]) or not disciplines:
-        flash('Tous les champs sont requis (maître, classe cible, nom personnalisé, disciplines)', 'error')
+        flash(_gettext('Tous les champs sont requis (maître, classe cible, nom personnalisé, disciplines)'), 'error')
         return None
     
     # 1. Trouver le maître de classe
@@ -272,7 +273,7 @@ def _handle_invitation_request(request, current_user):
     ).first()
     
     if not master_teacher:
-        flash('Maître de classe introuvable', 'error')
+        flash(_gettext('Maître de classe introuvable'), 'error')
         return None
     
     # 2. Vérifier la classe cible
@@ -282,7 +283,7 @@ def _handle_invitation_request(request, current_user):
     ).first()
     
     if not target_classroom:
-        flash('Classe cible introuvable', 'error')
+        flash(_gettext('Classe cible introuvable'), 'error')
         return None
     
     # 3. Vérifier l'unicité pour chaque discipline
@@ -294,7 +295,7 @@ def _handle_invitation_request(request, current_user):
         ).first()
         
         if existing_class:
-            flash(f'Vous avez déjà une classe avec le nom "{personal_class_name}" en {discipline["subject"]}', 'error')
+            flash(_gettext('Vous avez déjà une classe avec le nom "%(name)s" en %(subject)s', name=personal_class_name, subject=discipline["subject"]), 'error')
             return None
         
         # Vérifier qu'il n'y a pas déjà une invitation identique en attente
@@ -306,7 +307,7 @@ def _handle_invitation_request(request, current_user):
         ).first()
         
         if existing_invitation:
-            flash(f'Vous avez déjà une invitation en attente pour cette classe en {discipline["subject"]}', 'error')
+            flash(_gettext('Vous avez déjà une invitation en attente pour cette classe en %(subject)s', subject=discipline["subject"]), 'error')
             return None
     
     # 4. Créer les classes temporaires et invitations pour chaque discipline
@@ -342,11 +343,11 @@ def _handle_invitation_request(request, current_user):
     try:
         db.session.commit()
         disciplines_list = ', '.join(created_invitations)
-        flash(f'Invitations envoyées à {master_teacher.username} pour la classe "{personal_class_name}" en {disciplines_list}', 'success')
+        flash(_gettext('Invitations envoyées à %(teacher)s pour la classe "%(name)s" en %(subjects)s', teacher=master_teacher.username, name=personal_class_name, subjects=disciplines_list), 'success')
         return redirect(url_for('setup.manage_classrooms'))
     except Exception as e:
         db.session.rollback()
-        flash(f'Erreur lors de l\'envoi : {str(e)}', 'error')
+        flash(_gettext("Erreur lors de l'envoi : %(error)s", error=str(e)), 'error')
         return None
 
 setup_bp = Blueprint('setup', __name__, url_prefix='/setup')
@@ -398,24 +399,24 @@ def get_college_config():
         return jsonify({
             'exists': True,
             'has_config': False,
-            'message': 'Ce collège existe mais n\'a pas de configuration complète'
+            'message': _gettext('Ce collège existe mais n\'a pas de configuration complète')
         })
     else:
         return jsonify({
             'exists': False,
-            'message': 'Nouveau collège - vous pouvez créer sa configuration'
+            'message': _gettext('Nouveau collège - vous pouvez créer sa configuration')
         })
 
 class ClassroomForm(FlaskForm):
-    name = StringField('Nom de la classe', validators=[DataRequired()])
-    subject = StringField('Matière enseignée', validators=[DataRequired()])
-    color = StringField('Couleur', validators=[DataRequired()], default='#4F46E5')
+    name = StringField(_lf('Nom de la classe'), validators=[DataRequired()])
+    subject = StringField(_lf('Matière enseignée'), validators=[DataRequired()])
+    color = StringField(_lf('Couleur'), validators=[DataRequired()], default='#4F46E5')
 
 class ClassroomSetupForm(FlaskForm):
-    setup_type = RadioField('Type de configuration', 
+    setup_type = RadioField(_lf('Type de configuration'), 
                            choices=[
-                               ('master', 'Créer mes propres classes (maître de classe)'),
-                               ('specialized', 'Me lier à un enseignant existant (enseignant spécialisé)')
+                               ('master', _lf('Créer mes propres classes (maître de classe)')),
+                               ('specialized', _lf('Me lier à un enseignant existant (enseignant spécialisé)'))
                            ],
                            validators=[DataRequired()],
                            default='master')
@@ -424,47 +425,47 @@ class ClassroomSetupForm(FlaskForm):
     classrooms = FieldList(FormField(ClassroomForm), min_entries=1)
     
     # Pour la liaison (spécialisé)
-    access_code = StringField('Code d\'accès')
-    master_teacher_name = StringField('Nom du maître de classe')
+    access_code = StringField(_lf('Code d\'accès'))
+    master_teacher_name = StringField(_lf('Nom du maître de classe'))
     
-    submit = SubmitField('Valider')
+    submit = SubmitField(_lf('Valider'))
 
 class HolidayForm(FlaskForm):
-    name = StringField('Nom des vacances/congé', validators=[DataRequired()])
-    start_date = DateField('Date de début', validators=[DataRequired()])
-    end_date = DateField('Date de fin', validators=[DataRequired()])
+    name = StringField(_lf('Nom des vacances/congé'), validators=[DataRequired()])
+    start_date = DateField(_lf('Date de début'), validators=[DataRequired()])
+    end_date = DateField(_lf('Date de fin'), validators=[DataRequired()])
 
 class BreakForm(FlaskForm):
-    name = StringField('Nom de la pause', validators=[DataRequired()])
-    start_time = TimeField('Heure de début', validators=[DataRequired()])
-    end_time = TimeField('Heure de fin', validators=[DataRequired()])
-    is_major_break = BooleanField('Grande pause (pas de pause intercours après)')
+    name = StringField(_lf('Nom de la pause'), validators=[DataRequired()])
+    start_time = TimeField(_lf('Heure de début'), validators=[DataRequired()])
+    end_time = TimeField(_lf('Heure de fin'), validators=[DataRequired()])
+    is_major_break = BooleanField(_lf('Grande pause (pas de pause intercours après)'))
 
 class InitialSetupForm(FlaskForm):
     # Copie de configuration
-    college_name = StringField('Nom du collège (optionnel)', 
-                              description='Entrez le nom de votre collège pour copier sa configuration ou en créer un nouveau')
+    college_name = StringField(_lf('Nom du collège (optionnel)'), 
+                              description=_lf('Entrez le nom de votre collège pour copier sa configuration ou en créer un nouveau'))
     
     # Année scolaire
-    school_year_start = DateField('Début de l\'année scolaire')
-    school_year_end = DateField('Fin de l\'année scolaire')
+    school_year_start = DateField(_lf('Début de l\'année scolaire'))
+    school_year_end = DateField(_lf('Fin de l\'année scolaire'))
 
     # Horaires
-    day_start_time = TimeField('Heure de début des cours')
-    day_end_time = TimeField('Heure de fin des cours')
-    period_duration = IntegerField('Durée d\'une période (minutes)', validators=[
-        NumberRange(min=30, max=120, message="La durée doit être entre 30 et 120 minutes")
+    day_start_time = TimeField(_lf('Heure de début des cours'))
+    day_end_time = TimeField(_lf('Heure de fin des cours'))
+    period_duration = IntegerField(_lf('Durée d\'une période (minutes)'), validators=[
+        NumberRange(min=30, max=120, message=_lf("La durée doit être entre 30 et 120 minutes"))
     ])
-    break_duration = IntegerField('Durée de la pause intercours (minutes)', validators=[
-        NumberRange(min=5, max=30, message="La pause doit être entre 5 et 30 minutes")
+    break_duration = IntegerField(_lf('Durée de la pause intercours (minutes)'), validators=[
+        NumberRange(min=5, max=30, message=_lf("La pause doit être entre 5 et 30 minutes"))
     ])
     
     # Fuseau horaire
-    timezone_offset = IntegerField('Décalage horaire (heures)', validators=[
-        NumberRange(min=-12, max=12, message="Le décalage doit être entre -12 et +12 heures")
+    timezone_offset = IntegerField(_lf('Décalage horaire (heures)'), validators=[
+        NumberRange(min=-12, max=12, message=_lf("Le décalage doit être entre -12 et +12 heures"))
     ], default=0)
 
-    submit = SubmitField('Valider la configuration')
+    submit = SubmitField(_lf('Valider la configuration'))
     
     def validate(self, extra_validators=None):
         """Validation personnalisée : les champs sont requis seulement si on ne copie pas"""
@@ -520,11 +521,11 @@ def initial_setup():
                 
                 try:
                     db.session.commit()
-                    flash(f'Configuration copiée depuis le collège "{college_name}" avec succès !', 'success')
+                    flash(_gettext('Configuration copiée depuis le collège "%(name)s" avec succès !', name=college_name), 'success')
                     return redirect(url_for('settings.index'))
                 except Exception as e:
                     db.session.rollback()
-                    flash(f'Erreur lors de la copie : {str(e)}', 'error')
+                    flash(_gettext('Erreur lors de la copie : %(error)s', error=str(e)), 'error')
             else:
                 # Nouveau collège ou collège sans configuration
                 # On continue avec la configuration manuelle et on créera le collège plus tard
@@ -567,11 +568,11 @@ def initial_setup():
 
         try:
             db.session.commit()
-            flash('Année scolaire et horaires enregistrés.', 'success')
+            flash(_gettext('Année scolaire et horaires enregistrés.'), 'success')
             return redirect(url_for('settings.index'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Erreur lors de la sauvegarde : {str(e)}', 'error')
+            flash(_gettext('Erreur lors de la sauvegarde : %(error)s', error=str(e)), 'error')
 
     # Pré-remplir si déjà configuré
     if current_user.school_year_start:
@@ -621,7 +622,7 @@ def check_teacher():
         return jsonify({
             'exists': True,
             'incomplete': True,
-            'message': f"L'enseignant {teacher.username} n'a pas encore de configuration complète."
+            'message': _gettext("L'enseignant %(teacher)s n'a pas encore de configuration complète.", teacher=teacher.username)
         })
     else:
         return jsonify({'exists': False})
@@ -786,7 +787,7 @@ def send_invitation():
     if not master_teacher_name or not target_classroom_id or not class_name or not subject:
         return jsonify({
             'success': False,
-            'message': 'Nom du maître, classe cible, nom de classe et matière requis'
+            'message': _gettext('Nom du maître, classe cible, nom de classe et matière requis')
         })
     
     # Trouver le maître de classe
@@ -798,7 +799,7 @@ def send_invitation():
     if not master_teacher:
         return jsonify({
             'success': False,
-            'message': 'Enseignant introuvable'
+            'message': _gettext('Enseignant introuvable')
         })
     
     # Vérifier que c'est bien un maître de classe
@@ -807,7 +808,7 @@ def send_invitation():
     if not is_master:
         return jsonify({
             'success': False,
-            'message': 'Cet enseignant n\'est pas maître de classe'
+            'message': _gettext('Cet enseignant n\'est pas maître de classe')
         })
     
     # Vérifier qu'il n'y a pas déjà une invitation en attente
@@ -821,7 +822,7 @@ def send_invitation():
     if existing_invitation:
         return jsonify({
             'success': False,
-            'message': 'Une invitation est déjà en attente pour cette classe'
+            'message': _gettext('Une invitation est déjà en attente pour cette classe')
         })
     
     # Créer l'invitation
@@ -851,13 +852,13 @@ def send_invitation():
         db.session.commit()
         return jsonify({
             'success': True,
-            'message': f'Invitation envoyée à {master_teacher.username}. Vous pouvez déjà utiliser la classe "{class_name}" dans votre horaire.'
+            'message': _gettext('Invitation envoyée à %(teacher)s. Vous pouvez déjà utiliser la classe "%(name)s" dans votre horaire.', teacher=master_teacher.username, name=class_name)
         })
     except Exception as e:
         db.session.rollback()
         return jsonify({
             'success': False,
-            'message': f'Erreur lors de l\'envoi : {str(e)}'
+            'message': _gettext("Erreur lors de l'envoi : %(error)s", error=str(e))
         })
 
 def _get_or_create_teacher_access_code():
@@ -922,7 +923,7 @@ def manage_classrooms():
                 ).first()
                 
                 if existing_mixed_class:
-                    flash(f'Le nom de classe "{class_group}" est déjà utilisé par une classe mixte. Veuillez choisir un autre nom.', 'error')
+                    flash(_gettext('Le nom de classe "%(name)s" est déjà utilisé par une classe mixte. Veuillez choisir un autre nom.', name=class_group), 'error')
                     return render_template('setup/manage_classrooms.html', form=form, classrooms=classrooms, my_access_code=_get_or_create_teacher_access_code())
                 
                 classroom = Classroom(
@@ -1003,14 +1004,14 @@ def manage_classrooms():
                     
                     # Sinon, ne pas marquer automatiquement comme maître - laisser le bouton "Devenir maître" disponible
                     
-                    flash(f'Classe "{classroom.name}" créée avec succès !', 'success')
+                    flash(_gettext('Classe "%(name)s" créée avec succès !', name=classroom.name), 'success')
                     if not TEACHER_COLLABORATION or request.form.get('next') == 'manage_classes':
                         return redirect(url_for('planning.manage_classes',
                                                 classroom=classroom.class_group or classroom.name))
                     return redirect(url_for('setup.manage_classrooms'))
                 except Exception as e:
                     db.session.rollback()
-                    flash(f'Erreur lors de la création de la classe : {str(e)}', 'error')
+                    flash(_gettext('Erreur lors de la création de la classe : %(error)s', error=str(e)), 'error')
                     
         elif action_type == 'join':
             # NOUVEAU SYSTÈME: Rejoindre une classe via code d'accès
@@ -1046,7 +1047,7 @@ def manage_classrooms():
             
             if not access_code or not master_teacher_name or not target_classroom_id or not join_disciplines:
                 print(f"DEBUG JOIN: Missing required fields - access_code: {bool(access_code)}, master_teacher_name: {bool(master_teacher_name)}, target_classroom_id: {bool(target_classroom_id)}, join_disciplines: {bool(join_disciplines)}")
-                flash('Code d\'accès, maître de classe, classe cible et au moins une discipline requis', 'error')
+                flash(_gettext('Code d\'accès, maître de classe, classe cible et au moins une discipline requis'), 'error')
             else:
                 from models.class_collaboration import TeacherAccessCode, TeacherCollaboration
                 
@@ -1059,14 +1060,14 @@ def manage_classrooms():
                     print(f"DEBUG JOIN: Access code '{access_code}' not found")
                 
                 if not code_obj or not code_obj.is_valid():
-                    flash('Code d\'accès invalide ou expiré', 'error')
+                    flash(_gettext('Code d\'accès invalide ou expiré'), 'error')
                 else:
                     # Vérifier que le nom du maître correspond
                     master_teacher = code_obj.master_teacher
                     print(f"DEBUG JOIN: Code belongs to {master_teacher.username}, but user wants to join {master_teacher_name}'s class")
                     if (master_teacher_name.lower() != master_teacher.username.lower() and 
                         master_teacher_name.lower() != master_teacher.email.lower()):
-                        flash(f'Le nom ne correspond pas au maître de classe', 'error')
+                        flash(_gettext('Le nom ne correspond pas au maître de classe'), 'error')
                     else:
                         # Vérifier que la classe cible existe et appartient au maître
                         print(f"DEBUG JOIN: Looking for target_classroom with id={target_classroom_id}, user_id={master_teacher.id}")
@@ -1083,7 +1084,7 @@ def manage_classrooms():
                             print(f"DEBUG JOIN: No target_classroom found for id={target_classroom_id}, user_id={master_teacher.id}")
                         
                         if not target_classroom:
-                            flash('Classe cible introuvable', 'error')
+                            flash(_gettext('Classe cible introuvable'), 'error')
                         else:
                             # Vérifier s'il y a déjà une collaboration ou en créer une
                             existing_collaboration = TeacherCollaboration.query.filter_by(
@@ -1289,11 +1290,11 @@ def manage_classrooms():
                             try:
                                 db.session.commit()
                                 disciplines_list = ', '.join(created_classes)
-                                flash(f'Collaboration établie avec {master_teacher.username} ! Classes créées : {disciplines_list}', 'success')
+                                flash(_gettext('Collaboration établie avec %(teacher)s ! Classes créées : %(subjects)s', teacher=master_teacher.username, subjects=disciplines_list), 'success')
                                 return redirect(url_for('setup.manage_classrooms'))
                             except Exception as e:
                                 db.session.rollback()
-                                flash(f'Erreur lors de la création des classes : {str(e)}', 'error')
+                                flash(_gettext('Erreur lors de la création des classes : %(error)s', error=str(e)), 'error')
         
         elif action_type == 'invite':
             # NOUVEAU SYSTÈME: Envoyer une invitation
@@ -1324,7 +1325,7 @@ def manage_classrooms():
                         })
             
             if not master_teacher_name or not target_classroom_id or not disciplines:
-                flash('Nom du maître, classe cible et au moins une discipline requis', 'error')
+                flash(_gettext('Nom du maître, classe cible et au moins une discipline requis'), 'error')
             else:
                 from models.teacher_invitation import TeacherInvitation
                 from models.invitation_classroom import InvitationClassroom
@@ -1336,13 +1337,13 @@ def manage_classrooms():
                 ).first()
                 
                 if not master_teacher:
-                    flash('Enseignant introuvable', 'error')
+                    flash(_gettext('Enseignant introuvable'), 'error')
                 else:
                     # Vérifier que c'est bien un maître de classe
                     from models.class_collaboration import ClassMaster
                     is_master = ClassMaster.query.filter_by(master_teacher_id=master_teacher.id).first()
                     if not is_master:
-                        flash('Cet enseignant n\'est pas maître de classe', 'error')
+                        flash(_gettext('Cet enseignant n\'est pas maître de classe'), 'error')
                     else:
                         # Vérifier qu'il n'y a pas déjà une invitation en attente pour ce maître
                         existing_pending_invitation = TeacherInvitation.query.filter_by(
@@ -1352,7 +1353,7 @@ def manage_classrooms():
                         ).first()
                         
                         if existing_pending_invitation:
-                            flash('Une invitation est déjà en attente pour cet enseignant. Attendez sa réponse avant d\'en envoyer une nouvelle.', 'error')
+                            flash(_gettext('Une invitation est déjà en attente pour cet enseignant. Attendez sa réponse avant d\'en envoyer une nouvelle.'), 'error')
                         else:
                             # Créer l'invitation principale (avec la première discipline comme référence)
                             first_discipline = disciplines[0]
@@ -1394,11 +1395,11 @@ def manage_classrooms():
                             try:
                                 db.session.commit()
                                 subject_list = ", ".join(discipline_names)
-                                flash(f'Invitation envoyée à {master_teacher.username} pour enseigner {len(disciplines)} discipline(s): {subject_list}. Vous pouvez déjà utiliser vos classes dans votre horaire.', 'success')
+                                flash(_gettext('Invitation envoyée à %(teacher)s pour enseigner %(count)s discipline(s): %(subjects)s. Vous pouvez déjà utiliser vos classes dans votre horaire.', teacher=master_teacher.username, count=len(disciplines), subjects=subject_list), 'success')
                                 return redirect(url_for('setup.manage_classrooms'))
                             except Exception as e:
                                 db.session.rollback()
-                                flash(f'Erreur lors de l\'envoi : {str(e)}', 'error')
+                                flash(_gettext("Erreur lors de l'envoi : %(error)s", error=str(e)), 'error')
         
         elif action_type == 'invite_mixed':
             # Envoyer une invitation pour classe mixte à un maître de classe
@@ -1407,7 +1408,7 @@ def manage_classrooms():
             message = request.form.get('mixed_invite_message', '').strip()
             
             if not master_teacher_name or not target_classroom_id:
-                flash('Nom du maître et classe cible requis', 'error')
+                flash(_gettext('Nom du maître et classe cible requis'), 'error')
             else:
                 from models.teacher_invitation import TeacherInvitation
                 from models.invitation_classroom import InvitationClassroom
@@ -1419,13 +1420,13 @@ def manage_classrooms():
                 ).first()
                 
                 if not master_teacher:
-                    flash('Enseignant introuvable', 'error')
+                    flash(_gettext('Enseignant introuvable'), 'error')
                 else:
                     # Vérifier que c'est bien un maître de classe
                     from models.class_collaboration import ClassMaster
                     is_master = ClassMaster.query.filter_by(master_teacher_id=master_teacher.id).first()
                     if not is_master:
-                        flash('Cet enseignant n\'est pas maître de classe', 'error')
+                        flash(_gettext('Cet enseignant n\'est pas maître de classe'), 'error')
                     else:
                         # Vérifier qu'il n'y a pas déjà une invitation en attente pour ce maître
                         existing_pending_invitation = TeacherInvitation.query.filter_by(
@@ -1438,11 +1439,11 @@ def manage_classrooms():
                         # Juste ajouter la classe aux sources pour l'instant
                         try:
                             db.session.commit()
-                            flash(f'Classe de {master_teacher.username} ajoutée aux sources. L\'invitation sera envoyée lors de la création de la classe mixte.', 'success')
+                            flash(_gettext("Classe de %(teacher)s ajoutée aux sources. L'invitation sera envoyée lors de la création de la classe mixte.", teacher=master_teacher.username), 'success')
                             return redirect(url_for('setup.manage_classrooms'))
                         except Exception as e:
                             db.session.rollback()
-                            flash(f'Erreur lors de l\'envoi : {str(e)}', 'error')
+                            flash(_gettext("Erreur lors de l'envoi : %(error)s", error=str(e)), 'error')
         
         elif action_type == 'create_mixed':
             # Créer une classe mixte
@@ -1476,13 +1477,13 @@ def manage_classrooms():
                     
             except json.JSONDecodeError as e:
                 print(f"DEBUG: JSON decode error: {e}")
-                flash(f'Erreur dans les données des classes sources: {str(e)}', 'error')
+                flash(_gettext('Erreur dans les données des classes sources: %(error)s', error=str(e)), 'error')
                 return redirect(url_for('setup.manage_classrooms'))
             
             if not mixed_name or not mixed_subject or not source_classes:
-                flash('Nom, matière et au moins deux classes sources requis pour créer une classe mixte', 'error')
+                flash(_gettext('Nom, matière et au moins deux classes sources requis pour créer une classe mixte'), 'error')
             elif len(source_classes) < 2:
-                flash('Une classe mixte nécessite au moins 2 classes sources', 'error')
+                flash(_gettext('Une classe mixte nécessite au moins 2 classes sources'), 'error')
             else:
                 # Traiter les classes sources avec codes d'accès et invitations
                 processed_sources = []
@@ -1502,7 +1503,7 @@ def manage_classrooms():
                             try:
                                 target_classroom_id = int(target_classroom_id)
                             except ValueError:
-                                errors.append(f"ID de classe invalide pour {source_class.get('name', 'classe inconnue')}")
+                                errors.append(_gettext('ID de classe invalide pour %(name)s', name=source_class.get('name', _gettext('classe inconnue'))))
                                 continue
                         
                         if access_code and target_classroom_id:
@@ -1519,11 +1520,11 @@ def manage_classrooms():
                                     print(f"DEBUG: Code d'accès valide pour classe mixte: {source_class.get('name')}")
                                     processed_sources.append(source_class)
                                 else:
-                                    errors.append(f"Classe cible introuvable: {target_classroom_id}")
+                                    errors.append(_gettext('Classe cible introuvable: %(id)s', id=target_classroom_id))
                             else:
-                                errors.append(f"Code d'accès invalide pour {source_class.get('name', 'classe inconnue')}")
+                                errors.append(_gettext("Code d'accès invalide pour %(name)s", name=source_class.get('name', _gettext('classe inconnue'))))
                         else:
-                            errors.append(f"Code d'accès ou classe cible manquant pour {source_class.get('name', 'classe inconnue')}")
+                            errors.append(_gettext("Code d'accès ou classe cible manquant pour %(name)s", name=source_class.get('name', _gettext('classe inconnue'))))
                     
                     elif source_class.get('type') == 'invitation':
                         # Pour les classes mixtes, on vérifie juste que l'enseignant et la classe existent
@@ -1535,7 +1536,7 @@ def manage_classrooms():
                             try:
                                 target_classroom_id = int(target_classroom_id)
                             except ValueError:
-                                errors.append(f"ID de classe invalide pour invitation à {teacher_name}")
+                                errors.append(_gettext('ID de classe invalide pour invitation à %(teacher)s', teacher=teacher_name))
                                 continue
                         
                         if teacher_name and target_classroom_id:
@@ -1557,11 +1558,11 @@ def manage_classrooms():
                                 processed_sources.append(source_class)
                             else:
                                 if not master_teacher:
-                                    errors.append(f"Enseignant introuvable: {teacher_name}")
+                                    errors.append(_gettext('Enseignant introuvable: %(teacher)s', teacher=teacher_name))
                                 if not target_classroom:
-                                    errors.append(f"Classe cible introuvable: {target_classroom_id}")
+                                    errors.append(_gettext('Classe cible introuvable: %(id)s', id=target_classroom_id))
                         else:
-                            errors.append(f"Enseignant ou classe cible manquant pour l'invitation")
+                            errors.append(_gettext("Enseignant ou classe cible manquant pour l'invitation"))
                     
                     elif source_class.get('type') == 'own':
                         # Classe propre - déjà accessible
@@ -1794,17 +1795,17 @@ def manage_classrooms():
                                           if isinstance(student, dict) and student.get('selected', False) and student.get('source_type') == 'invitation')
                         
                         if pending_count > 0:
-                            flash(f'Classe mixte "{mixed_name}" créée avec succès avec {student_count} élève(s) ajouté(s) immédiatement et {pending_count} élève(s) en attente d\'approbation. Les invitations ont été envoyées aux maîtres de classe concernés.', 'success')
+                            flash(_gettext('Classe mixte "%(name)s" créée avec succès avec %(count)s élève(s) ajouté(s) immédiatement et %(pending)s élève(s) en attente d\'approbation. Les invitations ont été envoyées aux maîtres de classe concernés.', name=mixed_name, count=student_count, pending=pending_count), 'success')
                         else:
-                            flash(f'Classe mixte "{mixed_name}" créée avec succès avec {student_count} élève(s) !', 'success')
+                            flash(_gettext('Classe mixte "%(name)s" créée avec succès avec %(count)s élève(s) !', name=mixed_name, count=student_count), 'success')
                         
                         return redirect(url_for('setup.manage_classrooms'))
                         
                     except Exception as e:
                         db.session.rollback()
-                        flash(f'Erreur lors de la création de la classe mixte : {str(e)}', 'error')
+                        flash(_gettext('Erreur lors de la création de la classe mixte : %(error)s', error=str(e)), 'error')
                 else:
-                    flash('Aucune classe source valide pour créer la classe mixte', 'error')
+                    flash(_gettext('Aucune classe source valide pour créer la classe mixte'), 'error')
     
     # Récupérer toutes les classes (propres et liées)
     classrooms = current_user.classrooms.all()
@@ -1917,7 +1918,7 @@ def api_bulk_create_classrooms():
         created.append(classroom)
     if not created:
         return jsonify({'success': False,
-                        'message': 'Indiquez au moins un nom de classe et une matière.'}), 400
+                        'message': _gettext('Indiquez au moins un nom de classe et une matière.')}), 400
     try:
         db.session.commit()
     except Exception as e:
@@ -1999,7 +2000,7 @@ def get_own_classes():
         return jsonify({'classes': classes_data})
     except Exception as e:
         print(f"Erreur lors de la récupération des classes maîtres: {e}")
-        return jsonify({'error': 'Erreur lors de la récupération des classes'}), 500
+        return jsonify({'error': _gettext('Erreur lors de la récupération des classes')}), 500
 
 @setup_bp.route('/api/class-students/<int:class_id>', methods=['GET'])
 @login_required
@@ -2020,7 +2021,7 @@ def get_class_students(class_id):
             ).filter_by(specialized_teacher_id=current_user.id).first()
             
             if not shared:
-                return jsonify({'error': 'Accès non autorisé'}), 403
+                return jsonify({'error': _gettext('Accès non autorisé')}), 403
         
         students_data = []
         for student in classroom.students:
@@ -2038,7 +2039,7 @@ def get_class_students(class_id):
         })
     except Exception as e:
         print(f"Erreur lors de la récupération des élèves: {e}")
-        return jsonify({'error': 'Erreur lors de la récupération des élèves'}), 500
+        return jsonify({'error': _gettext('Erreur lors de la récupération des élèves')}), 500
 
 @setup_bp.route('/api/validate-access-code', methods=['POST'])
 @login_required
@@ -2054,33 +2055,33 @@ def validate_access_code():
             target_classroom_id = None
 
         if not access_code or not target_classroom_id:
-            return jsonify({'valid': False, 'error': 'Code d\'accès ou classe cible manquant'})
+            return jsonify({'valid': False, 'error': _gettext('Code d\'accès ou classe cible manquant')})
         
         # Vérifier le code d'accès
         from models.class_collaboration import TeacherAccessCode, ClassMaster
         code_obj = TeacherAccessCode.query.filter_by(code=access_code).first()
         
         if not code_obj or not code_obj.is_valid():
-            return jsonify({'valid': False, 'error': 'Code d\'accès invalide ou expiré'})
+            return jsonify({'valid': False, 'error': _gettext('Code d\'accès invalide ou expiré')})
         
         # Vérifier que la classe cible existe
         target_classroom = Classroom.query.get(target_classroom_id)
         if not target_classroom:
-            return jsonify({'valid': False, 'error': 'Classe cible introuvable'})
+            return jsonify({'valid': False, 'error': _gettext('Classe cible introuvable')})
         
         # IMPORTANT: Vérifier que le code d'accès appartient au maître de cette classe spécifique
         class_master = ClassMaster.query.filter_by(classroom_id=target_classroom_id).first()
         if not class_master:
-            return jsonify({'valid': False, 'error': 'Aucun maître trouvé pour cette classe'})
+            return jsonify({'valid': False, 'error': _gettext('Aucun maître trouvé pour cette classe')})
         
         if code_obj.master_teacher_id != class_master.master_teacher_id:
-            return jsonify({'valid': False, 'error': 'Ce code d\'accès ne correspond pas à cette classe'})
+            return jsonify({'valid': False, 'error': _gettext('Ce code d\'accès ne correspond pas à cette classe')})
         
-        return jsonify({'valid': True, 'message': 'Code d\'accès valide pour cette classe'})
+        return jsonify({'valid': True, 'message': _gettext('Code d\'accès valide pour cette classe')})
         
     except Exception as e:
         print(f"Erreur lors de la validation du code d'accès: {e}")
-        return jsonify({'valid': False, 'error': 'Erreur lors de la validation'}), 500
+        return jsonify({'valid': False, 'error': _gettext('Erreur lors de la validation')}), 500
 
 @setup_bp.route('/api/mixed-class-students/<int:class_id>', methods=['POST'])
 @login_required
@@ -2169,7 +2170,7 @@ def get_mixed_class_students(class_id):
         
         if not has_access:
             print(f"DEBUG: Access denied for class {class_id} owned by user {classroom.user_id}")
-            return jsonify({'error': 'Accès non autorisé à cette classe'}), 403
+            return jsonify({'error': _gettext('Accès non autorisé à cette classe')}), 403
         
         # Récupérer les élèves
         students_data = []
@@ -2185,7 +2186,7 @@ def get_mixed_class_students(class_id):
         return jsonify({'students': students_data})
     except Exception as e:
         print(f"Erreur lors de la récupération des élèves pour classe mixte: {e}")
-        return jsonify({'error': 'Erreur lors de la récupération des élèves'}), 500
+        return jsonify({'error': _gettext('Erreur lors de la récupération des élèves')}), 500
 
 @setup_bp.route('/classrooms/<int:classroom_id>/become-master', methods=['GET', 'POST'])
 @login_required
@@ -2203,7 +2204,7 @@ def become_class_master(classroom_id):
     
     if shared_classroom:
         # C'est une classe dérivée - on ne peut pas devenir maître
-        flash('Vous ne pouvez pas devenir maître d\'une classe dérivée. Seul le maître de la classe originale peut être maître de classe.', 'error')
+        flash(_gettext('Vous ne pouvez pas devenir maître d\'une classe dérivée. Seul le maître de la classe originale peut être maître de classe.'), 'error')
         return redirect(url_for('setup.manage_classrooms'))
     
     from models.class_collaboration import ClassMaster, TeacherAccessCode
@@ -2224,7 +2225,7 @@ def become_class_master(classroom_id):
     ).first()
     
     if existing_master:
-        flash('Vous êtes déjà maître de cette classe.', 'info')
+        flash(_gettext('Vous êtes déjà maître de cette classe.'), 'info')
     else:
         # Récupérer toutes les classes du même groupe (même class_group ou même nom)
         group_name = classroom.class_group or classroom.name
@@ -2260,16 +2261,17 @@ def become_class_master(classroom_id):
         
         if classes_made_master:
             _code = _get_or_create_teacher_access_code()
-            flash(f'Vous êtes maintenant maître de classe pour : {", ".join(classes_made_master)}. '
-                  f'Partagez votre code d\'accès {_code} avec vos collègues (encadré ci-dessous).', 'success')
+            flash(_gettext("Vous êtes maintenant maître de classe pour : %(classes)s. "
+                           "Partagez votre code d'accès %(code)s avec vos collègues (encadré ci-dessous).",
+                           classes=", ".join(classes_made_master), code=_code), 'success')
         else:
-            flash('Vous étiez déjà maître de toutes les classes de ce groupe.', 'info')
+            flash(_gettext('Vous étiez déjà maître de toutes les classes de ce groupe.'), 'info')
         
         try:
             db.session.commit()
         except Exception as e:
             db.session.rollback()
-            flash(f'Erreur lors de la configuration : {str(e)}', 'error')
+            flash(_gettext('Erreur lors de la configuration : %(error)s', error=str(e)), 'error')
     
     return redirect(url_for('setup.manage_classrooms'))
 
@@ -2521,12 +2523,12 @@ def respond_to_invitation(invitation_id):
             db.session.commit()
             class_count = len(created_classes)
             if class_count > 1:
-                flash(f'Invitation acceptée ! {invitation.requesting_teacher.username} peut maintenant accéder à {class_count} de vos classes.', 'success')
+                flash(_gettext('Invitation acceptée ! %(teacher)s peut maintenant accéder à %(count)s de vos classes.', teacher=invitation.requesting_teacher.username, count=class_count), 'success')
             else:
-                flash(f'Invitation acceptée ! {invitation.requesting_teacher.username} peut maintenant accéder à vos classes.', 'success')
+                flash(_gettext('Invitation acceptée ! %(teacher)s peut maintenant accéder à vos classes.', teacher=invitation.requesting_teacher.username), 'success')
         except Exception as e:
             db.session.rollback()
-            flash(f'Erreur lors de l\'acceptation : {str(e)}', 'error')
+            flash(_gettext("Erreur lors de l'acceptation : %(error)s", error=str(e)), 'error')
             
     elif action == 'reject':
         # Rejeter l'invitation
@@ -2544,10 +2546,10 @@ def respond_to_invitation(invitation_id):
         
         try:
             db.session.commit()
-            flash(f'Invitation rejetée.', 'info')
+            flash(_gettext('Invitation rejetée.'), 'info')
         except Exception as e:
             db.session.rollback()
-            flash(f'Erreur lors du rejet : {str(e)}', 'error')
+            flash(_gettext('Erreur lors du rejet : %(error)s', error=str(e)), 'error')
     
     return redirect(url_for('planning.dashboard'))
 
@@ -2574,11 +2576,11 @@ def manage_classrooms_initial():
                 # Marquer la configuration comme complète
                 current_user.setup_completed = True
                 db.session.commit()
-                flash('Classes créées avec succès !', 'success')
+                flash(_gettext('Classes créées avec succès !'), 'success')
                 return redirect(url_for('schedule.weekly_schedule'))
             except Exception as e:
                 db.session.rollback()
-                flash(f'Erreur lors de la création des classes : {str(e)}', 'error')
+                flash(_gettext('Erreur lors de la création des classes : %(error)s', error=str(e)), 'error')
                 
         elif form.setup_type.data == 'specialized':
             # Se lier à un enseignant existant
@@ -2586,7 +2588,7 @@ def manage_classrooms_initial():
             master_teacher_name = form.master_teacher_name.data.strip()
             
             if not access_code or not master_teacher_name:
-                flash('Code d\'accès et nom du maître de classe requis', 'error')
+                flash(_gettext('Code d\'accès et nom du maître de classe requis'), 'error')
             else:
                 # Utiliser la logique de collaboration existante
                 from models.class_collaboration import TeacherAccessCode, TeacherCollaboration
@@ -2595,13 +2597,13 @@ def manage_classrooms_initial():
                 code_obj = TeacherAccessCode.query.filter_by(code=access_code).first()
                 
                 if not code_obj or not code_obj.is_valid():
-                    flash('Code d\'accès invalide ou expiré', 'error')
+                    flash(_gettext('Code d\'accès invalide ou expiré'), 'error')
                 else:
                     # Vérifier que le nom du maître correspond
                     master_teacher = code_obj.master_teacher
                     if (master_teacher_name.lower() != master_teacher.username.lower() and 
                         master_teacher_name.lower() != master_teacher.email.lower()):
-                        flash(f'Le nom ne correspond pas. Maître de classe : {master_teacher.username}', 'error')
+                        flash(_gettext('Le nom ne correspond pas. Maître de classe : %(teacher)s', teacher=master_teacher.username), 'error')
                     else:
                         # Vérifier qu'il n'y a pas déjà une collaboration
                         existing_collaboration = TeacherCollaboration.query.filter_by(
@@ -2610,7 +2612,7 @@ def manage_classrooms_initial():
                         ).first()
                         
                         if existing_collaboration:
-                            flash('Vous collaborez déjà avec cet enseignant', 'error')
+                            flash(_gettext('Vous collaborez déjà avec cet enseignant'), 'error')
                         else:
                             # Créer la collaboration
                             collaboration = TeacherCollaboration(
@@ -2628,11 +2630,11 @@ def manage_classrooms_initial():
                                 # Marquer la configuration comme complète
                                 current_user.setup_completed = True
                                 db.session.commit()
-                                flash(f'Collaboration établie avec {master_teacher.username}', 'success')
+                                flash(_gettext('Collaboration établie avec %(teacher)s', teacher=master_teacher.username), 'success')
                                 return redirect(url_for('collaboration.select_class', collaboration_id=collaboration.id))
                             except Exception as e:
                                 db.session.rollback()
-                                flash(f'Erreur lors de la création de la collaboration : {str(e)}', 'error')
+                                flash(_gettext('Erreur lors de la création de la collaboration : %(error)s', error=str(e)), 'error')
 
     # Pré-remplir avec une classe par défaut si première utilisation
     if not form.classrooms.data or len(form.classrooms.data) == 0:
@@ -2723,10 +2725,10 @@ def restore_from_corbeille(entry_id):
     entry = DeletedClassroom.query.filter_by(id=entry_id, user_id=current_user.id).first_or_404()
     try:
         classroom = restore_classroom(entry, current_user.id)
-        flash(f'Classe « {classroom.name} » restaurée avec ses élèves et ses notes.', 'info')
+        flash(_gettext('Classe « %(name)s » restaurée avec ses élèves et ses notes.', name=classroom.name), 'info')
     except Exception as e:
         db.session.rollback()
-        flash(f"Échec de la restauration : {e}", 'error')
+        flash(_gettext('Échec de la restauration : %(error)s', error=str(e)), 'error')
     return redirect(url_for('planning.manage_classes'))
 
 
@@ -2739,7 +2741,7 @@ def delete_from_corbeille(entry_id):
     entry = DeletedClassroom.query.filter_by(id=entry_id, user_id=current_user.id).first_or_404()
     db.session.delete(entry)
     db.session.commit()
-    flash('Classe supprimée définitivement de la corbeille.', 'info')
+    flash(_gettext('Classe supprimée définitivement de la corbeille.'), 'info')
     return redirect(url_for('setup.corbeille'))
 
 
@@ -2776,7 +2778,7 @@ def delete_classroom(id):
         # Vérifier s'il y a des classes dérivées (enseignants spécialisés qui utilisent cette classe)
         shared_as_original = SharedClassroom.query.filter_by(original_classroom_id=classroom.id).count()
         if shared_as_original > 0:
-            flash(f'Impossible de supprimer la classe "{classroom.name}" car elle est partagée avec {shared_as_original} enseignant(s) spécialisé(s).', 'error')
+            flash(_gettext('Impossible de supprimer la classe "%(name)s" car elle est partagée avec %(count)s enseignant(s) spécialisé(s).', name=classroom.name, count=shared_as_original), 'error')
             return redirect(url_for('setup.manage_classrooms'))
 
         _archive_before_purge()  # corbeille (avant toute suppression, deletion garantie ici)
@@ -2844,7 +2846,7 @@ def delete_classroom(id):
             _purge_classroom_and_children(group_classroom.id)
             print(f"DEBUG DELETE: purged classroom {group_classroom.id} + all children")
         
-        flash(f'Classe "{classroom.name}" et toutes ses données supprimées avec succès.', 'info')
+        flash(_gettext('Classe "%(name)s" et toutes ses données supprimées avec succès.', name=classroom.name), 'info')
         
     else:
         # CAS 2: L'utilisateur n'est pas le maître - DÉLIAISON SIMPLE
@@ -2943,7 +2945,7 @@ def delete_classroom(id):
         _purge_classroom_and_children(classroom.id)
         print(f"DEBUG DELETE: purged derived classroom {classroom.id} + all children")
         
-        flash(f'Vous avez été délié de la classe "{classroom.name}" avec succès.', 'info')
+        flash(_gettext('Vous avez été délié de la classe "%(name)s" avec succès.', name=classroom.name), 'info')
     
     # Nettoyer automatiquement les plannings orphelins après suppression
     _cleanup_orphaned_schedules()
@@ -2992,11 +2994,11 @@ def sync_class_masters():
                     synced_count += 1
         
         db.session.commit()
-        flash(f'Synchronisation terminée. {synced_count} enregistrements de maître de classe créés.', 'success')
+        flash(_gettext('Synchronisation terminée. %(count)s enregistrements de maître de classe créés.', count=synced_count), 'success')
         
     except Exception as e:
         db.session.rollback()
-        flash(f'Erreur lors de la synchronisation : {str(e)}', 'error')
+        flash(_gettext('Erreur lors de la synchronisation : %(error)s', error=str(e)), 'error')
     
     return redirect(url_for('setup.manage_classrooms'))
 
@@ -3019,10 +3021,10 @@ def manage_holidays():
             
             try:
                 db.session.commit()
-                flash(f'Vacances copiées depuis le collège "{college.name}" avec succès !', 'success')
+                flash(_gettext('Vacances copiées depuis le collège "%(name)s" avec succès !', name=college.name), 'success')
             except Exception as e:
                 db.session.rollback()
-                flash(f'Erreur lors de la copie des vacances : {str(e)}', 'error')
+                flash(_gettext('Erreur lors de la copie des vacances : %(error)s', error=str(e)), 'error')
     
     if request.method == 'POST':
         form = HolidayForm()
@@ -3049,7 +3051,7 @@ def manage_holidays():
                     db.session.add(college_holiday)
             
             db.session.commit()
-            flash(f'Période de vacances "{holiday.name}" ajoutée avec succès !', 'success')
+            flash(_gettext('Période de vacances "%(name)s" ajoutée avec succès !', name=holiday.name), 'success')
         return redirect(url_for('setup.manage_holidays'))
 
     holidays = current_user.holidays.all()
@@ -3067,7 +3069,7 @@ def delete_holiday(id):
     holiday = Holiday.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(holiday)
     db.session.commit()
-    flash(f'Période de vacances "{holiday.name}" supprimée avec succès.', 'info')
+    flash(_gettext('Période de vacances "%(name)s" supprimée avec succès.', name=holiday.name), 'info')
     return redirect(url_for('setup.manage_holidays'))
 
 @setup_bp.route('/breaks', methods=['GET', 'POST'])
@@ -3090,10 +3092,10 @@ def manage_breaks():
             
             try:
                 db.session.commit()
-                flash(f'Pauses copiées depuis le collège "{college.name}" avec succès !', 'success')
+                flash(_gettext('Pauses copiées depuis le collège "%(name)s" avec succès !', name=college.name), 'success')
             except Exception as e:
                 db.session.rollback()
-                flash(f'Erreur lors de la copie des pauses : {str(e)}', 'error')
+                flash(_gettext('Erreur lors de la copie des pauses : %(error)s', error=str(e)), 'error')
     
     if request.method == 'POST':
         form = BreakForm()
@@ -3122,7 +3124,7 @@ def manage_breaks():
                     db.session.add(college_break)
             
             db.session.commit()
-            flash(f'Pause "{break_obj.name}" ajoutée avec succès !', 'success')
+            flash(_gettext('Pause "%(name)s" ajoutée avec succès !', name=break_obj.name), 'success')
         return redirect(url_for('setup.manage_breaks'))
 
     breaks = current_user.breaks.all()
@@ -3134,14 +3136,14 @@ def manage_breaks():
 def import_vaud_holidays():
     """Importe automatiquement les vacances scolaires vaudoises"""
     if not current_user.school_year_start:
-        flash('Veuillez d\'abord configurer l\'année scolaire.', 'warning')
+        flash(_gettext('Veuillez d\'abord configurer l\'année scolaire.'), 'warning')
         return redirect(url_for('setup.initial_setup'))
 
     # Récupérer les vacances pour l'année scolaire
     holidays = get_vaud_holidays(current_user.school_year_start)
 
     if not holidays:
-        flash('Aucune donnée de vacances disponible pour cette année scolaire.', 'warning')
+        flash(_gettext('Aucune donnée de vacances disponible pour cette année scolaire.'), 'warning')
         return redirect(url_for('setup.manage_holidays'))
 
     # Supprimer les anciennes vacances si demandé
@@ -3182,10 +3184,10 @@ def import_vaud_holidays():
 
     try:
         db.session.commit()
-        flash(f'{len(holidays)} périodes de vacances importées avec succès !', 'success')
+        flash(_gettext('%(count)s périodes de vacances importées avec succès !', count=len(holidays)), 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Erreur lors de l\'import : {str(e)}', 'error')
+        flash(_gettext("Erreur lors de l'import : %(error)s", error=str(e)), 'error')
 
     return redirect(url_for('setup.manage_holidays'))
 
@@ -3202,12 +3204,12 @@ def import_holidays():
             else url_for('setup.manage_holidays'))
 
     if canton not in VACATIONS or school_year not in VACATIONS.get(canton, {}):
-        flash('Sélection de canton ou d\'année scolaire invalide.', 'warning')
+        flash(_gettext('Sélection de canton ou d\'année scolaire invalide.'), 'warning')
         return redirect(back)
 
     periods = get_import_periods(canton, school_year, include_feries)
     if not periods:
-        flash('Aucune donnée de vacances disponible pour cette sélection.', 'warning')
+        flash(_gettext('Aucune donnée de vacances disponible pour cette sélection.'), 'warning')
         return redirect(back)
 
     if request.form.get('replace_existing') == 'true':
@@ -3242,10 +3244,10 @@ def import_holidays():
 
     try:
         db.session.commit()
-        flash(f'{added} période(s) importée(s) — {canton_label(canton)}, {school_year}.', 'success')
+        flash(_gettext('%(count)s période(s) importée(s) — %(canton)s, %(year)s.', count=added, canton=canton_label(canton), year=school_year), 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Erreur lors de l\'import : {str(e)}', 'error')
+        flash(_gettext("Erreur lors de l'import : %(error)s", error=str(e)), 'error')
 
     return redirect(back)
 
@@ -3255,5 +3257,5 @@ def delete_break(id):
     break_obj = Break.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(break_obj)
     db.session.commit()
-    flash(f'Pause "{break_obj.name}" supprimée avec succès.', 'info')
+    flash(_gettext('Pause "%(name)s" supprimée avec succès.', name=break_obj.name), 'info')
     return redirect(url_for('setup.manage_breaks'))

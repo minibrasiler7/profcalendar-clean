@@ -2,6 +2,14 @@
 <html lang="{{ current_locale or 'fr' }}">
 <head>
     <meta charset="UTF-8">
+    {# Traductions des textes affichés par les fichiers static/js : pcT('Texte FR', {n: …}) #}
+    <script>window.PC_I18N = window.PC_I18N || {};
+    window.pcT = function (s, v) {
+        var t = (window.PC_I18N && window.PC_I18N[s]) || s;
+        if (v) t = String(t).replace(/\{(\w+)\}/g, function (m, k) { return Object.prototype.hasOwnProperty.call(v, k) ? String(v[k]) : m; });
+        return t;
+    };</script>
+    {% if current_locale and current_locale != 'fr' %}<script src="{{ url_for('js_i18n_bundle', lang=current_locale, v=pc_js_i18n_version) }}"></script>{% endif %}
     {# Dans l'app native iOS : zoom bloqué + safe-area (rendu « app mobile »).
        Sur le web normal : zoom autorisé (accessibilité). #}
     {% if is_ios_native_app %}

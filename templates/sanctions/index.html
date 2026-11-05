@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Gestion des sanctions - ProfCalendar{% endblock %}
+{% block title %}{{ _('Gestion des sanctions') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -362,36 +362,36 @@
         <div class="sanctions-title">
             <h1>
                 <i class="fas fa-exclamation-triangle"></i>
-                Gestion des sanctions
+                {{ _('Gestion des sanctions') }}
             </h1>
             <a href="{{ url_for('sanctions.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Nouveau modèle
+                <i class="fas fa-plus"></i> {{ _('Nouveau modèle') }}
             </a>
         </div>
-        <p>Créez et gérez vos modèles de sanctions pour automatiser la gestion disciplinaire.</p>
+        <p>{{ _('Créez et gérez vos modèles de sanctions pour automatiser la gestion disciplinaire.') }}</p>
         
         <div class="stats-row">
             <div class="stat-item">
                 <div class="stat-number">{{ stats.total_templates }}</div>
-                <div class="stat-label">Modèles créés</div>
+                <div class="stat-label">{{ _('Modèles créés') }}</div>
             </div>
             <div class="stat-item">
                 <div class="stat-number">{{ stats.active_templates }}</div>
-                <div class="stat-label">Modèles actifs</div>
+                <div class="stat-label">{{ _('Modèles actifs') }}</div>
             </div>
             <div class="stat-item">
                 <div class="stat-number">{{ stats.total_imports }}</div>
-                <div class="stat-label">Imports en classes</div>
+                <div class="stat-label">{{ _('Imports en classes') }}</div>
             </div>
         </div>
     </div>
 
     <div class="templates-section">
         <div class="section-header">
-            <h2>Modèles de sanctions</h2>
+            <h2>{{ _('Modèles de sanctions') }}</h2>
             {% if templates %}
             <button class="btn btn-outline" id="importButton" onclick="openImportModal()" disabled>
-                <i class="fas fa-download"></i> Importer vers les classes
+                <i class="fas fa-download"></i> {{ _('Importer vers les classes') }}
             </button>
             {% endif %}
         </div>
@@ -411,16 +411,16 @@
                         <div class="template-description">{{ template.description }}</div>
                         {% endif %}
                         <div class="template-meta">
-                            Créé le {{ template.created_at.strftime('%d/%m/%Y') }}
-                            • {{ template.sorted_thresholds|length }} seuil(s)
+                            {{ _('Créé le %(date)s', date=template.created_at.strftime('%d/%m/%Y')) }}
+                            • {{ _('%(n)s seuil(s)', n=template.sorted_thresholds|length) }}
                         </div>
                     </div>
                     
                     <div class="template-actions">
-                        <button class="btn-icon btn-edit" onclick="editTemplate({{ template.id }})" title="Modifier">
+                        <button class="btn-icon btn-edit" onclick="editTemplate({{ template.id }})" title="{{ _('Modifier') }}">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-icon btn-delete" onclick="deleteTemplate({{ template.id }})" title="Supprimer">
+                        <button class="btn-icon btn-delete" onclick="deleteTemplate({{ template.id }})" title="{{ _('Supprimer') }}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -430,7 +430,7 @@
                 <div class="threshold-summary">
                     {% for threshold in template.sorted_thresholds %}
                     <div class="threshold-badge">
-                        {{ threshold.check_count }} coches ({{ threshold.sanctions.count() }} sanction(s))
+                        {{ _('%(n)s coches (%(s)s sanction(s))', n=threshold.check_count, s=threshold.sanctions.count()) }}
                     </div>
                     {% endfor %}
                 </div>
@@ -441,10 +441,10 @@
         {% else %}
         <div class="empty-state">
             <i class="fas fa-exclamation-triangle"></i>
-            <h3>Aucun modèle de sanction</h3>
-            <p>Créez votre premier modèle pour commencer à gérer les sanctions automatiquement.</p>
+            <h3>{{ _('Aucun modèle de sanction') }}</h3>
+            <p>{{ _('Créez votre premier modèle pour commencer à gérer les sanctions automatiquement.') }}</p>
             <a href="{{ url_for('sanctions.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Créer un modèle
+                <i class="fas fa-plus"></i> {{ _('Créer un modèle') }}
             </a>
         </div>
         {% endif %}
@@ -455,12 +455,12 @@
 <div id="importModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Importer vers les classes</h3>
+            <h3>{{ _('Importer vers les classes') }}</h3>
             <button class="modal-close" onclick="closeImportModal()">&times;</button>
         </div>
         
         <div class="form-group">
-            <label class="form-label">Sélectionnez les classes :</label>
+            <label class="form-label">{{ _('Sélectionnez les classes :') }}</label>
             <div class="checkbox-list" id="classroomsList">
                 {% for group in classroom_groups %}
                 <div class="checkbox-item">
@@ -469,10 +469,10 @@
                         <div class="class-name">{{ group.display_name }}</div>
                         <div class="class-subject">
                             {% if group.is_group %}
-                                Mode: {{ 'Unifié' if group.mode == 'unified' else 'Centralisé' if group.mode == 'centralized' else 'Séparé' }} 
-                                ({{ group.classrooms|length }} classe(s))
+                                {{ _('Mode :') }} {{ _('Unifié') if group.mode == 'unified' else _('Centralisé') if group.mode == 'centralized' else _('Séparé') }}
+                                ({{ _('%(n)s classe(s)', n=group.classrooms|length) }})
                             {% else %}
-                                Mode: Séparé par discipline
+                                {{ _('Mode :') }} {{ _('Séparé par discipline') }}
                             {% endif %}
                         </div>
                     </div>
@@ -482,9 +482,9 @@
         </div>
         
         <div class="form-actions">
-            <button class="btn btn-outline" onclick="closeImportModal()">Annuler</button>
+            <button class="btn btn-outline" onclick="closeImportModal()">{{ _('Annuler') }}</button>
             <button class="btn btn-primary" onclick="performImport()">
-                <i class="fas fa-download"></i> Importer
+                <i class="fas fa-download"></i> {{ _('Importer') }}
             </button>
         </div>
     </div>
@@ -498,6 +498,15 @@
 
 {% block extra_js %}
 <script>
+// Chaînes traduites pour le JS (échappées via |tojson) ; jetons {n}… remplacés en JS.
+const SANCTIONS_INDEX_I18N = {
+    confirmDelete: {{ _('Êtes-vous sûr de vouloir supprimer ce modèle ?\n\nCette action est irréversible et supprimera également ce modèle de toutes les classes où il a été importé.')|tojson }},
+    connectionError: {{ _('Erreur de connexion')|tojson }},
+    selectTemplate: {{ _('Veuillez sélectionner au moins un modèle')|tojson }},
+    selectClass: {{ _('Veuillez sélectionner au moins une classe')|tojson }},
+    noTemplateSelected: {{ _('Aucun modèle sélectionné')|tojson }},
+};
+
 // Fonctions de gestion des modèles
 function editTemplate(templateId) {
     window.location.href = `/sanctions/edit/${templateId}`;
@@ -515,7 +524,7 @@ function updateImportButton() {
 
 
 async function deleteTemplate(templateId) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce modèle ?\n\nCette action est irréversible et supprimera également ce modèle de toutes les classes où il a été importé.')) {
+    if (!confirm(SANCTIONS_INDEX_I18N.confirmDelete)) {
         return;
     }
     
@@ -537,7 +546,7 @@ async function deleteTemplate(templateId) {
             showNotification(result.message, 'error');
         }
     } catch (error) {
-        showNotification('Erreur de connexion', 'error');
+        showNotification(SANCTIONS_INDEX_I18N.connectionError, 'error');
     }
 }
 
@@ -546,7 +555,7 @@ function openImportModal() {
     const selectedTemplates = document.querySelectorAll('.template-select:checked');
     
     if (selectedTemplates.length === 0) {
-        showNotification('Veuillez sélectionner au moins un modèle', 'error');
+        showNotification(SANCTIONS_INDEX_I18N.selectTemplate, 'error');
         return;
     }
     
@@ -582,7 +591,7 @@ async function performImport() {
     });
     
     if (selectedClasses.length === 0) {
-        showNotification('Veuillez sélectionner au moins une classe', 'error');
+        showNotification(SANCTIONS_INDEX_I18N.selectClass, 'error');
         return;
     }
     
@@ -592,7 +601,7 @@ async function performImport() {
     });
     
     if (selectedTemplates.length === 0) {
-        showNotification('Aucun modèle sélectionné', 'error');
+        showNotification(SANCTIONS_INDEX_I18N.noTemplateSelected, 'error');
         return;
     }
     
@@ -623,7 +632,7 @@ async function performImport() {
             showNotification(result.message, 'error');
         }
     } catch (error) {
-        showNotification('Erreur de connexion', 'error');
+        showNotification(SANCTIONS_INDEX_I18N.connectionError, 'error');
     }
 }
 

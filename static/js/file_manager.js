@@ -1,3 +1,4 @@
+if (typeof window.pcT !== 'function') { window.pcT = function (s, v) { return v ? String(s).replace(/\{(\w+)\}/g, function (m, k) { return (k in v) ? String(v[k]) : m; }) : s; }; }
 // Variables globales
 let selectedItems = [];
 let uploadQueue = [];
@@ -102,7 +103,7 @@ function renderClasses() {
         classesList.innerHTML = `
             <div class="text-center text-muted">
                 <i class="fas fa-chalkboard" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3;"></i>
-                <p>Aucune classe trouvée</p>
+                <p>${pcT('Aucune classe trouvée')}</p>
             </div>
         `;
         return;
@@ -114,7 +115,7 @@ function renderClasses() {
                 <div>
                     <div class="class-name">${classroom.name}</div>
                     <div class="class-subject">${classroom.subject}</div>
-                    <div class="class-info">${classroom.student_count || 0} élève(s)</div>
+                    <div class="class-info">${(classroom.student_count || 0) === 1 ? pcT('1 élève') : pcT('{n} élèves', {n: classroom.student_count || 0})}</div>
                 </div>
                 <i class="fas fa-chevron-right class-toggle" id="toggle-${classroom.id}"></i>
             </div>
@@ -182,7 +183,7 @@ function renderClassTree(classId, files) {
         tree.innerHTML = `
             <div class="tree-file" style="font-style: italic; color: #9CA3AF;">
                 <i class="fas fa-info-circle"></i>
-                <span>Aucun fichier dans cette classe</span>
+                <span>${pcT('Aucun fichier dans cette classe')}</span>
             </div>
         `;
         return;
@@ -285,7 +286,7 @@ function renderFileStructure(structure, classId, level = 0) {
                     <i class="fas fa-gamepad tree-item-icon" style="color:#667eea;"></i>
                     <span class="tree-item-name" style="color:#4338ca;font-weight:600;">${file.original_filename}</span>
                     <span style="font-size:0.65rem;color:#6b7280;margin-left:0.3rem;">${file.total_points || 0} XP</span>
-                    <button class="tree-file-delete" onclick="unlinkExerciseFromClass(${file.exercise_id}, ${classId})" title="Retirer de la classe">
+                    <button class="tree-file-delete" onclick="unlinkExerciseFromClass(${file.exercise_id}, ${classId})" title="${pcT('Retirer de la classe')}">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -296,7 +297,7 @@ function renderFileStructure(structure, classId, level = 0) {
                 <div class="tree-file" style="${indent}" data-file-id="${file.id}" data-class-id="${classId}">
                     <i class="${icon} tree-item-icon"></i>
                     <span class="tree-item-name">${file.original_filename}</span>
-                    <button class="tree-file-delete" onclick="deleteClassFile(${file.id}, ${classId}, '${file.source || ''}')" title="Supprimer">
+                    <button class="tree-file-delete" onclick="deleteClassFile(${file.id}, ${classId}, '${file.source || ''}')" title="${pcT('Supprimer')}">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -451,18 +452,18 @@ async function deleteClassFile(fileId, classId, source) {
         console.log(`🔍 Contenu de la réponse:`, result);
 
         if (result.success) {
-            showNotification('success', 'Fichier supprimé de la classe');
+            showNotification('success', pcT('Fichier supprimé de la classe'));
             
             // Recharger l'arborescence de la classe
             console.log(`🔍 Rechargement de l'arborescence pour la classe ${classId}`);
             await loadClassTree(classId);
         } else {
             console.log(`❌ Erreur côté serveur: ${result.message}`);
-            showNotification('error', result.message || 'Erreur lors de la suppression');
+            showNotification('error', result.message || pcT('Erreur lors de la suppression'));
         }
     } catch (error) {
         console.error('❌ Erreur JavaScript:', error);
-        showNotification('error', 'Erreur lors de la suppression du fichier');
+        showNotification('error', pcT('Erreur lors de la suppression du fichier'));
     }
 }
 
@@ -484,16 +485,16 @@ async function deleteClassFolder(folderPath, classId) {
         const result = await response.json();
 
         if (result.success) {
-            showNotification('success', `Dossier "${folderPath}" supprimé de la classe`);
+            showNotification('success', pcT('Dossier « {name} » supprimé de la classe', {name: folderPath}));
             
             // Recharger l'arborescence de la classe
             await loadClassTree(classId);
         } else {
-            showNotification('error', result.message || 'Erreur lors de la suppression');
+            showNotification('error', result.message || pcT('Erreur lors de la suppression'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la suppression du dossier');
+        showNotification('error', pcT('Erreur lors de la suppression du dossier'));
     }
 }
 
@@ -504,7 +505,7 @@ function deleteSelectedClassItem() {
     
     if (!selectedClassFile || !selectedClassFile.element) {
         console.log('❌ Aucun élément sélectionné');
-        showNotification('error', 'Aucun élément sélectionné');
+        showNotification('error', pcT('Aucun élément sélectionné'));
         return;
     }
 
@@ -514,12 +515,12 @@ function deleteSelectedClassItem() {
     console.log('🔍 Type d\'élément:', item.type);
     
     if (item.type === 'file') {
-        confirmMessage = `Êtes-vous sûr de vouloir supprimer le fichier "${item.name}" de la classe ?`;
+        confirmMessage = pcT('Êtes-vous sûr de vouloir supprimer le fichier « {name} » de la classe ?', {name: item.name});
     } else if (item.type === 'folder') {
-        confirmMessage = `Êtes-vous sûr de vouloir supprimer le dossier "${item.name}" et tout son contenu de la classe ?`;
+        confirmMessage = pcT('Êtes-vous sûr de vouloir supprimer le dossier « {name} » et tout son contenu de la classe ?', {name: item.name});
     } else {
         console.log('❌ Type d\'élément non reconnu:', item.type);
-        showNotification('error', 'Type d\'élément non reconnu');
+        showNotification('error', pcT("Type d'élément non reconnu"));
         return;
     }
 
@@ -549,20 +550,20 @@ function showConfirmDialog(message, onConfirm) {
     modal.innerHTML = `
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-exclamation-triangle" style="color: #F59E0B;"></i> Confirmation de suppression</h3>
+                <h3><i class="fas fa-exclamation-triangle" style="color: #F59E0B;"></i> ${pcT('Confirmation de suppression')}</h3>
             </div>
             <div class="modal-body">
                 <p>${message}</p>
                 <p style="font-size: 0.875rem; color: #6B7280; margin-top: 1rem;">
-                    <i class="fas fa-info-circle"></i> Cette action ne supprimera l'élément que de cette classe, pas de vos documents personnels.
+                    <i class="fas fa-info-circle"></i> ${pcT("Cette action ne supprimera l'élément que de cette classe, pas de vos documents personnels.")}
                 </p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" onclick="closeConfirmDialog()">
-                    <i class="fas fa-times"></i> Annuler
+                    <i class="fas fa-times"></i> ${pcT('Annuler')}
                 </button>
                 <button type="button" class="btn btn-danger" onclick="confirmDelete()">
-                    <i class="fas fa-trash"></i> Supprimer
+                    <i class="fas fa-trash"></i> ${pcT('Supprimer')}
                 </button>
             </div>
         </div>
@@ -753,13 +754,13 @@ async function publishExerciseToClass(exerciseId, classId) {
         });
         const result = await response.json();
         if (result.success) {
-            showNotification('success', 'Exercice publié dans la classe !');
+            showNotification('success', pcT('Exercice publié dans la classe !'));
             await loadClassTree(classId);
         } else {
-            showNotification('error', result.error || 'Erreur');
+            showNotification('error', result.error || pcT('Erreur'));
         }
     } catch (error) {
-        showNotification('error', 'Erreur lors de la publication');
+        showNotification('error', pcT('Erreur lors de la publication'));
     }
 }
 
@@ -778,19 +779,19 @@ async function publishExerciseToClassFolder(exerciseId, classId, folderPath) {
         });
         const result = await response.json();
         if (result.success) {
-            showNotification('success', `Exercice publié dans la classe`);
+            showNotification('success', pcT('Exercice publié dans la classe !'));
             await loadClassTree(classId);
         } else {
-            showNotification('error', result.error || 'Erreur');
+            showNotification('error', result.error || pcT('Erreur'));
         }
     } catch (error) {
-        showNotification('error', 'Erreur lors de la publication');
+        showNotification('error', pcT('Erreur lors de la publication'));
     }
 }
 
 // Retirer un exercice d'une classe (sans le supprimer)
 async function unlinkExerciseFromClass(exerciseId, classId) {
-    if (!confirm('Retirer cet exercice de la classe ? (L\'exercice ne sera pas supprimé)')) return;
+    if (!confirm(pcT("Retirer cet exercice de la classe ? (L'exercice ne sera pas supprimé)"))) return;
     try {
         const response = await fetch('/exercises/unlink-from-class', {
             method: 'POST',
@@ -799,13 +800,13 @@ async function unlinkExerciseFromClass(exerciseId, classId) {
         });
         const result = await response.json();
         if (result.success) {
-            showNotification('success', 'Exercice retiré de la classe');
+            showNotification('success', pcT('Exercice retiré de la classe'));
             await loadClassTree(classId);
         } else {
-            showNotification('error', result.error || 'Erreur');
+            showNotification('error', result.error || pcT('Erreur'));
         }
     } catch (error) {
-        showNotification('error', 'Erreur lors du retrait');
+        showNotification('error', pcT('Erreur lors du retrait'));
     }
 }
 
@@ -874,9 +875,9 @@ async function copyFolderToClass(folderId, classId) {
         const result = await response.json();
 
         if (result.success) {
-            const className = classes.find(c => c.id == classId)?.name || 'la classe';
+            const className = classes.find(c => c.id == classId)?.name || pcT('la classe');
             // Le message serveur porte le décompte réel (copiés/déjà présents/échecs)
-            showNotification('success', `${result.message || 'Dossier copié'} → ${className}`);
+            showNotification('success', `${result.message || pcT('Dossier copié')} → ${className}`);
             showCopyWarnings(result.warnings);
 
             // Ouvrir et recharger l'arborescence de la classe
@@ -896,11 +897,11 @@ async function copyFolderToClass(folderId, classId) {
                 saveTreeStates();
             }
         } else {
-            showNotification('error', result.message || 'Erreur lors de la copie');
+            showNotification('error', result.message || pcT('Erreur lors de la copie'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la copie du dossier');
+        showNotification('error', pcT('Erreur lors de la copie du dossier'));
     }
 }
 
@@ -909,8 +910,9 @@ async function copyFolderToClass(folderId, classId) {
 function showCopyWarnings(warnings) {
     if (!warnings || warnings.length === 0) return;
     const details = warnings.slice(0, 6).map(w => `• ${w}`).join('\n');
-    const extra = warnings.length > 6 ? `\n… et ${warnings.length - 6} autre(s)` : '';
-    showNotification('error', `À savoir :\n${details}${extra}`, 15000);
+    const more = warnings.length - 6;
+    const extra = more > 0 ? '\n' + (more === 1 ? pcT('… et 1 autre') : pcT('… et {n} autres', {n: more})) : '';
+    showNotification('error', pcT('À savoir :') + '\n' + details + extra, 15000);
 }
 
 // Copier un fichier vers un dossier spécifique d'une classe
@@ -931,16 +933,16 @@ async function copyFileToClassFolder(fileId, classId, folderName) {
         const result = await response.json();
 
         if (result.success) {
-            showNotification('success', `Fichier copié dans ${folderName}`);
+            showNotification('success', pcT('Fichier copié dans {name}', {name: folderName}));
 
             // Recharger l'arborescence
             await loadClassTree(classId);
         } else {
-            showNotification('error', result.message || 'Erreur lors de la copie');
+            showNotification('error', result.message || pcT('Erreur lors de la copie'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la copie du fichier');
+        showNotification('error', pcT('Erreur lors de la copie du fichier'));
     }
 }
 
@@ -962,17 +964,17 @@ async function copyFolderToClassFolder(folderId, classId, folderName) {
         const result = await response.json();
 
         if (result.success) {
-            showNotification('success', result.message || `Dossier copié dans ${folderName}`);
+            showNotification('success', result.message || pcT('Dossier copié dans {name}', {name: folderName}));
             showCopyWarnings(result.warnings);
 
             // Recharger l'arborescence
             await loadClassTree(classId);
         } else {
-            showNotification('error', result.message || 'Erreur lors de la copie');
+            showNotification('error', result.message || pcT('Erreur lors de la copie'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la copie du dossier');
+        showNotification('error', pcT('Erreur lors de la copie du dossier'));
     }
 }
 
@@ -993,8 +995,8 @@ async function copyFileToClass(fileId, classId) {
         const result = await response.json();
 
         if (result.success) {
-            const className = classes.find(c => c.id == classId)?.name || 'la classe';
-            showNotification('success', `Fichier copié dans ${className}`);
+            const className = classes.find(c => c.id == classId)?.name || pcT('la classe');
+            showNotification('success', pcT('Fichier copié dans {name}', {name: className}));
 
             // Ouvrir et recharger l'arborescence de la classe
             const tree = document.getElementById(`classTree-${classId}`);
@@ -1011,11 +1013,11 @@ async function copyFileToClass(fileId, classId) {
                 }
             }
         } else {
-            showNotification('error', result.message || 'Erreur lors de la copie');
+            showNotification('error', result.message || pcT('Erreur lors de la copie'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la copie du fichier');
+        showNotification('error', pcT('Erreur lors de la copie du fichier'));
     }
 }
 
@@ -1029,7 +1031,7 @@ function toggleDeleteMode() {
 
     if (isDeleteMode) {
         deleteModeBtn.classList.add('active');
-        deleteModeBtn.innerHTML = '<i class="fas fa-times"></i> Annuler';
+        deleteModeBtn.innerHTML = '<i class="fas fa-times"></i> ' + pcT('Annuler');
         deleteActions.style.display = 'block';
 
         checkboxes.forEach(checkbox => {
@@ -1055,7 +1057,7 @@ function cancelDeleteMode() {
     const fileItems = document.querySelectorAll('.file-item');
 
     deleteModeBtn.classList.remove('active');
-    deleteModeBtn.innerHTML = '<i class="fas fa-trash"></i> Supprimer';
+    deleteModeBtn.innerHTML = '<i class="fas fa-trash"></i> ' + pcT('Supprimer');
     deleteActions.style.display = 'none';
 
     checkboxes.forEach(checkbox => {
@@ -1085,7 +1087,7 @@ function updateDeleteButton() {
     const deleteBtn = document.getElementById('deleteSelectedBtn');
 
     const count = selectedCheckboxes.length;
-    deleteBtn.innerHTML = `<i class="fas fa-trash"></i> Supprimer les ${count} élément(s)`;
+    deleteBtn.innerHTML = '<i class="fas fa-trash"></i> ' + (count === 1 ? pcT('Supprimer 1 élément') : pcT('Supprimer les {n} éléments', {n: count}));
     deleteBtn.disabled = count === 0;
 }
 
@@ -1112,15 +1114,15 @@ async function deleteSelectedItems() {
         const result = await response.json();
 
         if (result.success) {
-            showNotification('success', `${items.length} élément(s) supprimé(s)`);
+            showNotification('success', items.length === 1 ? pcT('1 élément supprimé') : pcT('{n} éléments supprimés', {n: items.length}));
             cancelDeleteMode();
             location.reload();
         } else {
-            showNotification('error', result.message || 'Erreur lors de la suppression');
+            showNotification('error', result.message || pcT('Erreur lors de la suppression'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la suppression');
+        showNotification('error', pcT('Erreur lors de la suppression'));
     }
 }
 
@@ -1222,7 +1224,7 @@ async function handleDrop(e) {
 
 // Gérer les entrées du système de fichiers (dossiers et fichiers)
 async function handleFileSystemEntries(entries) {
-    showNotification('info', 'Analyse de la structure en cours...');
+    showNotification('info', pcT('Analyse de la structure en cours...'));
 
     // Structure pour stocker tous les fichiers avec leur chemin
     // errors : fichiers qu'on SAIT ne pas pouvoir uploader (paquets Apple,
@@ -1245,7 +1247,7 @@ async function handleFileSystemEntries(entries) {
 
     // Ensuite uploader tous les fichiers
     if (fileStructure.files.length > 0) {
-        showNotification('info', `Upload de ${fileStructure.files.length} fichier(s) en cours...`);
+        showNotification('info', fileStructure.files.length === 1 ? pcT('Upload de 1 fichier en cours...') : pcT('Upload de {n} fichiers en cours...', {n: fileStructure.files.length}));
         await uploadFilesWithStructure(fileStructure.files, fileStructure.errors);
     } else if (fileStructure.errors.length > 0 && typeof reportUploadFailures === 'function') {
         reportUploadFailures(fileStructure.errors);
@@ -1281,7 +1283,7 @@ async function traverseFileSystem(entry, path, fileStructure) {
         } else {
             fileStructure.errors.push({
                 name: path + entry.name,
-                reason: 'illisible par le navigateur (fichier iCloud non téléchargé sur ce Mac ?)'
+                reason: pcT('illisible par le navigateur (fichier iCloud non téléchargé sur ce Mac ?)')
             });
         }
     } else if (entry.isDirectory) {
@@ -1291,7 +1293,7 @@ async function traverseFileSystem(entry, path, fileStructure) {
         if (isAppleBundleName(entry.name)) {
             fileStructure.errors.push({
                 name: path + entry.name,
-                reason: 'document Apple en format paquet — exportez-le en PDF depuis Pages/Keynote/Numbers'
+                reason: pcT('document Apple en format paquet — exportez-le en PDF depuis Pages/Keynote/Numbers')
             });
             return;
         }
@@ -1345,14 +1347,14 @@ async function createFolderStructure(folderPaths) {
         const result = await response.json();
         
         if (!result.success) {
-            showNotification('error', 'Erreur lors de la création des dossiers');
+            showNotification('error', pcT('Erreur lors de la création des dossiers'));
             return false;
         }
         
         return true;
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la création de la structure');
+        showNotification('error', pcT('Erreur lors de la création de la structure'));
         return false;
     }
 }
@@ -1407,7 +1409,7 @@ async function uploadFilesWithStructure(filesData) {
     }
     
     hideUploadProgress();
-    showNotification('success', `${uploadedCount} fichier(s) uploadé(s) avec succès`);
+    showNotification('success', uploadedCount === 1 ? pcT('1 fichier uploadé avec succès') : pcT('{n} fichiers uploadés avec succès', {n: uploadedCount}));
     
     // Recharger la page
     setTimeout(() => location.reload(), 1500);
@@ -1428,7 +1430,7 @@ function handleFiles(files) {
     if (filesArray.length === 0) {
         // Safari peut renvoyer une sélection vide sur le sélecteur de dossier :
         // sans ce message, « rien ne se passe » pour l'utilisateur.
-        showNotification('error', 'Le navigateur n\'a transmis aucun fichier. Réessayez, ou glissez-déposez le dossier directement sur la page.');
+        showNotification('error', pcT("Le navigateur n'a transmis aucun fichier. Réessayez, ou glissez-déposez le dossier directement sur la page."));
         return;
     }
 
@@ -1455,7 +1457,7 @@ function handleFiles(files) {
                     bundlesVus.add(bundleMatch[1]);
                     preErrors.push({
                         name: bundleMatch[1],
-                        reason: 'document Apple en format paquet — exportez-le en PDF depuis Pages/Keynote/Numbers'
+                        reason: pcT('document Apple en format paquet — exportez-le en PDF depuis Pages/Keynote/Numbers')
                     });
                 }
                 return;
@@ -1478,12 +1480,12 @@ function handleFiles(files) {
         });
 
         if (filesData.length > 0) {
-            showNotification('info', `Upload de ${filesData.length} fichier(s) avec structure en cours...`);
+            showNotification('info', filesData.length === 1 ? pcT('Upload de 1 fichier avec structure en cours...') : pcT('Upload de {n} fichiers avec structure en cours...', {n: filesData.length}));
             uploadFilesWithStructure(filesData, preErrors);
         } else if (preErrors.length > 0 && typeof reportUploadFailures === 'function') {
             reportUploadFailures(preErrors);
         } else {
-            showNotification('error', 'Aucun fichier de la sélection ne peut être uploadé (types non autorisés ?).');
+            showNotification('error', pcT('Aucun fichier de la sélection ne peut être uploadé (types non autorisés ?).'));
         }
     } else {
         // Upload normal (fichiers individuels)
@@ -1510,10 +1512,10 @@ function fileValidationError(file) {
     // (browsers may return empty or non-standard MIME types for files with special characters)
     const ext = file.name.split('.').pop().toLowerCase();
     if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(ext)) {
-        return 'type de fichier non autorisé';
+        return pcT('type de fichier non autorisé');
     }
     if (file.size > maxSize) {
-        return 'fichier trop volumineux (max 250 MB)';
+        return pcT('fichier trop volumineux (max 250 MB)');
     }
     return null;
 }
@@ -1582,13 +1584,13 @@ async function uploadFile(file) {
         });
 
         if (response.success) {
-            showNotification('success', `${file.name} uploadé avec succès`);
+            showNotification('success', pcT('{name} uploadé avec succès', {name: file.name}));
         } else {
-            showNotification('error', response.message || `Erreur lors de l'upload de ${file.name}`);
+            showNotification('error', response.message || pcT("Erreur lors de l'upload de {name}", {name: file.name}));
         }
     } catch (error) {
         console.error('Erreur upload:', error);
-        showNotification('error', `Erreur lors de l'upload de ${file.name}`);
+        showNotification('error', pcT("Erreur lors de l'upload de {name}", {name: file.name}));
     }
 }
 
@@ -1649,11 +1651,11 @@ async function createFolder(e) {
             closeModal('newFolderModal');
             location.reload();
         } else {
-            showNotification('error', result.message || 'Erreur lors de la création du dossier');
+            showNotification('error', result.message || pcT('Erreur lors de la création du dossier'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la création du dossier');
+        showNotification('error', pcT('Erreur lors de la création du dossier'));
     }
 }
 
@@ -1666,7 +1668,7 @@ function openFolder(folderId) {
 function showColorPicker(folderId) {
     // Pour simplifier, on pourrait créer un petit modal de sélection de couleur
     const colors = ['#4F46E5', '#7C3AED', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#6B7280', '#EF4444'];
-    const color = prompt('Choisissez une couleur (hex):', '#4F46E5');
+    const color = prompt(pcT('Choisissez une couleur (hex) :'), '#4F46E5');
 
     if (color && colors.includes(color)) {
         updateFolderColor(folderId, color);
@@ -1693,11 +1695,11 @@ async function updateFolderColor(folderId, color) {
             showNotification('success', result.message);
             location.reload();
         } else {
-            showNotification('error', result.message || 'Erreur lors de la mise à jour');
+            showNotification('error', result.message || pcT('Erreur lors de la mise à jour'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la mise à jour');
+        showNotification('error', pcT('Erreur lors de la mise à jour'));
     }
 }
 
@@ -1707,12 +1709,12 @@ function previewFile(fileId, fileType) {
     const content = document.getElementById('previewContent');
     const title = document.getElementById('previewTitle');
 
-    title.textContent = 'Aperçu';
+    title.textContent = pcT('Aperçu');
 
     if (fileType === 'pdf') {
         content.innerHTML = `<iframe src="/file_manager/preview/${fileId}"></iframe>`;
     } else {
-        content.innerHTML = `<img src="/file_manager/preview/${fileId}" alt="Aperçu">`;
+        content.innerHTML = `<img src="/file_manager/preview/${fileId}" alt="${pcT('Aperçu')}">`;
     }
 
     modal.classList.add('show');
@@ -1758,17 +1760,17 @@ async function saveRename(e) {
             closeModal('renameModal');
             location.reload();
         } else {
-            showNotification('error', result.message || 'Erreur lors du renommage');
+            showNotification('error', result.message || pcT('Erreur lors du renommage'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors du renommage');
+        showNotification('error', pcT('Erreur lors du renommage'));
     }
 }
 
 // Supprimer un fichier
 async function deleteFile(fileId) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) return;
+    if (!confirm(pcT('Êtes-vous sûr de vouloir supprimer ce fichier ?'))) return;
 
     try {
         const response = await fetch(`/file_manager/delete-file/${fileId}`, {
@@ -1781,17 +1783,17 @@ async function deleteFile(fileId) {
             showNotification('success', result.message);
             location.reload();
         } else {
-            showNotification('error', result.message || 'Erreur lors de la suppression');
+            showNotification('error', result.message || pcT('Erreur lors de la suppression'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la suppression');
+        showNotification('error', pcT('Erreur lors de la suppression'));
     }
 }
 
 // Supprimer un dossier
 async function deleteFolder(folderId) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce dossier et tout son contenu ?')) return;
+    if (!confirm(pcT('Êtes-vous sûr de vouloir supprimer ce dossier et tout son contenu ?'))) return;
 
     try {
         const response = await fetch(`/file_manager/delete-folder/${folderId}`, {
@@ -1804,11 +1806,11 @@ async function deleteFolder(folderId) {
             showNotification('success', result.message);
             location.reload();
         } else {
-            showNotification('error', result.message || 'Erreur lors de la suppression');
+            showNotification('error', result.message || pcT('Erreur lors de la suppression'));
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la suppression');
+        showNotification('error', pcT('Erreur lors de la suppression'));
     }
 }
 
@@ -1869,10 +1871,10 @@ function showEmptySpaceContextMenu(e) {
 
     menu.innerHTML = `
         <div class="context-menu-item" onclick="showNewFolderModal(); this.parentElement.remove();">
-            <i class="fas fa-folder-plus"></i> Nouveau dossier
+            <i class="fas fa-folder-plus"></i> ${pcT('Nouveau dossier')}
         </div>
         <div class="context-menu-item" onclick="document.getElementById('fileInput').click(); this.parentElement.remove();">
-            <i class="fas fa-upload"></i> Uploader un fichier
+            <i class="fas fa-upload"></i> ${pcT('Uploader un fichier')}
         </div>
     `;
 
@@ -1899,30 +1901,30 @@ function showContextMenu(e, item) {
     if (type === 'folder') {
         menu.innerHTML = `
             <div class="context-menu-item" onclick="openFolder(${id})">
-                <i class="fas fa-folder-open"></i> Ouvrir
+                <i class="fas fa-folder-open"></i> ${pcT('Ouvrir')}
             </div>
             <div class="context-menu-item" onclick="renameItem('folder', ${id}, '${name}')">
-                <i class="fas fa-edit"></i> Renommer
+                <i class="fas fa-edit"></i> ${pcT('Renommer')}
             </div>
             <div class="context-menu-separator"></div>
             <div class="context-menu-item danger" onclick="deleteFolder(${id})">
-                <i class="fas fa-trash"></i> Supprimer
+                <i class="fas fa-trash"></i> ${pcT('Supprimer')}
             </div>
         `;
     } else {
         menu.innerHTML = `
             <div class="context-menu-item" onclick="previewFile(${id}, '${item.querySelector('.item-icon i').classList.contains('fa-file-pdf') ? 'pdf' : 'image'}')">
-                <i class="fas fa-eye"></i> Aperçu
+                <i class="fas fa-eye"></i> ${pcT('Aperçu')}
             </div>
             <a class="context-menu-item" href="/file_manager/download/${id}">
-                <i class="fas fa-download"></i> Télécharger
+                <i class="fas fa-download"></i> ${pcT('Télécharger')}
             </a>
             <div class="context-menu-item" onclick="renameItem('file', ${id}, '${name}')">
-                <i class="fas fa-edit"></i> Renommer
+                <i class="fas fa-edit"></i> ${pcT('Renommer')}
             </div>
             <div class="context-menu-separator"></div>
             <div class="context-menu-item danger" onclick="deleteFile(${id})">
-                <i class="fas fa-trash"></i> Supprimer
+                <i class="fas fa-trash"></i> ${pcT('Supprimer')}
             </div>
         `;
     }

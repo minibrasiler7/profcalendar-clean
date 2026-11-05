@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Créer un modèle de sanction - ProfCalendar{% endblock %}
+{% block title %}{{ _('Créer un modèle de sanction') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -319,27 +319,27 @@
     <div class="form-section">
         <div class="section-title">
             <i class="fas fa-plus-circle"></i>
-            <h2>Créer un modèle de sanction</h2>
+            <h2>{{ _('Créer un modèle de sanction') }}</h2>
         </div>
-        <p>Définissez un type de problème avec ses seuils et sanctions automatiques.</p>
+        <p>{{ _('Définissez un type de problème avec ses seuils et sanctions automatiques.') }}</p>
     </div>
 
     <!-- Informations de base -->
     <div class="form-section">
         <div class="section-title">
             <i class="fas fa-info-circle"></i>
-            <h2>Informations générales</h2>
+            <h2>{{ _('Informations générales') }}</h2>
         </div>
 
         <div class="form-group">
-            <label for="templateName" class="form-label">Nom du type de problème *</label>
-            <input type="text" id="templateName" class="form-input" placeholder="ex: Oubli, Comportement, Pas d'agenda..." required>
-            <div class="helper-text">Choisissez un nom court et descriptif pour ce type de problème</div>
+            <label for="templateName" class="form-label">{{ _('Nom du type de problème *') }}</label>
+            <input type="text" id="templateName" class="form-input" placeholder="{{ _("ex: Oubli, Comportement, Pas d'agenda...") }}" required>
+            <div class="helper-text">{{ _('Choisissez un nom court et descriptif pour ce type de problème') }}</div>
         </div>
 
         <div class="form-group">
-            <label for="templateDescription" class="form-label">Description (optionnel)</label>
-            <textarea id="templateDescription" class="form-textarea" placeholder="Description détaillée du type de problème..."></textarea>
+            <label for="templateDescription" class="form-label">{{ _('Description (optionnel)') }}</label>
+            <textarea id="templateDescription" class="form-textarea" placeholder="{{ _('Description détaillée du type de problème...') }}"></textarea>
         </div>
     </div>
 
@@ -347,7 +347,7 @@
     <div class="form-section">
         <div class="section-title">
             <i class="fas fa-layer-group"></i>
-            <h2>Seuils et sanctions</h2>
+            <h2>{{ _('Seuils et sanctions') }}</h2>
         </div>
 
         <div class="thresholds-container">
@@ -357,7 +357,7 @@
             
             <button type="button" class="add-threshold-btn" onclick="addThreshold()">
                 <i class="fas fa-plus"></i>
-                Ajouter un seuil
+                {{ _('Ajouter un seuil') }}
             </button>
         </div>
     </div>
@@ -365,10 +365,10 @@
     <!-- Actions -->
     <div class="form-actions">
         <a href="{{ url_for('sanctions.index') }}" class="btn btn-outline">
-            <i class="fas fa-times"></i> Annuler
+            <i class="fas fa-times"></i> {{ _('Annuler') }}
         </a>
         <button type="button" class="btn btn-primary" onclick="saveTemplate()">
-            <i class="fas fa-save"></i> Sauvegarder
+            <i class="fas fa-save"></i> {{ _('Sauvegarder') }}
         </button>
     </div>
 </div>
@@ -381,6 +381,24 @@
 
 {% block extra_js %}
 <script>
+// Chaînes traduites pour le JS (échappées via |tojson) ; jetons {n}… remplacés en JS.
+const SANCTION_CREATE_I18N = {
+    thresholdN: {{ _('Seuil {n}')|tojson }},
+    triggerAfter: {{ _('Déclencher après')|tojson }},
+    checks: {{ _('coches')|tojson }},
+    sanctionOptions: {{ _('Options de sanctions :')|tojson }},
+    addSanction: {{ _('Ajouter une sanction')|tojson }},
+    confirmRemoveThreshold: {{ _('Êtes-vous sûr de vouloir supprimer ce seuil ?')|tojson }},
+    sanctionPlaceholder: {{ _("ex: Copier pages 17-18 de l'aide-mémoire")|tojson }},
+    days: {{ _('Jours')|tojson }},
+    minDays: {{ _('Min. jours (optionnel)')|tojson }},
+    oneSanctionRequired: {{ _('Au moins une sanction est requise par seuil')|tojson }},
+    nameRequired: {{ _('Le nom du modèle est obligatoire')|tojson }},
+    oneThresholdRequired: {{ _('Au moins un seuil est requis')|tojson }},
+    eachThresholdSanction: {{ _('Chaque seuil doit avoir au moins une sanction')|tojson }},
+    connectionError: {{ _('Erreur de connexion')|tojson }},
+};
+
 let thresholdCounter = 0;
 let sanctionCounters = {};
 
@@ -398,7 +416,7 @@ function addThreshold() {
             <div class="threshold-header">
                 <div class="threshold-title">
                     <div class="threshold-number">${thresholdCounter}</div>
-                    <h3>Seuil ${thresholdCounter}</h3>
+                    <h3>${SANCTION_CREATE_I18N.thresholdN.replace('{n}', thresholdCounter)}</h3>
                 </div>
                 ${thresholdCounter > 1 ? `<button type="button" class="btn-icon btn-remove-threshold" onclick="removeThreshold(${thresholdCounter})">
                     <i class="fas fa-trash"></i>
@@ -406,19 +424,19 @@ function addThreshold() {
             </div>
             
             <div class="threshold-input-group">
-                <label>Déclencher après</label>
+                <label>${SANCTION_CREATE_I18N.triggerAfter}</label>
                 <input type="number" class="threshold-input" min="1" max="99" value="${thresholdCounter * 3}" 
                        placeholder="3" data-field="check_count">
-                <label>coches</label>
+                <label>${SANCTION_CREATE_I18N.checks}</label>
             </div>
             
             <div class="sanctions-list" id="sanctionsList_${thresholdCounter}">
-                <label class="form-label">Options de sanctions :</label>
+                <label class="form-label">${SANCTION_CREATE_I18N.sanctionOptions}</label>
                 <!-- Les sanctions seront ajoutées ici -->
             </div>
             
             <button type="button" class="btn-icon btn-add" onclick="addSanction(${thresholdCounter})" style="margin-top: 0.5rem;">
-                <i class="fas fa-plus"></i> Ajouter une sanction
+                <i class="fas fa-plus"></i> ${SANCTION_CREATE_I18N.addSanction}
             </button>
         </div>
     `;
@@ -430,7 +448,7 @@ function addThreshold() {
 }
 
 function removeThreshold(thresholdId) {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce seuil ?')) {
+    if (confirm(SANCTION_CREATE_I18N.confirmRemoveThreshold)) {
         document.querySelector(`[data-threshold-id="${thresholdId}"]`).remove();
         delete sanctionCounters[thresholdId];
         updateThresholdNumbers();
@@ -442,7 +460,7 @@ function updateThresholdNumbers() {
     thresholds.forEach((threshold, index) => {
         const number = index + 1;
         threshold.querySelector('.threshold-number').textContent = number;
-        threshold.querySelector('.threshold-title h3').textContent = `Seuil ${number}`;
+        threshold.querySelector('.threshold-title h3').textContent = SANCTION_CREATE_I18N.thresholdN.replace('{n}', number);
     });
 }
 
@@ -453,13 +471,13 @@ function addSanction(thresholdId) {
     const sanctionHtml = `
         <div class="sanction-item" data-sanction-id="${sanctionId}">
             <div class="sanction-description">
-                <input type="text" class="form-input" placeholder="ex: Copier pages 17-18 de l'aide-mémoire" 
+                <input type="text" class="form-input" placeholder="${SANCTION_CREATE_I18N.sanctionPlaceholder}" 
                        data-field="description" required>
             </div>
             <div class="sanction-deadline">
-                <input type="number" class="form-input" placeholder="Jours" min="1" max="30" value="" 
+                <input type="number" class="form-input" placeholder="${SANCTION_CREATE_I18N.days}" min="1" max="30" value="" 
                        data-field="min_days_deadline">
-                <div class="helper-text">Min. jours (optionnel)</div>
+                <div class="helper-text">${SANCTION_CREATE_I18N.minDays}</div>
             </div>
             <div class="sanction-actions">
                 <button type="button" class="btn-icon btn-remove" onclick="removeSanction('${sanctionId}')">
@@ -478,7 +496,7 @@ function removeSanction(sanctionId) {
     
     // Ne pas supprimer s'il n'y a qu'une seule sanction
     if (sanctionsList.querySelectorAll('.sanction-item').length === 1) {
-        showNotification('Au moins une sanction est requise par seuil', 'error');
+        showNotification(SANCTION_CREATE_I18N.oneSanctionRequired, 'error');
         return;
     }
     
@@ -489,20 +507,20 @@ async function saveTemplate() {
     // Validation
     const name = document.getElementById('templateName').value.trim();
     if (!name) {
-        showNotification('Le nom du modèle est obligatoire', 'error');
+        showNotification(SANCTION_CREATE_I18N.nameRequired, 'error');
         return;
     }
     
     const thresholds = collectThresholdsData();
     if (thresholds.length === 0) {
-        showNotification('Au moins un seuil est requis', 'error');
+        showNotification(SANCTION_CREATE_I18N.oneThresholdRequired, 'error');
         return;
     }
     
     // Vérifier que tous les seuils ont au moins une sanction
     for (let threshold of thresholds) {
         if (threshold.sanctions.length === 0) {
-            showNotification('Chaque seuil doit avoir au moins une sanction', 'error');
+            showNotification(SANCTION_CREATE_I18N.eachThresholdSanction, 'error');
             return;
         }
     }
@@ -537,7 +555,7 @@ async function saveTemplate() {
             showNotification(result.message, 'error');
         }
     } catch (error) {
-        showNotification('Erreur de connexion', 'error');
+        showNotification(SANCTION_CREATE_I18N.connectionError, 'error');
     } finally {
         document.body.classList.remove('loading');
     }

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Nouvelle année scolaire - ProfCalendar{% endblock %}
+{% block title %}{{ _('Nouvelle année scolaire') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -342,25 +342,25 @@
             <div class="step-circle {% if step == 1 %}active{% elif step > 1 %}completed{% endif %}">
                 {% if step > 1 %}<i class="fas fa-check"></i>{% else %}1{% endif %}
             </div>
-            <span class="step-label {% if step == 1 %}active{% endif %}">Archivage</span>
+            <span class="step-label {% if step == 1 %}active{% endif %}">{{ _('Archivage') }}</span>
         </div>
         <div class="wizard-step">
             <div class="step-circle {% if step == 2 %}active{% elif step > 2 %}completed{% endif %}">
                 {% if step > 2 %}<i class="fas fa-check"></i>{% else %}2{% endif %}
             </div>
-            <span class="step-label {% if step == 2 %}active{% endif %}">Classes</span>
+            <span class="step-label {% if step == 2 %}active{% endif %}">{{ _('Classes') }}</span>
         </div>
         <div class="wizard-step">
             <div class="step-circle {% if step == 3 %}active{% elif step > 3 %}completed{% endif %}">
                 {% if step > 3 %}<i class="fas fa-check"></i>{% else %}3{% endif %}
             </div>
-            <span class="step-label {% if step == 3 %}active{% endif %}">Dates</span>
+            <span class="step-label {% if step == 3 %}active{% endif %}">{{ _('Dates') }}</span>
         </div>
         <div class="wizard-step">
             <div class="step-circle {% if step == 4 %}active{% endif %}">
                 4
             </div>
-            <span class="step-label {% if step == 4 %}active{% endif %}">Confirmation</span>
+            <span class="step-label {% if step == 4 %}active{% endif %}">{{ _('Confirmation') }}</span>
         </div>
     </div>
 
@@ -368,19 +368,19 @@
     {% if step == 1 %}
     <div class="wizard-section">
         <i class="fas fa-graduation-cap" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem; display: block;"></i>
-        <h2>Nouvelle année scolaire</h2>
+        <h2>{{ _('Nouvelle année scolaire') }}</h2>
         <p class="section-desc">
-            Bienvenue dans l'assistant de fin d'année. Ce processus va vous guider pour préparer la transition vers la nouvelle année scolaire.
+            {{ _("Bienvenue dans l'assistant de fin d'année. Ce processus va vous guider pour préparer la transition vers la nouvelle année scolaire.") }}
         </p>
 
         <div class="warning-box">
             <i class="fas fa-exclamation-triangle"></i>
-            <strong>Avant de continuer :</strong> Ce processus va supprimer les données de l'année en cours (plannings, présences, notes, sanctions, mémos, remarques). Pensez à archiver vos rapports avant de continuer.
+            <strong>{{ _('Avant de continuer :') }}</strong> {{ _("Ce processus va supprimer les données de l'année en cours (plannings, présences, notes, sanctions, mémos, remarques). Pensez à archiver vos rapports avant de continuer.") }}
         </div>
 
-        <h3 style="margin-bottom: 1rem;">Télécharger les rapports de classe</h3>
+        <h3 style="margin-bottom: 1rem;">{{ _('Télécharger les rapports de classe') }}</h3>
         <p style="color: var(--gray-color); margin-bottom: 1rem; font-size: 0.9rem;">
-            Chaque rapport contient pour chaque élève : notes, absences, retards, sanctions et remarques.
+            {{ _('Chaque rapport contient pour chaque élève : notes, absences, retards, sanctions et remarques.') }}
         </p>
 
         {% if class_info %}
@@ -393,10 +393,10 @@
                     <span style="color: var(--gray-color);"> — {{ ci.classroom.subject }}</span>
                     {% endif %}
                     <br>
-                    <span class="student-count">{{ ci.student_count }} élève{{ 's' if ci.student_count != 1 }}</span>
+                    <span class="student-count">{% if ci.student_count == 1 %}{{ _('1 élève') }}{% else %}{{ _('%(n)s élèves', n=ci.student_count) }}{% endif %}</span>
                 </div>
                 <a href="{{ url_for('year_end.export_class_pdf', classroom_id=ci.classroom.id) }}" class="btn btn-sm btn-outline">
-                    <i class="fas fa-download"></i> Télécharger PDF
+                    <i class="fas fa-download"></i> {{ _('Télécharger PDF') }}
                 </a>
             </div>
             {% endfor %}
@@ -404,22 +404,22 @@
 
         <div style="margin-top: 1.5rem; text-align: center;">
             <a href="{{ url_for('year_end.export_all_pdf') }}" class="btn btn-primary">
-                <i class="fas fa-file-pdf"></i> Télécharger tous les rapports
+                <i class="fas fa-file-pdf"></i> {{ _('Télécharger tous les rapports') }}
             </a>
         </div>
         {% else %}
         <p style="color: var(--gray-color); text-align: center; padding: 2rem;">
-            <i class="fas fa-info-circle"></i> Aucune classe trouvée.
+            <i class="fas fa-info-circle"></i> {{ _('Aucune classe trouvée.') }}
         </p>
         {% endif %}
     </div>
 
     <div class="wizard-buttons">
         <a href="{{ url_for('planning.dashboard') }}" class="btn btn-outline">
-            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+            <i class="fas fa-arrow-left"></i> {{ _('Retour au tableau de bord') }}
         </a>
         <a href="{{ url_for('year_end.step2') }}" class="btn btn-primary">
-            Suivant <i class="fas fa-arrow-right"></i>
+            {{ _('Suivant') }} <i class="fas fa-arrow-right"></i>
         </a>
     </div>
     {% endif %}
@@ -431,13 +431,13 @@
 
         <div class="wizard-section">
             <i class="fas fa-school" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem; display: block;"></i>
-            <h2>Gestion des classes</h2>
+            <h2>{{ _('Gestion des classes') }}</h2>
             <p class="section-desc">
-                Pour chaque classe, choisissez ce que vous souhaitez faire pour la prochaine année.
+                {{ _('Pour chaque classe, choisissez ce que vous souhaitez faire pour la prochaine année.') }}
             </p>
 
             {% if class_info %}
-            <h3 style="margin-bottom: 1rem;">Classes</h3>
+            <h3 style="margin-bottom: 1rem;">{{ _('Classes') }}</h3>
             {% for ci in class_info %}
             <div class="class-action-card">
                 <div class="class-action-header">
@@ -446,10 +446,10 @@
                         {{ ci.classroom.name }}
                         {% if ci.classroom.subject %}<span style="color: var(--gray-color); font-weight: normal;"> — {{ ci.classroom.subject }}</span>{% endif %}
                     </span>
-                    <span class="badge">{{ ci.student_count }} élève{{ 's' if ci.student_count != 1 }}</span>
+                    <span class="badge">{% if ci.student_count == 1 %}{{ _('1 élève') }}{% else %}{{ _('%(n)s élèves', n=ci.student_count) }}{% endif %}</span>
                     {% if ci.collaboration and ci.collaboration.has_collaborations %}
                     <span class="badge" style="background: #FEF3C7; color: #92400E; border: 1px solid #F59E0B;">
-                        <i class="fas fa-link"></i> {{ ci.collaboration.count }} enseignant{{ 's' if ci.collaboration.count != 1 }} lié{{ 's' if ci.collaboration.count != 1 }}
+                        <i class="fas fa-link"></i> {% if ci.collaboration.count == 1 %}{{ _('1 enseignant lié') }}{% else %}{{ _('%(n)s enseignants liés', n=ci.collaboration.count) }}{% endif %}
                     </span>
                     {% endif %}
                 </div>
@@ -457,10 +457,9 @@
                 {% if ci.collaboration and ci.collaboration.has_collaborations %}
                 <div class="collab-warning" style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.75rem; font-size: 0.85rem;">
                     <i class="fas fa-exclamation-triangle" style="color: #F59E0B;"></i>
-                    <strong>Attention :</strong> Cette classe est partagée avec
-                    {% for t in ci.collaboration.teachers %}{{ t.username }}{% if not loop.last %}, {% endif %}{% endfor %}.
-                    Si vous la supprimez, les classes dérivées de ces enseignants seront aussi supprimées
-                    ({% for dc in ci.collaboration.derived_classrooms %}{{ dc.name }} - {{ dc.subject }}{% if not loop.last %}, {% endif %}{% endfor %}).
+                    {% set collab_teachers %}{% for t in ci.collaboration.teachers %}{{ t.username }}{% if not loop.last %}, {% endif %}{% endfor %}{% endset %}
+                    {% set collab_classes %}{% for dc in ci.collaboration.derived_classrooms %}{{ dc.name }} - {{ dc.subject }}{% if not loop.last %}, {% endif %}{% endfor %}{% endset %}
+                    <strong>{{ _('Attention :') }}</strong> {{ _('Cette classe est partagée avec %(teachers)s. Si vous la supprimez, les classes dérivées de ces enseignants seront aussi supprimées (%(classes)s).', teachers=collab_teachers, classes=collab_classes) }}
                 </div>
                 {% endif %}
 
@@ -468,36 +467,36 @@
                     <div class="action-option">
                         <input type="radio" name="action_{{ ci.classroom.id }}" value="keep" id="keep_{{ ci.classroom.id }}" checked>
                         <label for="keep_{{ ci.classroom.id }}">
-                            <i class="fas fa-check-circle" style="color: var(--success-color);"></i> Garder
+                            <i class="fas fa-check-circle" style="color: var(--success-color);"></i> {{ _('Garder') }}
                         </label>
                     </div>
                     <div class="action-option">
                         <input type="radio" name="action_{{ ci.classroom.id }}" value="rename" id="rename_{{ ci.classroom.id }}"
                             onchange="toggleRename('{{ ci.classroom.id }}')">
                         <label for="rename_{{ ci.classroom.id }}">
-                            <i class="fas fa-pen" style="color: var(--primary-color);"></i> Renommer
+                            <i class="fas fa-pen" style="color: var(--primary-color);"></i> {{ _('Renommer') }}
                         </label>
                     </div>
                     <div class="action-option">
                         <input type="radio" name="action_{{ ci.classroom.id }}" value="delete" id="delete_{{ ci.classroom.id }}"
                             onchange="toggleRename('{{ ci.classroom.id }}')">
                         <label for="delete_{{ ci.classroom.id }}" class="option-delete">
-                            <i class="fas fa-trash" style="color: var(--danger-color);"></i> Supprimer
+                            <i class="fas fa-trash" style="color: var(--danger-color);"></i> {{ _('Supprimer') }}
                         </label>
                     </div>
                 </div>
 
                 <div class="rename-field" id="rename_field_{{ ci.classroom.id }}">
-                    <label class="form-label">Nouveau nom :</label>
+                    <label class="form-label">{{ _('Nouveau nom :') }}</label>
                     <input type="text" name="rename_{{ ci.classroom.id }}" class="form-control"
-                        placeholder="Ex: {{ ci.classroom.name }}" value="{{ ci.classroom.name }}">
+                        placeholder="{{ _('Ex: %(name)s', name=ci.classroom.name) }}" value="{{ ci.classroom.name }}">
                 </div>
             </div>
             {% endfor %}
             {% endif %}
 
             {% if mg_info %}
-            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Groupes mixtes</h3>
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">{{ _('Groupes mixtes') }}</h3>
             {% for mi in mg_info %}
             <div class="class-action-card">
                 <div class="class-action-header">
@@ -506,20 +505,20 @@
                         {{ mi.mixed_group.name }}
                         {% if mi.mixed_group.subject %}<span style="color: var(--gray-color); font-weight: normal;"> — {{ mi.mixed_group.subject }}</span>{% endif %}
                     </span>
-                    <span class="badge">{{ mi.student_count }} élève{{ 's' if mi.student_count != 1 }}</span>
+                    <span class="badge">{% if mi.student_count == 1 %}{{ _('1 élève') }}{% else %}{{ _('%(n)s élèves', n=mi.student_count) }}{% endif %}</span>
                 </div>
 
                 <div class="action-options">
                     <div class="action-option">
                         <input type="radio" name="action_mg_{{ mi.mixed_group.id }}" value="keep" id="keep_mg_{{ mi.mixed_group.id }}" checked>
                         <label for="keep_mg_{{ mi.mixed_group.id }}">
-                            <i class="fas fa-check-circle" style="color: var(--success-color);"></i> Garder
+                            <i class="fas fa-check-circle" style="color: var(--success-color);"></i> {{ _('Garder') }}
                         </label>
                     </div>
                     <div class="action-option">
                         <input type="radio" name="action_mg_{{ mi.mixed_group.id }}" value="delete" id="delete_mg_{{ mi.mixed_group.id }}">
                         <label for="delete_mg_{{ mi.mixed_group.id }}" class="option-delete">
-                            <i class="fas fa-trash" style="color: var(--danger-color);"></i> Supprimer
+                            <i class="fas fa-trash" style="color: var(--danger-color);"></i> {{ _('Supprimer') }}
                         </label>
                     </div>
                 </div>
@@ -530,10 +529,10 @@
 
         <div class="wizard-buttons">
             <a href="{{ url_for('year_end.step1') }}" class="btn btn-outline">
-                <i class="fas fa-arrow-left"></i> Précédent
+                <i class="fas fa-arrow-left"></i> {{ _('Précédent') }}
             </a>
             <button type="submit" class="btn btn-primary">
-                Suivant <i class="fas fa-arrow-right"></i>
+                {{ _('Suivant') }} <i class="fas fa-arrow-right"></i>
             </button>
         </div>
     </form>
@@ -546,19 +545,19 @@
 
         <div class="wizard-section">
             <i class="fas fa-calendar-alt" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem; display: block;"></i>
-            <h2>Nouvelle année scolaire</h2>
+            <h2>{{ _('Nouvelle année scolaire') }}</h2>
             <p class="section-desc">
-                Définissez les dates de la prochaine année scolaire.
+                {{ _('Définissez les dates de la prochaine année scolaire.') }}
             </p>
 
             <div class="date-inputs">
                 <div class="form-group">
-                    <label class="form-label">Début de l'année scolaire</label>
+                    <label class="form-label">{{ _("Début de l'année scolaire") }}</label>
                     <input type="date" name="school_year_start" class="form-control" required
                         value="{{ default_start.isoformat() if default_start else '' }}">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Fin de l'année scolaire</label>
+                    <label class="form-label">{{ _("Fin de l'année scolaire") }}</label>
                     <input type="date" name="school_year_end" class="form-control" required
                         value="{{ default_end.isoformat() if default_end else '' }}">
                 </div>
@@ -567,19 +566,18 @@
 
         <div class="wizard-section">
             <i class="fas fa-umbrella-beach" style="font-size: 2rem; color: var(--warning-color); margin-bottom: 1rem; display: block;"></i>
-            <h2>Vacances scolaires</h2>
+            <h2>{{ _('Vacances scolaires') }}</h2>
             <p class="section-desc">
-                Les périodes de vacances de l'année écoulée seront <strong>supprimées</strong>.
-                Vous configurerez vos nouvelles vacances juste après la clôture, sur la page dédiée.
+                {{ _("Les périodes de vacances de l'année écoulée seront <strong>supprimées</strong>. Vous configurerez vos nouvelles vacances juste après la clôture, sur la page dédiée.") }}
             </p>
         </div>
 
         <div class="wizard-buttons">
             <a href="{{ url_for('year_end.step2') }}" class="btn btn-outline">
-                <i class="fas fa-arrow-left"></i> Précédent
+                <i class="fas fa-arrow-left"></i> {{ _('Précédent') }}
             </a>
             <button type="submit" class="btn btn-primary">
-                Suivant <i class="fas fa-arrow-right"></i>
+                {{ _('Suivant') }} <i class="fas fa-arrow-right"></i>
             </button>
         </div>
     </form>
@@ -592,35 +590,35 @@
 
         <div class="wizard-section">
             <i class="fas fa-clipboard-check" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem; display: block;"></i>
-            <h2>Récapitulatif</h2>
+            <h2>{{ _('Récapitulatif') }}</h2>
             <p class="section-desc">
-                Vérifiez les actions qui seront effectuées avant de confirmer.
+                {{ _('Vérifiez les actions qui seront effectuées avant de confirmer.') }}
             </p>
 
             <!-- Nouvelles dates -->
-            <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-calendar"></i> Nouvelles dates</h3>
+            <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-calendar"></i> {{ _('Nouvelles dates') }}</h3>
             <p style="margin-bottom: 1.5rem;">
-                Du <strong>{{ new_start }}</strong> au <strong>{{ new_end }}</strong>
-                <br><small style="color: var(--gray-color);"><i class="fas fa-info-circle"></i> Les vacances seront supprimées (à reconfigurer juste après).</small>
+                {{ _('Du <strong>%(start)s</strong> au <strong>%(end)s</strong>', start=new_start, end=new_end) }}
+                <br><small style="color: var(--gray-color);"><i class="fas fa-info-circle"></i> {{ _('Les vacances seront supprimées (à reconfigurer juste après).') }}</small>
             </p>
 
             <!-- Actions par classe -->
             {% if recap_classes %}
-            <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-school"></i> Classes et groupes</h3>
+            <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-school"></i> {{ _('Classes et groupes') }}</h3>
             <ul class="recap-list">
                 {% for rc in recap_classes %}
                 <li>
                     {% if rc.action == 'keep' %}
-                    <span class="recap-badge keep">Garder</span>
+                    <span class="recap-badge keep">{{ _('Garder') }}</span>
                     {% elif rc.action == 'rename' %}
-                    <span class="recap-badge rename">Renommer</span>
+                    <span class="recap-badge rename">{{ _('Renommer') }}</span>
                     {% elif rc.action == 'delete' %}
-                    <span class="recap-badge delete">Supprimer</span>
+                    <span class="recap-badge delete">{{ _('Supprimer') }}</span>
                     {% endif %}
 
                     <span>
                         <strong>{{ rc.name }}</strong>
-                        <span style="color: var(--gray-color); font-size: 0.85rem;">({{ rc.type }})</span>
+                        <span style="color: var(--gray-color); font-size: 0.85rem;">({% if rc.type == 'Groupe mixte' %}{{ _('Groupe mixte') }}{% else %}{{ _('Classe') }}{% endif %})</span>
                         {% if rc.action == 'rename' and rc.new_name %}
                         → <strong style="color: var(--primary-color);">{{ rc.new_name }}</strong>
                         {% endif %}
@@ -631,36 +629,36 @@
             {% endif %}
 
             <!-- Données supprimées -->
-            <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem;"><i class="fas fa-trash-alt"></i> Données qui seront supprimées</h3>
+            <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem;"><i class="fas fa-trash-alt"></i> {{ _('Données qui seront supprimées') }}</h3>
             <div class="danger-box">
                 <i class="fas fa-exclamation-circle"></i>
-                Les données suivantes seront <strong>définitivement supprimées</strong> :
+                {{ _('Les données suivantes seront <strong>définitivement supprimées</strong> :') }}
                 <ul style="margin-top: 0.5rem; margin-bottom: 0; padding-left: 1.5rem;">
-                    <li>Tous les plannings de cours</li>
-                    <li>Toutes les présences et absences</li>
-                    <li>Toutes les évaluations et notes</li>
-                    <li>Tous les mémos de cours</li>
-                    <li>Toutes les remarques d'élèves</li>
-                    <li>Tous les enregistrements de sanctions (compteurs remis à 0)</li>
-                    <li>Tous les plans de classe</li>
+                    <li>{{ _('Tous les plannings de cours') }}</li>
+                    <li>{{ _('Toutes les présences et absences') }}</li>
+                    <li>{{ _('Toutes les évaluations et notes') }}</li>
+                    <li>{{ _('Tous les mémos de cours') }}</li>
+                    <li>{{ _("Toutes les remarques d'élèves") }}</li>
+                    <li>{{ _('Tous les enregistrements de sanctions (compteurs remis à 0)') }}</li>
+                    <li>{{ _('Tous les plans de classe') }}</li>
                 </ul>
             </div>
 
             <div class="confirm-checkbox">
                 <input type="checkbox" name="confirm_checkbox" id="confirm_checkbox" value="1">
                 <label for="confirm_checkbox">
-                    <strong>Je confirme vouloir procéder à la transition vers la nouvelle année scolaire.</strong>
-                    Je comprends que les données de l'année en cours seront définitivement supprimées et que cette action est irréversible.
+                    <strong>{{ _('Je confirme vouloir procéder à la transition vers la nouvelle année scolaire.') }}</strong>
+                    {{ _("Je comprends que les données de l'année en cours seront définitivement supprimées et que cette action est irréversible.") }}
                 </label>
             </div>
         </div>
 
         <div class="wizard-buttons">
             <a href="{{ url_for('year_end.step3') }}" class="btn btn-outline">
-                <i class="fas fa-arrow-left"></i> Précédent
+                <i class="fas fa-arrow-left"></i> {{ _('Précédent') }}
             </a>
             <button type="submit" class="btn btn-danger" id="btn-execute" disabled onclick="return confirmExecution();">
-                <i class="fas fa-rocket"></i> Lancer la nouvelle année
+                <i class="fas fa-rocket"></i> {{ _('Lancer la nouvelle année') }}
             </button>
         </div>
     </form>
@@ -669,6 +667,11 @@
 </div>
 
 <script>
+// Chaînes traduites pour le JS.
+const YEAR_END_I18N = {
+    confirmExecution: {{ _('Êtes-vous absolument sûr de vouloir procéder ? Cette action est irréversible.')|tojson }}
+};
+
 {% if step == 2 %}
 function toggleRename(classId) {
     const renameRadio = document.getElementById('rename_' + classId);
@@ -699,7 +702,7 @@ checkbox.addEventListener('change', function() {
 });
 
 function confirmExecution() {
-    return confirm('Êtes-vous absolument sûr de vouloir procéder ? Cette action est irréversible.');
+    return confirm(YEAR_END_I18N.confirmExecution);
 }
 {% endif %}
 </script>

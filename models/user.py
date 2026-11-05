@@ -46,6 +46,7 @@ class User(UserMixin, db.Model):
     schedule_completed = db.Column(db.Boolean, default=False)  # Horaire type complété
     has_seen_tour = db.Column(db.Boolean, default=False)  # Tour d'aide vu
     onboarding_dismissed = db.Column(db.Boolean, default=False)  # Checklist « 3 étapes » fermée manuellement
+    locale = db.Column(db.String(5), nullable=True)  # Langue de l'interface (fr/en/de/it/es) : e-mails automatiques
     college_name = db.Column(db.String(200), nullable=True)  # Nom du collège
     school_year_start = db.Column(db.Date)
     school_year_end = db.Column(db.Date)

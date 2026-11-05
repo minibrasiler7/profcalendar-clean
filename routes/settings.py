@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, make_response
 from datetime import datetime
 from flask_login import login_required, current_user, logout_user
+from flask_babel import gettext as _gettext
 from extensions import db
 from models.user_preferences import UserPreferences
 from models.parent import ClassCode
@@ -52,12 +53,12 @@ def update_accommodations_display():
     data = request.get_json()
     
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     show_accommodations = data.get('show_accommodations')
     
     if show_accommodations not in ['none', 'emoji', 'name']:
-        return jsonify({'success': False, 'message': 'Valeur invalide'}), 400
+        return jsonify({'success': False, 'message': _gettext('Valeur invalide')}), 400
     
     try:
         # Récupérer ou créer les préférences
@@ -70,7 +71,7 @@ def update_accommodations_display():
         
         return jsonify({
             'success': True,
-            'message': 'Préférences mises à jour avec succès'
+            'message': _gettext('Préférences mises à jour avec succès')
         })
         
     except Exception as e:
@@ -84,12 +85,12 @@ def update_student_sort_preference():
     data = request.get_json()
 
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     student_sort_pref = data.get('student_sort_pref')
 
     if student_sort_pref not in ['first_name', 'last_name']:
-        return jsonify({'success': False, 'message': 'Valeur invalide'}), 400
+        return jsonify({'success': False, 'message': _gettext('Valeur invalide')}), 400
 
     try:
         # Mettre à jour la préférence de l'utilisateur
@@ -99,7 +100,7 @@ def update_student_sort_preference():
 
         return jsonify({
             'success': True,
-            'message': 'Préférence de tri mise à jour avec succès'
+            'message': _gettext('Préférence de tri mise à jour avec succès')
         })
 
     except Exception as e:
@@ -119,18 +120,17 @@ def update_formative():
 
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     enabled = bool(data.get('enabled'))
     fields = data.get('fields')
     if fields is not None:
         if not isinstance(fields, list):
-            return jsonify({'success': False, 'message': 'Colonnes invalides'}), 400
+            return jsonify({'success': False, 'message': _gettext('Colonnes invalides')}), 400
         fields = [f for f in fields if f in FIELD_KEYS]
         if enabled and not fields:
             return jsonify({'success': False,
-                            'message': 'Gardez au moins une colonne (appréciation, '
-                                       'commentaire ou pastille).'}), 400
+                            'message': _gettext('Gardez au moins une colonne (appréciation, commentaire ou pastille).')}), 400
 
     try:
         preferences = UserPreferences.get_or_create_for_user(current_user.id)
@@ -142,7 +142,7 @@ def update_formative():
         if enabled:
             FormativeLevel.ensure_defaults(current_user.id)
 
-        return jsonify({'success': True, 'message': 'Préférences mises à jour'})
+        return jsonify({'success': True, 'message': _gettext('Préférences mises à jour')})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -155,22 +155,22 @@ def generate_class_code():
     data = request.get_json()
     
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
     
     classroom_id = data.get('classroom_id')
 
     if not classroom_id:
-        return jsonify({'success': False, 'message': 'ID de classe requis'}), 400
+        return jsonify({'success': False, 'message': _gettext('ID de classe requis')}), 400
 
     try:
         classroom_id = int(classroom_id)
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+        return jsonify({'success': False, 'message': _gettext('ID de classe invalide')}), 400
 
     # Vérifier que la classe appartient à l'utilisateur
     classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
     if not classroom:
-        return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+        return jsonify({'success': False, 'message': _gettext('Classe non trouvée')}), 404
     
     try:
         # Désactiver les anciens codes pour cette classe
@@ -201,7 +201,7 @@ def generate_class_code():
         
         return jsonify({
             'success': True,
-            'message': 'Nouveau code généré avec succès',
+            'message': _gettext('Nouveau code généré avec succès'),
             'code': code,
             'classroom_name': classroom.name
         })
@@ -218,7 +218,7 @@ def deactivate_class_code(code_id):
     code = ClassCode.query.filter_by(id=code_id, user_id=current_user.id).first()
 
     if not code:
-        return jsonify({'success': False, 'message': 'Code non trouvé'}), 404
+        return jsonify({'success': False, 'message': _gettext('Code non trouvé')}), 404
 
     try:
         code.is_active = False
@@ -226,7 +226,7 @@ def deactivate_class_code(code_id):
 
         return jsonify({
             'success': True,
-            'message': 'Code désactivé avec succès'
+            'message': _gettext('Code désactivé avec succès')
         })
 
     except Exception as e:
@@ -283,17 +283,17 @@ def change_password():
     data = request.get_json()
 
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     current_password = data.get('current_password')
     new_password = data.get('new_password')
 
     if not current_password or not new_password:
-        return jsonify({'success': False, 'message': 'Mot de passe actuel et nouveau mot de passe requis'}), 400
+        return jsonify({'success': False, 'message': _gettext('Mot de passe actuel et nouveau mot de passe requis')}), 400
 
     # Vérifier le mot de passe actuel
     if not current_user.check_password(current_password):
-        return jsonify({'success': False, 'message': 'Le mot de passe actuel est incorrect'}), 400
+        return jsonify({'success': False, 'message': _gettext('Le mot de passe actuel est incorrect')}), 400
 
     # Vérifier que le nouveau mot de passe respecte les mêmes règles
     # que l'inscription (auth.py RegisterForm) : 8+ caractères, une
@@ -302,7 +302,7 @@ def change_password():
     # en force par rapport à son mot de passe initial.
     import re
     if len(new_password) < 8 or not re.search(r'[A-Z]', new_password) or not re.search(r'[0-9]', new_password):
-        return jsonify({'success': False, 'message': 'Le nouveau mot de passe doit contenir au moins 8 caractères avec une majuscule et un chiffre.'}), 400
+        return jsonify({'success': False, 'message': _gettext('Le nouveau mot de passe doit contenir au moins 8 caractères avec une majuscule et un chiffre.')}), 400
 
     try:
         # Mettre à jour le mot de passe
@@ -311,7 +311,7 @@ def change_password():
 
         return jsonify({
             'success': True,
-            'message': 'Mot de passe modifié avec succès'
+            'message': _gettext('Mot de passe modifié avec succès')
         })
 
     except Exception as e:
@@ -363,18 +363,18 @@ def enable_2fa():
 
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     secret = data.get('secret')
     code = data.get('code', '').strip()
 
     if not secret or not code:
-        return jsonify({'success': False, 'message': 'Secret et code requis'}), 400
+        return jsonify({'success': False, 'message': _gettext('Secret et code requis')}), 400
 
     # Vérifier que le code est valide
     totp = pyotp.TOTP(secret)
     if not totp.verify(code, valid_window=1):
-        return jsonify({'success': False, 'message': 'Code invalide. Vérifiez votre application d\'authentification.'}), 400
+        return jsonify({'success': False, 'message': _gettext('Code invalide. Vérifiez votre application d\'authentification.')}), 400
 
     try:
         current_user.totp_secret = secret
@@ -383,7 +383,7 @@ def enable_2fa():
 
         return jsonify({
             'success': True,
-            'message': 'Double authentification activée avec succès !'
+            'message': _gettext('Double authentification activée avec succès !')
         })
     except Exception as e:
         db.session.rollback()
@@ -396,14 +396,14 @@ def disable_2fa():
     """Désactive la 2FA après vérification du mot de passe"""
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     password = data.get('password')
     if not password:
-        return jsonify({'success': False, 'message': 'Mot de passe requis'}), 400
+        return jsonify({'success': False, 'message': _gettext('Mot de passe requis')}), 400
 
     if not current_user.check_password(password):
-        return jsonify({'success': False, 'message': 'Mot de passe incorrect'}), 400
+        return jsonify({'success': False, 'message': _gettext('Mot de passe incorrect')}), 400
 
     try:
         current_user.totp_secret = None
@@ -412,7 +412,7 @@ def disable_2fa():
 
         return jsonify({
             'success': True,
-            'message': 'Double authentification désactivée.'
+            'message': _gettext('Double authentification désactivée.')
         })
     except Exception as e:
         db.session.rollback()
@@ -429,14 +429,14 @@ def delete_account():
     """
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+        return jsonify({'success': False, 'message': _gettext('Aucune donnée reçue')}), 400
 
     password = data.get('password')
     if not password:
-        return jsonify({'success': False, 'message': 'Mot de passe requis pour confirmer la suppression'}), 400
+        return jsonify({'success': False, 'message': _gettext('Mot de passe requis pour confirmer la suppression')}), 400
 
     if not current_user.check_password(password):
-        return jsonify({'success': False, 'message': 'Mot de passe incorrect'}), 400
+        return jsonify({'success': False, 'message': _gettext('Mot de passe incorrect')}), 400
 
     user_id = current_user.id
     username = current_user.username
@@ -478,12 +478,12 @@ def delete_account():
 
         logger.info(f"Compte supprimé: {username} (ID: {user_id})")
         if had_apple_sub:
-            flash("Votre compte a été supprimé. Votre abonnement App Store, lui, reste actif tant que vous ne le "
-                  "résiliez pas : Réglages > [votre nom] > Abonnements > ProfCalendar.", 'warning')
+            flash(_gettext("Votre compte a été supprimé. Votre abonnement App Store, lui, reste actif tant que vous ne le "
+                           "résiliez pas : Réglages > [votre nom] > Abonnements > ProfCalendar."), 'warning')
 
         return jsonify({
             'success': True,
-            'message': 'Votre compte a été supprimé avec succès.',
+            'message': _gettext('Votre compte a été supprimé avec succès.'),
             'redirect': '/auth/login'
         })
 
@@ -497,8 +497,8 @@ def delete_account():
         print(f"[delete_account] ÉCHEC pour user {user_id}: {type(e).__name__}: {e}", flush=True)
         traceback.print_exc()
         logger.error(f"Erreur suppression compte {user_id}: {e}")
-        return jsonify({'success': False, 'message': "La suppression n'a pas pu aboutir. Réessayez dans un instant ; "
-                        "si le problème persiste, écrivez à contact@profcalendar.org."}), 500
+        return jsonify({'success': False, 'message': _gettext("La suppression n'a pas pu aboutir. Réessayez dans un instant ; "
+                                                              "si le problème persiste, écrivez à contact@profcalendar.org.")}), 500
 
 
 def _generate_backup_pdfs_before_deletion(user_id):

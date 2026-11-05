@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Rendus — {{ devoir.title }}{% endblock %}
+{% block title %}{{ _('Rendus') }} — {{ devoir.title }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -29,24 +29,47 @@
 
 {% block content %}
 <div class="ds-wrap">
-    <a class="ds-back" href="{{ url_for('planning.calendar_view') }}"><i class="fas fa-arrow-left"></i> Retour au calendrier</a>
+    <a class="ds-back" href="{{ url_for('planning.calendar_view') }}"><i class="fas fa-arrow-left"></i> {{ _('Retour au calendrier') }}</a>
     <div class="ds-head">
         <div>
             <h1><i class="fas fa-book" style="color:#6366F1;"></i> {{ devoir.title }}</h1>
-            <div class="ds-sub">{{ devoir.classroom.name }} · {{ devoir.subject if devoir.subject else devoir.classroom.subject }} · à rendre le {{ devoir.due_date.strftime('%d.%m.%Y') }}</div>
+            <div class="ds-sub">{{ devoir.classroom.name }} · {{ devoir.subject if devoir.subject else devoir.classroom.subject }} · {{ _('à rendre le') }} {{ devoir.due_date.strftime('%d.%m.%Y') }}</div>
         </div>
     </div>
 
     <div class="ds-note">
-        <i class="fas fa-info-circle"></i> Ouvre un rendu (PDF), annote-le avec les outils PDF de ton appareil, puis
-        renvoie la version corrigée avec « Renvoyer corrigé ». Chaque élève ne reçoit que sa propre correction.
+        <i class="fas fa-info-circle"></i> {{ _('Ouvrez un rendu (PDF), annotez-le avec les outils PDF de votre appareil, puis renvoyez la version corrigée avec « Renvoyer corrigé ». Chaque élève ne reçoit que sa propre correction.') }}
     </div>
 
     <div class="ds-summary" id="dsSummary"></div>
-    <div id="dsList"><p class="ds-none">Chargement…</p></div>
+    <div id="dsList"><p class="ds-none">{{ _('Chargement…') }}</p></div>
 </div>
 
 <script>
+// Chaînes traduites pour le JS (échappées via |tojson) ; jetons {n}… remplacés en JS.
+const DEVOIR_SUB_I18N = {
+    loadError: {{ _('Erreur de chargement.')|tojson }},
+    summary: {{ _('{submitted}/{total} rendu(s) · {corrected} corrigé(s)')|tojson }},
+    noStudents: {{ _('Aucun élève.')|tojson }},
+    correction: {{ _('Correction')|tojson }},
+    correctAgain: {{ _('Corriger à nouveau')|tojson }},
+    correct: {{ _('Corriger')|tojson }},
+    importTitle: {{ _('Importer un PDF/des photos déjà corrigés')|tojson }},
+    importBtn: {{ _('Importer')|tojson }},
+    notSubmitted: {{ _('Pas encore rendu')|tojson }},
+    corrected: {{ _('Corrigé')|tojson }},
+    submitted: {{ _('Rendu')|tojson }},
+    pages: {{ _('{n} page(s)')|tojson }},
+    networkErrorDot: {{ _('Erreur réseau.')|tojson }},
+    correctionSent: {{ _("Correction renvoyée à l'élève")|tojson }},
+    sendFailed: {{ _("Échec de l'envoi")|tojson }},
+    networkError: {{ _('Erreur réseau')|tojson }},
+};
+function dsFmt(str, vars) {
+    return String(str).replace(/\{(\w+)\}/g, function (m, k) {
+        return (vars && Object.prototype.hasOwnProperty.call(vars, k)) ? String(vars[k]) : m;
+    });
+}
     const DEVOIR_ID = {{ devoir.id }};
     function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -54,29 +77,29 @@
         const list = document.getElementById('dsList');
         try {
             const j = await (await fetch('/api/devoirs/' + DEVOIR_ID + '/submissions')).json();
-            if (!j.success) { list.innerHTML = '<p class="ds-none">Erreur de chargement.</p>'; return; }
+            if (!j.success) { list.innerHTML = '<p class="ds-none">' + DEVOIR_SUB_I18N.loadError + '</p>'; return; }
             const rows = j.submissions || [];
             const nSub = rows.filter(r => r.submitted).length;
             const nCorr = rows.filter(r => r.corrected).length;
             document.getElementById('dsSummary').textContent =
-                `${nSub}/${rows.length} rendu(s) · ${nCorr} corrigé(s)`;
-            if (!rows.length) { list.innerHTML = '<p class="ds-none">Aucun élève.</p>'; return; }
+                dsFmt(DEVOIR_SUB_I18N.summary, { submitted: nSub, total: rows.length, corrected: nCorr });
+            if (!rows.length) { list.innerHTML = '<p class="ds-none">' + DEVOIR_SUB_I18N.noStudents + '</p>'; return; }
             list.innerHTML = rows.map(r => {
                 const cls = r.corrected ? 'corrected' : (r.submitted ? 'submitted' : '');
                 let right;
                 if (r.submitted) {
                     right = `
-                        ${r.corrected ? `<a class="ds-btn corr-view" target="_blank" href="/api/devoirs/submissions/${r.submission_id}/corrected"><i class="fas fa-check"></i> Correction</a>` : ''}
-                        <a class="ds-btn correct" href="/planning/devoir/submission/${r.submission_id}/correct"><i class="fas fa-pen-nib"></i> ${r.corrected ? 'Corriger à nouveau' : 'Corriger'}</a>
-                        <label class="ds-btn view" style="cursor:pointer;" title="Importer un PDF/des photos déjà corrigés">
-                            <i class="fas fa-upload"></i> Importer
+                        ${r.corrected ? `<a class="ds-btn corr-view" target="_blank" href="/api/devoirs/submissions/${r.submission_id}/corrected"><i class="fas fa-check"></i> ${DEVOIR_SUB_I18N.correction}</a>` : ''}
+                        <a class="ds-btn correct" href="/planning/devoir/submission/${r.submission_id}/correct"><i class="fas fa-pen-nib"></i> ${r.corrected ? DEVOIR_SUB_I18N.correctAgain : DEVOIR_SUB_I18N.correct}</a>
+                        <label class="ds-btn view" style="cursor:pointer;" title="${DEVOIR_SUB_I18N.importTitle}">
+                            <i class="fas fa-upload"></i> ${DEVOIR_SUB_I18N.importBtn}
                             <input type="file" accept="image/*,application/pdf" multiple style="display:none;" onchange="sendCorrection(${r.submission_id}, this)">
                         </label>`;
                 } else {
-                    right = '<span class="ds-state"><i class="fas fa-hourglass-half"></i> Pas encore rendu</span>';
+                    right = '<span class="ds-state"><i class="fas fa-hourglass-half"></i> ' + DEVOIR_SUB_I18N.notSubmitted + '</span>';
                 }
                 const state = r.submitted
-                    ? `${r.corrected ? 'Corrigé' : 'Rendu'} · ${r.page_count} page(s)${r.submitted_at ? ' · ' + r.submitted_at : ''}`
+                    ? `${r.corrected ? DEVOIR_SUB_I18N.corrected : DEVOIR_SUB_I18N.submitted} · ${dsFmt(DEVOIR_SUB_I18N.pages, { n: r.page_count })}${r.submitted_at ? ' · ' + r.submitted_at : ''}`
                     : '';
                 return `<div class="ds-row ${cls}">
                     <div style="flex:1;min-width:0;">
@@ -87,7 +110,7 @@
                 </div>`;
             }).join('');
         } catch (e) {
-            list.innerHTML = '<p class="ds-none">Erreur réseau.</p>';
+            list.innerHTML = '<p class="ds-none">' + DEVOIR_SUB_I18N.networkErrorDot + '</p>';
         }
     }
 
@@ -99,10 +122,10 @@
         try {
             const data = await (await fetch('/api/devoirs/submissions/' + submissionId + '/correct', { method: 'POST', body: fd })).json();
             if (data.success) {
-                if (window.showNotification) showNotification('success', 'Correction renvoyée à l\'élève');
+                if (window.showNotification) showNotification('success', DEVOIR_SUB_I18N.correctionSent);
                 loadSubmissions();
-            } else { alert(data.error || "Échec de l'envoi"); input.disabled = false; }
-        } catch (e) { alert('Erreur réseau'); input.disabled = false; }
+            } else { alert(data.error || DEVOIR_SUB_I18N.sendFailed); input.disabled = false; }
+        } catch (e) { alert(DEVOIR_SUB_I18N.networkError); input.disabled = false; }
     }
 
     document.addEventListener('DOMContentLoaded', loadSubmissions);

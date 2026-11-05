@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_babel import gettext as _gettext
 from flask_login import login_required, current_user
 from extensions import db
 from models.class_file import ClassFile
@@ -21,20 +22,20 @@ def send_pdf_to_students():
         current_class_id = request.form.get('current_class_id')  # ID de classe fourni par le calendrier
 
         if not file_id:
-            return jsonify({'success': False, 'message': 'Aucun fichier spécifié'}), 400
+            return jsonify({'success': False, 'message': _gettext('Aucun fichier spécifié')}), 400
         
         if not selected_students_json:
-            return jsonify({'success': False, 'message': 'Aucun élève sélectionné'}), 400
+            return jsonify({'success': False, 'message': _gettext('Aucun élève sélectionné')}), 400
         
         # Parser la liste des élèves
         import json
         try:
             selected_students = json.loads(selected_students_json)
         except json.JSONDecodeError:
-            return jsonify({'success': False, 'message': 'Format des élèves invalide'}), 400
+            return jsonify({'success': False, 'message': _gettext('Format des élèves invalide')}), 400
         
         if not selected_students:
-            return jsonify({'success': False, 'message': 'Aucun élève sélectionné'}), 400
+            return jsonify({'success': False, 'message': _gettext('Aucun élève sélectionné')}), 400
         
         student_ids = [int(student['id']) for student in selected_students]
         print(f"📋 Élèves sélectionnés: {student_ids}")
@@ -43,7 +44,7 @@ def send_pdf_to_students():
         # Récupérer le fichier à partager
         class_file = ClassFile.query.get(int(file_id))
         if not class_file:
-            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+            return jsonify({'success': False, 'message': _gettext('Fichier introuvable')}), 404
 
         # Récupérer la classe depuis le fichier
         classroom = class_file.classroom
@@ -68,7 +69,7 @@ def send_pdf_to_students():
                     is_authorized = True
 
             if not is_authorized:
-                return jsonify({'success': False, 'message': 'Accès non autorisé à cette classe'}), 403
+                return jsonify({'success': False, 'message': _gettext('Accès non autorisé à cette classe')}), 403
 
         # Vérifier que tous les élèves appartiennent à la classe ou à une classe liée
         from models.class_collaboration import SharedClassroom
@@ -97,7 +98,7 @@ def send_pdf_to_students():
         ).all()
 
         if len(students) != len(student_ids):
-            return jsonify({'success': False, 'message': 'Certains élèves ne sont pas dans cette classe'}), 400
+            return jsonify({'success': False, 'message': _gettext('Certains élèves ne sont pas dans cette classe')}), 400
         
         # Créer les partages avec les élèves
         shares_created = 0
@@ -129,7 +130,7 @@ def send_pdf_to_students():
         
         return jsonify({
             'success': True,
-            'message': f'Document envoyé avec succès à {shares_created} élève(s)',
+            'message': _gettext('Document envoyé avec succès à %(count)s élève(s)', count=shares_created),
             'file_id': class_file.id,
             'shares_created': shares_created
         })
@@ -139,4 +140,4 @@ def send_pdf_to_students():
         import traceback
         traceback.print_exc()
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erreur serveur: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': _gettext('Erreur serveur: %(error)s', error=str(e))}), 500

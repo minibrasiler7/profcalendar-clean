@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Résultats — {{ devoir.title }}{% endblock %}
+{% block title %}{{ _('Résultats') }} — {{ devoir.title }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -32,24 +32,41 @@
 
 {% block content %}
 <div class="dr-wrap">
-    <a class="dr-back" href="{{ url_for('planning.calendar_view') }}"><i class="fas fa-arrow-left"></i> Retour au calendrier</a>
+    <a class="dr-back" href="{{ url_for('planning.calendar_view') }}"><i class="fas fa-arrow-left"></i> {{ _('Retour au calendrier') }}</a>
     <div class="dr-head">
         <h1><i class="fas fa-gamepad" style="color:#6366F1;"></i> {{ devoir.title }}</h1>
-        <div class="dr-sub">{{ devoir.classroom.name }} · exercice interactif · à rendre le {{ devoir.due_date.strftime('%d.%m.%Y') }}</div>
+        <div class="dr-sub">{{ devoir.classroom.name }} · {{ _('exercice interactif') }} · {{ _('à rendre le') }} {{ devoir.due_date.strftime('%d.%m.%Y') }}</div>
     </div>
 
     <div class="dr-legend">
-        <span><span class="dr-dot" style="background:#10B981;"></span> exercice terminé</span>
-        <span><span class="dr-dot" style="background:#F59E0B;"></span> commencé, pas terminé</span>
-        <span><span class="dr-dot" style="background:#EF4444;"></span> rien fait</span>
-        <span><i class="fas fa-medal" style="color:#F59E0B;"></i> badge obtenu (seuil <span id="drThreshold">…</span>%)</span>
+        <span><span class="dr-dot" style="background:#10B981;"></span> {{ _('exercice terminé') }}</span>
+        <span><span class="dr-dot" style="background:#F59E0B;"></span> {{ _('commencé, pas terminé') }}</span>
+        <span><span class="dr-dot" style="background:#EF4444;"></span> {{ _('rien fait') }}</span>
+        <span><i class="fas fa-medal" style="color:#F59E0B;"></i> {{ _('badge obtenu (seuil %(n)s%%)', n='<span id="drThreshold">…</span>'|safe) }}</span>
     </div>
 
     <div class="dr-summary" id="drSummary"></div>
-    <div id="drList"><p class="dr-none-msg">Chargement…</p></div>
+    <div id="drList"><p class="dr-none-msg">{{ _('Chargement…') }}</p></div>
 </div>
 
 <script>
+// Chaînes traduites pour le JS (échappées via |tojson) ; jetons {n}… remplacés en JS.
+const DEVOIR_RES_I18N = {
+    loadError: {{ _('Erreur de chargement.')|tojson }},
+    summary: {{ _('{done}/{total} terminé(s) · {partial} en cours · {badges} badge(s)')|tojson }},
+    noStudents: {{ _('Aucun élève.')|tojson }},
+    done: {{ _('Terminé')|tojson }},
+    partial: {{ _('Commencé, pas terminé')|tojson }},
+    none: {{ _('Rien fait')|tojson }},
+    badgeEarned: {{ _('Badge obtenu')|tojson }},
+    noBadge: {{ _('Pas de badge')|tojson }},
+    networkError: {{ _('Erreur réseau.')|tojson }},
+};
+function drFmt(str, vars) {
+    return String(str).replace(/\{(\w+)\}/g, function (m, k) {
+        return (vars && Object.prototype.hasOwnProperty.call(vars, k)) ? String(vars[k]) : m;
+    });
+}
     const DEVOIR_ID = {{ devoir.id }};
     function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -57,19 +74,19 @@
         const list = document.getElementById('drList');
         try {
             const j = await (await fetch('/api/devoirs/' + DEVOIR_ID + '/exercise-results')).json();
-            if (!j.success) { list.innerHTML = '<p class="dr-none-msg">' + esc(j.error || 'Erreur de chargement.') + '</p>'; return; }
+            if (!j.success) { list.innerHTML = '<p class="dr-none-msg">' + esc(j.error || DEVOIR_RES_I18N.loadError) + '</p>'; return; }
             document.getElementById('drThreshold').textContent = j.badge_threshold;
             const rows = j.results || [];
             const nDone = rows.filter(r => r.status === 'done').length;
             const nPartial = rows.filter(r => r.status === 'partial').length;
             const nBadges = rows.filter(r => r.badge).length;
             document.getElementById('drSummary').textContent =
-                `${nDone}/${rows.length} terminé(s) · ${nPartial} en cours · ${nBadges} badge(s)`;
-            if (!rows.length) { list.innerHTML = '<p class="dr-none-msg">Aucun élève.</p>'; return; }
+                drFmt(DEVOIR_RES_I18N.summary, { done: nDone, total: rows.length, partial: nPartial, badges: nBadges });
+            if (!rows.length) { list.innerHTML = '<p class="dr-none-msg">' + DEVOIR_RES_I18N.noStudents + '</p>'; return; }
             list.innerHTML = rows.map(r => {
                 const state = r.status === 'done'
-                    ? 'Terminé' + (r.completed_at ? ' · ' + r.completed_at : '')
-                    : (r.status === 'partial' ? 'Commencé, pas terminé' : 'Rien fait');
+                    ? DEVOIR_RES_I18N.done + (r.completed_at ? ' · ' + r.completed_at : '')
+                    : (r.status === 'partial' ? DEVOIR_RES_I18N.partial : DEVOIR_RES_I18N.none);
                 const score = (r.status === 'none' || !r.max_score)
                     ? '—'
                     : `${r.score}/${r.max_score}<span class="dr-pct">(${r.score_percentage}%)</span>`;
@@ -79,11 +96,11 @@
                         <div class="dr-state">${state}</div>
                     </div>
                     <div class="dr-score">${score}</div>
-                    <i class="fas fa-medal dr-badge ${r.badge ? '' : 'off'}" title="${r.badge ? 'Badge obtenu' : 'Pas de badge'}"></i>
+                    <i class="fas fa-medal dr-badge ${r.badge ? '' : 'off'}" title="${r.badge ? DEVOIR_RES_I18N.badgeEarned : DEVOIR_RES_I18N.noBadge}"></i>
                 </div>`;
             }).join('');
         } catch (e) {
-            list.innerHTML = '<p class="dr-none-msg">Erreur réseau.</p>';
+            list.innerHTML = '<p class="dr-none-msg">' + DEVOIR_RES_I18N.networkError + '</p>';
         }
     }
     document.addEventListener('DOMContentLoaded', loadResults);

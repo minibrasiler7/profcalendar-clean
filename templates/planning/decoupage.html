@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Création de découpage - ProfCalendar{% endblock %}
+{% block title %}{{ _('Création de découpage') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -618,21 +618,21 @@
     <div class="page-header">
         <h1>
             <i class="fas fa-cut"></i>
-            Création de découpage annuel
+            {{ _('Création de découpage annuel') }}
         </h1>
         <a href="{{ url_for('planning.dashboard') }}" class="btn-secondary">
             <i class="fas fa-arrow-left"></i>
-            Retour au tableau de bord
+            {{ _('Retour au tableau de bord') }}
         </a>
     </div>
 
     <!-- Section des découpages existants -->
     <div class="decoupages-section">
-        <h2><i class="fas fa-folder-open"></i> Mes découpages</h2>
+        <h2><i class="fas fa-folder-open"></i> {{ _('Mes découpages') }}</h2>
         <div class="decoupages-grid" id="decoupagesGrid">
             <div class="new-decoupage-card" onclick="openNewDecoupageModal()">
                 <i class="fas fa-plus-circle"></i>
-                <span>Nouveau découpage</span>
+                <span>{{ _('Nouveau découpage') }}</span>
             </div>
             {% for decoupage in decoupages %}
             <div class="decoupage-card" data-id="{{ decoupage.id }}" onclick="selectDecoupage({{ decoupage.id }})">
@@ -643,16 +643,16 @@
                     </div>
                     <button class="btn-sm btn-primary decoupage-assign-btn"
                             onclick="event.stopPropagation(); cancelEdit(); openAssignModalFor({{ decoupage.id }})"
-                            title="Assigner à une classe">
-                        <i class="fas fa-link"></i> Assigner
+                            title="{{ _('Assigner à une classe') }}">
+                        <i class="fas fa-link"></i> {{ _('Assigner') }}
                     </button>
                 </div>
                 <div class="decoupage-card-stats">
                     {# Pluralisation correcte : "1 thème", "2 thèmes", "1 classe", "2 classes". #}
                     {% set _periods = decoupage.periods.count() %}
                     {% set _classes = decoupage.assignments.count() %}
-                    <span><i class="fas fa-layer-group"></i> {{ _periods }} thème{{ 's' if _periods != 1 }}</span>
-                    <span><i class="fas fa-users"></i> {{ _classes }} classe{{ 's' if _classes != 1 }}</span>
+                    <span><i class="fas fa-layer-group"></i> {% if _periods == 1 %}{{ _('1 thème') }}{% else %}{{ _('%(n)s thèmes', n=_periods) }}{% endif %}</span>
+                    <span><i class="fas fa-users"></i> {% if _classes == 1 %}{{ _('1 classe') }}{% else %}{{ _('%(n)s classes', n=_classes) }}{% endif %}</span>
                 </div>
             </div>
             {% endfor %}
@@ -663,59 +663,58 @@
     <div class="detail-section hidden" id="detailSection">
         <div class="detail-panel">
             <div class="panel-header">
-                <h2><i class="fas fa-edit"></i> <span id="detailTitle">Détails du découpage</span></h2>
+                <h2><i class="fas fa-edit"></i> <span id="detailTitle">{{ _('Détails du découpage') }}</span></h2>
                 <button class="btn-sm btn-danger" onclick="confirmDeleteDecoupage()">
                     <i class="fas fa-trash"></i>
-                    Supprimer
+                    {{ _('Supprimer') }}
                 </button>
             </div>
 
             <!-- Formulaire nom/discipline -->
             <div class="decoupage-form">
                 <div class="form-group">
-                    <label for="decoupageName">Nom du découpage</label>
-                    <input type="text" id="decoupageName" placeholder="Ex: Découpage Maths 2024">
+                    <label for="decoupageName">{{ _('Nom du découpage') }}</label>
+                    <input type="text" id="decoupageName" placeholder="{{ _('Ex: Découpage Maths 2024') }}">
                 </div>
                 <div class="form-group">
-                    <label for="decoupageSubject">Discipline</label>
-                    <input type="text" id="decoupageSubject" placeholder="Ex: Mathématiques">
+                    <label for="decoupageSubject">{{ _('Discipline') }}</label>
+                    <input type="text" id="decoupageSubject" placeholder="{{ _('Ex: Mathématiques') }}">
                 </div>
             </div>
 
             <!-- Liste des thèmes -->
             <div class="panel-header" style="margin-top: 1.5rem;">
-                <h2><i class="fas fa-layer-group"></i> Thèmes</h2>
+                <h2><i class="fas fa-layer-group"></i> {{ _('Thèmes') }}</h2>
                 <button class="btn-sm btn-primary" onclick="openThemeModal()">
                     <i class="fas fa-plus"></i>
-                    Ajouter
+                    {{ _('Ajouter') }}
                 </button>
             </div>
 
             <div class="themes-list" id="themesList">
-                <div class="themes-empty">Aucun thème. Cliquez sur "Ajouter" pour créer un thème.</div>
+                <div class="themes-empty">{{ _('Aucun thème. Cliquez sur "Ajouter" pour créer un thème.') }}</div>
             </div>
 
             <div class="themes-total" id="themesTotal" style="display: none;">
-                Total: <span id="totalWeeks">0</span> semaines
+                {{ _('Total : %(n)s semaines', n='<span id="totalWeeks">0</span>'|safe) }}
             </div>
 
             <!-- Prévisualisation timeline -->
             <div class="timeline-preview" id="timelinePreview" style="display: none;">
-                <h3><i class="fas fa-chart-bar"></i> Prévisualisation</h3>
+                <h3><i class="fas fa-chart-bar"></i> {{ _('Prévisualisation') }}</h3>
                 <div class="timeline-bar" id="timelineBar"></div>
             </div>
 
             <!-- Sélection des semaines (mode « weeks ») -->
             <div id="weeksPaintSection" class="hidden" style="margin-top: 1.5rem;">
-                <h3><i class="fas fa-paint-roller"></i> Semaines par thème</h3>
+                <h3><i class="fas fa-paint-roller"></i> {{ _('Semaines par thème') }}</h3>
                 <p style="font-size: 0.82rem; color: #6B7280; margin: 0.3rem 0 0.8rem;">
-                    Choisissez un thème, puis cliquez : le numéro <strong>S…</strong> = semaine entière,
-                    chaque moitié = demi-semaine (lun-mer / jeu-ven). Re-cliquer avec le même thème efface.
+                    {{ _('Choisissez un thème, puis cliquez : le numéro <strong>S…</strong> = semaine entière, chaque moitié = demi-semaine (lun-mer / jeu-ven). Re-cliquer avec le même thème efface.') }}
                 </p>
                 <div id="weeksPalette" style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem;"></div>
                 <div id="weeksGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px;"></div>
                 <div style="margin-top: 0.9rem; text-align: right;">
-                    <button class="btn-primary" onclick="saveWeeksAssignments()"><i class="fas fa-save"></i> Enregistrer les semaines</button>
+                    <button class="btn-primary" onclick="saveWeeksAssignments()"><i class="fas fa-save"></i> {{ _('Enregistrer les semaines') }}</button>
                 </div>
             </div>
 
@@ -723,15 +722,15 @@
             <div class="actions-row">
                 <button class="btn-secondary" onclick="cancelEdit()">
                     <i class="fas fa-times"></i>
-                    Annuler
+                    {{ _('Annuler') }}
                 </button>
                 <button class="btn-secondary" onclick="openAssignModalFor(currentDecoupageId)">
                     <i class="fas fa-link"></i>
-                    Assigner à une classe
+                    {{ _('Assigner à une classe') }}
                 </button>
                 <button class="btn-primary" onclick="saveDecoupage()">
                     <i class="fas fa-save"></i>
-                    Sauvegarder
+                    {{ _('Sauvegarder') }}
                 </button>
             </div>
         </div>
@@ -746,21 +745,21 @@
 <div class="modal-overlay" id="assignClassModal">
     <div class="modal" style="max-width: 680px;">
         <div class="modal-header">
-            <h3><i class="fas fa-link"></i> Assigner « <span id="assignModalTitle"></span> » à une classe</h3>
+            <h3><i class="fas fa-link"></i> {{ _('Assigner « %(name)s » à une classe', name='<span id="assignModalTitle"></span>'|safe) }}</h3>
             <button class="modal-close" onclick="closeAssignModal()">&times;</button>
         </div>
         <div class="modal-body" style="max-height: 62vh; overflow-y: auto;">
             <p style="color: var(--gray-color, #6B7280); margin: 0 0 1rem;">
-                Choisis la ou les classes qui suivront ce découpage. La discipline de chaque classe est indiquée pour t'aider à choisir.
+                {{ _('Choisissez la ou les classes qui suivront ce découpage. La discipline de chaque classe est indiquée pour vous aider à choisir.') }}
             </p>
             {% if classrooms %}
             <table class="assignments-table">
                 <thead>
                     <tr>
-                        <th>Classe</th>
-                        <th>Statut</th>
-                        <th>Semaine début</th>
-                        <th>Action</th>
+                        <th>{{ _('Classe') }}</th>
+                        <th>{{ _('Statut') }}</th>
+                        <th>{{ _('Semaine début') }}</th>
+                        <th>{{ _('Action') }}</th>
                     </tr>
                 </thead>
                 <tbody id="assignmentsTableBody">
@@ -776,7 +775,7 @@
                         </td>
                         <td>
                             <span class="assignment-status unassigned" id="status-{{ classroom.id }}">
-                                <i class="fas fa-minus-circle"></i> Non assigné
+                                <i class="fas fa-minus-circle"></i> {{ _('Non assigné') }}
                             </span>
                         </td>
                         <td>
@@ -786,7 +785,7 @@
                         <td>
                             <button class="btn-sm btn-primary" id="assign-btn-{{ classroom.id }}"
                                     onclick="toggleAssignment({{ classroom.id }})">
-                                <i class="fas fa-link"></i> Assigner
+                                <i class="fas fa-link"></i> {{ _('Assigner') }}
                             </button>
                         </td>
                     </tr>
@@ -796,16 +795,16 @@
             {% else %}
             <div class="empty-state">
                 <i class="fas fa-chalkboard"></i>
-                <p>Aucune classe configurée</p>
+                <p>{{ _('Aucune classe configurée') }}</p>
                 <a href="{{ url_for('setup.manage_classrooms') }}" class="btn-primary">
                     <i class="fas fa-plus"></i>
-                    Créer une classe
+                    {{ _('Créer une classe') }}
                 </a>
             </div>
             {% endif %}
         </div>
         <div class="modal-footer">
-            <button class="btn-primary" onclick="closeAssignModal()">Terminé</button>
+            <button class="btn-primary" onclick="closeAssignModal()">{{ _('Terminé') }}</button>
         </div>
     </div>
 </div>
@@ -814,39 +813,39 @@
 <div class="modal-overlay" id="newDecoupageModal">
     <div class="modal">
         <div class="modal-header">
-            <h3>Nouveau découpage</h3>
+            <h3>{{ _('Nouveau découpage') }}</h3>
             <button class="modal-close" onclick="closeNewDecoupageModal()">&times;</button>
         </div>
         <div class="modal-body">
             <div class="form-group">
-                <label for="newDecoupageName">Nom du découpage</label>
-                <input type="text" id="newDecoupageName" placeholder="Ex: Découpage Maths 2024">
+                <label for="newDecoupageName">{{ _('Nom du découpage') }}</label>
+                <input type="text" id="newDecoupageName" placeholder="{{ _('Ex: Découpage Maths 2024') }}">
             </div>
             <div class="form-group" style="margin-top: 1rem;">
-                <label for="newDecoupageSubject">Discipline</label>
-                <input type="text" id="newDecoupageSubject" placeholder="Ex: Mathématiques">
+                <label for="newDecoupageSubject">{{ _('Discipline') }}</label>
+                <input type="text" id="newDecoupageSubject" placeholder="{{ _('Ex: Mathématiques') }}">
             </div>
             <div class="form-group" style="margin-top: 1rem;">
-                <label>Mode de découpage</label>
+                <label>{{ _('Mode de découpage') }}</label>
                 <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
                     <label style="flex: 1; min-width: 200px; border: 1px solid #C7D2FE; background: #EEF2FF; border-radius: 10px; padding: 0.65rem 0.75rem; cursor: pointer;">
                         <input type="radio" name="newDecoupageMode" value="duration" checked>
-                        <strong style="margin-left: 0.25rem;">Par durées</strong>
-                        <div style="font-size: 0.78rem; color: #6B7280; margin-top: 0.2rem;">Chaque thème dure X semaines, l'un après l'autre.</div>
+                        <strong style="margin-left: 0.25rem;">{{ _('Par durées') }}</strong>
+                        <div style="font-size: 0.78rem; color: #6B7280; margin-top: 0.2rem;">{{ _("Chaque thème dure X semaines, l'un après l'autre.") }}</div>
                     </label>
                     <label style="flex: 1; min-width: 200px; border: 1px solid #E5E7EB; border-radius: 10px; padding: 0.65rem 0.75rem; cursor: pointer;">
                         <input type="radio" name="newDecoupageMode" value="weeks">
-                        <strong style="margin-left: 0.25rem;">Par sélection de semaines</strong>
-                        <div style="font-size: 0.78rem; color: #6B7280; margin-top: 0.2rem;">Choisissez les semaines de l'année pour chaque thème (demi-semaines possibles).</div>
+                        <strong style="margin-left: 0.25rem;">{{ _('Par sélection de semaines') }}</strong>
+                        <div style="font-size: 0.78rem; color: #6B7280; margin-top: 0.2rem;">{{ _("Choisissez les semaines de l'année pour chaque thème (demi-semaines possibles).") }}</div>
                     </label>
                 </div>
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeNewDecoupageModal()">Annuler</button>
+            <button class="btn-secondary" onclick="closeNewDecoupageModal()">{{ _('Annuler') }}</button>
             <button class="btn-primary" onclick="createDecoupage()">
                 <i class="fas fa-plus"></i>
-                Créer
+                {{ _('Créer') }}
             </button>
         </div>
     </div>
@@ -856,27 +855,27 @@
 <div class="modal-overlay" id="themeModal">
     <div class="modal">
         <div class="modal-header">
-            <h3 id="themeModalTitle">Ajouter un thème</h3>
+            <h3 id="themeModalTitle">{{ _('Ajouter un thème') }}</h3>
             <button class="modal-close" onclick="closeThemeModal()">&times;</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="editingThemeId">
             <div class="form-group">
-                <label for="themeName">Nom du thème</label>
-                <input type="text" id="themeName" placeholder="Ex: Les fractions">
+                <label for="themeName">{{ _('Nom du thème') }}</label>
+                <input type="text" id="themeName" placeholder="{{ _('Ex: Les fractions') }}">
             </div>
             <div class="form-group" style="margin-top: 1rem;">
-                <label for="themeDuration">Durée (en semaines)</label>
-                <input type="number" id="themeDuration" min="0.5" step="0.5" value="1" placeholder="Ex: 3">
+                <label for="themeDuration">{{ _('Durée (en semaines)') }}</label>
+                <input type="number" id="themeDuration" min="0.5" step="0.5" value="1" placeholder="{{ _('Ex: 3') }}">
             </div>
             <div class="form-group" style="margin-top: 1rem;">
-                <label for="themeObjectives">Objectifs (facultatif)</label>
+                <label for="themeObjectives">{{ _('Objectifs (facultatif)') }}</label>
                 <textarea id="themeObjectives" rows="3" style="width:100%; border:1px solid #D1D5DB; border-radius:8px; padding:0.5rem 0.6rem; font-family:inherit; font-size:0.9rem; resize:vertical;"
-                          placeholder="Ex : Additionner et soustraire des fractions&#10;Comparer des fractions simples"></textarea>
-                <small style="color:#6B7280; font-size:0.78rem;">Visibles en survolant le bandeau du thème sur la vue annuelle du calendrier.</small>
+                          placeholder="{{ _('Ex : Additionner et soustraire des fractions') }}&#10;{{ _('Comparer des fractions simples') }}"></textarea>
+                <small style="color:#6B7280; font-size:0.78rem;">{{ _('Visibles en survolant le bandeau du thème sur la vue annuelle du calendrier.') }}</small>
             </div>
             <div class="form-group" style="margin-top: 1rem;">
-                <label>Couleur</label>
+                <label>{{ _('Couleur') }}</label>
                 <div class="color-picker-group" id="colorPicker">
                     <div class="color-option selected" data-color="#EF4444" style="background: #EF4444;"></div>
                     <div class="color-option" data-color="#F97316" style="background: #F97316;"></div>
@@ -892,10 +891,10 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeThemeModal()">Annuler</button>
+            <button class="btn-secondary" onclick="closeThemeModal()">{{ _('Annuler') }}</button>
             <button class="btn-primary" onclick="saveTheme()">
                 <i class="fas fa-check"></i>
-                <span id="themeModalAction">Ajouter</span>
+                <span id="themeModalAction">{{ _('Ajouter') }}</span>
             </button>
         </div>
     </div>
@@ -905,26 +904,77 @@
 <div class="modal-overlay" id="deleteModal">
     <div class="modal">
         <div class="modal-header">
-            <h3>Confirmer la suppression</h3>
+            <h3>{{ _('Confirmer la suppression') }}</h3>
             <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
         </div>
         <div class="modal-body">
-            <p>Voulez-vous vraiment supprimer ce découpage ? Cette action est irréversible.</p>
+            <p>{{ _('Voulez-vous vraiment supprimer ce découpage ? Cette action est irréversible.') }}</p>
             <p style="margin-top: 0.5rem; color: var(--gray-color); font-size: 0.9rem;">
-                Toutes les assignations aux classes seront également supprimées.
+                {{ _('Toutes les assignations aux classes seront également supprimées.') }}
             </p>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeDeleteModal()">Annuler</button>
+            <button class="btn-secondary" onclick="closeDeleteModal()">{{ _('Annuler') }}</button>
             <button class="btn-danger" onclick="deleteDecoupage()">
                 <i class="fas fa-trash"></i>
-                Supprimer
+                {{ _('Supprimer') }}
             </button>
         </div>
     </div>
 </div>
 
 <script>
+// Chaînes traduites pour le JS (échappées via |tojson) ; jetons {n}… remplacés en JS.
+const DECOUPAGE_I18N = {
+    noThemes: {{ _('Aucun thème. Cliquez sur "Ajouter" pour créer un thème.')|tojson }},
+    weeksAbbr: {{ _('{n} sem.')|tojson }},
+    loadError: {{ _('Erreur lors du chargement du découpage')|tojson }},
+    fillAllFields: {{ _('Veuillez remplir tous les champs')|tojson }},
+    created: {{ _('Découpage créé')|tojson }},
+    oneTheme: {{ _('1 thème')|tojson }},
+    nThemes: {{ _('{n} thèmes')|tojson }},
+    oneClass: {{ _('1 classe')|tojson }},
+    nClasses: {{ _('{n} classes')|tojson }},
+    createError: {{ _('Erreur lors de la création')|tojson }},
+    editTheme: {{ _('Modifier le thème')|tojson }},
+    edit: {{ _('Modifier')|tojson }},
+    addTheme: {{ _('Ajouter un thème')|tojson }},
+    add: {{ _('Ajouter')|tojson }},
+    fillAllCorrectly: {{ _('Veuillez remplir tous les champs correctement')|tojson }},
+    themeEdited: {{ _('Thème modifié')|tojson }},
+    themeAdded: {{ _('Thème ajouté')|tojson }},
+    saveError: {{ _('Erreur lors de la sauvegarde')|tojson }},
+    confirmDeleteTheme: {{ _('Supprimer ce thème ?')|tojson }},
+    themeDeleted: {{ _('Thème supprimé')|tojson }},
+    deleteError: {{ _('Erreur lors de la suppression')|tojson }},
+    fillNameSubject: {{ _('Veuillez remplir le nom et la discipline')|tojson }},
+    saved: {{ _('Découpage sauvegardé')|tojson }},
+    deleted: {{ _('Découpage supprimé')|tojson }},
+    notAssigned: {{ _('Non assigné')|tojson }},
+    assign: {{ _('Assigner')|tojson }},
+    assigned: {{ _('Assigné')|tojson }},
+    remove: {{ _('Retirer')|tojson }},
+    unassigned: {{ _('Assignation retirée')|tojson }},
+    removeError: {{ _('Erreur lors du retrait')|tojson }},
+    assignedOk: {{ _('Découpage assigné')|tojson }},
+    assignError: {{ _("Erreur lors de l'assignation")|tojson }},
+    startWeekUpdated: {{ _('Semaine de début mise à jour')|tojson }},
+    updateError: {{ _('Erreur lors de la mise à jour')|tojson }},
+    eraser: {{ _('Gomme')|tojson }},
+    weekShort: {{ _('S{n}')|tojson }},
+    monWed: {{ _('lun-mer')|tojson }},
+    thuFri: {{ _('jeu-ven')|tojson }},
+    pickThemeFirst: {{ _("Choisissez d'abord un thème (ou la gomme) dans la palette.")|tojson }},
+    weeksSaved: {{ _('Semaines enregistrées')|tojson }},
+    error: {{ _('Erreur')|tojson }},
+    networkError: {{ _('Erreur réseau')|tojson }},
+};
+function decFmt(str, vars) {
+    return String(str).replace(/\{(\w+)\}/g, function (m, k) {
+        return (vars && Object.prototype.hasOwnProperty.call(vars, k)) ? String(vars[k]) : m;
+    });
+}
+
 // État global
 let currentDecoupageId = null;
 let currentDecoupage = null;
@@ -1071,7 +1121,7 @@ async function selectDecoupage(id) {
         }
     } catch (error) {
         console.error('Erreur lors du chargement:', error);
-        showNotification('error', 'Erreur lors du chargement du découpage');
+        showNotification('error', DECOUPAGE_I18N.loadError);
     }
 }
 
@@ -1082,7 +1132,7 @@ function renderThemes() {
     const timelinePreview = document.getElementById('timelinePreview');
 
     if (themes.length === 0) {
-        themesList.innerHTML = '<div class="themes-empty">Aucun thème. Cliquez sur "Ajouter" pour créer un thème.</div>';
+        themesList.innerHTML = '<div class="themes-empty">' + DECOUPAGE_I18N.noThemes + '</div>';
         themesTotal.style.display = 'none';
         timelinePreview.style.display = 'none';
         return;
@@ -1094,7 +1144,7 @@ function renderThemes() {
             <div class="theme-item" draggable="true" data-theme-id="${theme.id}">
                 <i class="fas fa-grip-vertical theme-drag-handle"></i>
                 <span class="theme-name">${theme.name}</span>
-                <span class="theme-duration">${theme.duration} sem.</span>
+                <span class="theme-duration">${decFmt(DECOUPAGE_I18N.weeksAbbr, { n: theme.duration })}</span>
                 <div class="theme-color" style="background-color: ${theme.color};"></div>
                 <div class="theme-actions">
                     <button class="theme-btn theme-btn-edit" onclick="editTheme(${theme.id})">
@@ -1151,7 +1201,7 @@ function updateTimeline() {
         html += `
             <div class="timeline-segment"
                  style="background-color: ${theme.color}; flex: 0 0 ${widthPercent}%; font-size: ${fontSize};"
-                 title="${theme.name} (${theme.duration} sem.)">
+                 title="${theme.name} (${decFmt(DECOUPAGE_I18N.weeksAbbr, { n: theme.duration })})">
                 <span class="segment-text">${theme.name}</span>
             </div>
         `;
@@ -1183,7 +1233,7 @@ async function createDecoupage() {
     const subject = document.getElementById('newDecoupageSubject').value.trim();
 
     if (!name || !subject) {
-        showNotification('error', 'Veuillez remplir tous les champs');
+        showNotification('error', DECOUPAGE_I18N.fillAllFields);
         return;
     }
 
@@ -1199,7 +1249,7 @@ async function createDecoupage() {
 
         if (data.success) {
             closeNewDecoupageModal();
-            showNotification('success', 'Découpage créé');
+            showNotification('success', DECOUPAGE_I18N.created);
 
             const grid = document.getElementById('decoupagesGrid');
             const newCard = document.createElement('div');
@@ -1214,8 +1264,8 @@ async function createDecoupage() {
                     </div>
                 </div>
                 <div class="decoupage-card-stats">
-                    <span><i class="fas fa-layer-group"></i> 0 thèmes</span>
-                    <span><i class="fas fa-users"></i> 0 classes</span>
+                    <span><i class="fas fa-layer-group"></i> ${decFmt(DECOUPAGE_I18N.nThemes, { n: 0 })}</span>
+                    <span><i class="fas fa-users"></i> ${decFmt(DECOUPAGE_I18N.nClasses, { n: 0 })}</span>
                 </div>
             `;
             grid.appendChild(newCard);
@@ -1226,7 +1276,7 @@ async function createDecoupage() {
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la création');
+        showNotification('error', DECOUPAGE_I18N.createError);
     }
 }
 
@@ -1240,8 +1290,8 @@ function openThemeModal(themeId = null) {
     if (themeId) {
         const theme = themes.find(t => t.id === themeId);
         if (theme) {
-            title.textContent = 'Modifier le thème';
-            action.textContent = 'Modifier';
+            title.textContent = DECOUPAGE_I18N.editTheme;
+            action.textContent = DECOUPAGE_I18N.edit;
             editingId.value = themeId;
             document.getElementById('themeName').value = theme.name;
             document.getElementById('themeDuration').value = theme.duration;
@@ -1250,8 +1300,8 @@ function openThemeModal(themeId = null) {
             document.getElementById('themeDuration').closest('.form-group').style.display = isWeeksMode() ? 'none' : '';
         }
     } else {
-        title.textContent = 'Ajouter un thème';
-        action.textContent = 'Ajouter';
+        title.textContent = DECOUPAGE_I18N.addTheme;
+        action.textContent = DECOUPAGE_I18N.add;
         editingId.value = '';
         document.getElementById('themeName').value = '';
         document.getElementById('themeDuration').value = 1;
@@ -1280,7 +1330,7 @@ async function saveTheme() {
     if (isWeeksMode() && (isNaN(duration) || duration <= 0)) duration = 1;
 
     if (!name || isNaN(duration) || duration <= 0) {
-        showNotification('error', 'Veuillez remplir tous les champs correctement');
+        showNotification('error', DECOUPAGE_I18N.fillAllCorrectly);
         return;
     }
 
@@ -1310,10 +1360,10 @@ async function saveTheme() {
                 if (index !== -1) {
                     themes[index] = data.data;
                 }
-                showNotification('success', 'Thème modifié');
+                showNotification('success', DECOUPAGE_I18N.themeEdited);
             } else {
                 themes.push(data.data);
-                showNotification('success', 'Thème ajouté');
+                showNotification('success', DECOUPAGE_I18N.themeAdded);
             }
 
             renderThemes();
@@ -1324,12 +1374,12 @@ async function saveTheme() {
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la sauvegarde');
+        showNotification('error', DECOUPAGE_I18N.saveError);
     }
 }
 
 async function confirmDeleteTheme(themeId) {
-    if (!confirm('Supprimer ce thème ?')) return;
+    if (!confirm(DECOUPAGE_I18N.confirmDeleteTheme)) return;
 
     try {
         const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/periods/${themeId}`, {
@@ -1343,13 +1393,13 @@ async function confirmDeleteTheme(themeId) {
             renderThemes();
             if (typeof setupWeeksUI === 'function') setupWeeksUI();
             updateDecoupageCard();
-            showNotification('success', 'Thème supprimé');
+            showNotification('success', DECOUPAGE_I18N.themeDeleted);
         } else {
             showNotification('error', data.message);
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la suppression');
+        showNotification('error', DECOUPAGE_I18N.deleteError);
     }
 }
 
@@ -1359,7 +1409,7 @@ async function saveDecoupage() {
     const subject = document.getElementById('decoupageSubject').value.trim();
 
     if (!name || !subject) {
-        showNotification('error', 'Veuillez remplir le nom et la discipline');
+        showNotification('error', DECOUPAGE_I18N.fillNameSubject);
         return;
     }
 
@@ -1377,7 +1427,7 @@ async function saveDecoupage() {
             currentDecoupage.subject = subject;
             document.getElementById('detailTitle').textContent = name;
             updateDecoupageCard();
-            showNotification('success', 'Découpage sauvegardé');
+            showNotification('success', DECOUPAGE_I18N.saved);
 
             // Fermer l'éditeur puis proposer d'assigner le découpage à une classe
             // (fenêtre modale) — c'est l'étape que les profs oubliaient.
@@ -1389,7 +1439,7 @@ async function saveDecoupage() {
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la sauvegarde');
+        showNotification('error', DECOUPAGE_I18N.saveError);
     }
 }
 
@@ -1419,7 +1469,7 @@ function updateDecoupageCard() {
     const assignCount = Object.values(assignments).filter(a => a && a.assigned).length;
     const spans = card.querySelectorAll('.decoupage-card-stats span');
     if (spans.length >= 2) {
-        spans[1].innerHTML = `<i class="fas fa-users"></i> ${assignCount} classe${assignCount !== 1 ? 's' : ''}`;
+        spans[1].innerHTML = `<i class="fas fa-users"></i> ${assignCount === 1 ? DECOUPAGE_I18N.oneClass : decFmt(DECOUPAGE_I18N.nClasses, { n: assignCount })}`;
     }
 }
 
@@ -1469,13 +1519,13 @@ async function deleteDecoupage() {
             }
 
             cancelEdit();
-            showNotification('success', 'Découpage supprimé');
+            showNotification('success', DECOUPAGE_I18N.deleted);
         } else {
             showNotification('error', data.message);
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showNotification('error', 'Erreur lors de la suppression');
+        showNotification('error', DECOUPAGE_I18N.deleteError);
     }
 }
 
@@ -1495,10 +1545,10 @@ async function loadAssignments() {
                 const assignBtn = document.getElementById(`assign-btn-${classroomId}`);
 
                 statusEl.className = 'assignment-status unassigned';
-                statusEl.innerHTML = '<i class="fas fa-minus-circle"></i> Non assigné';
+                statusEl.innerHTML = '<i class="fas fa-minus-circle"></i> ' + DECOUPAGE_I18N.notAssigned;
                 weekInput.disabled = true;
                 weekInput.value = 1;
-                assignBtn.innerHTML = '<i class="fas fa-link"></i> Assigner';
+                assignBtn.innerHTML = '<i class="fas fa-link"></i> ' + DECOUPAGE_I18N.assign;
                 assignBtn.className = 'btn-sm btn-primary';
 
                 assignments[classroomId] = { assigned: false, assignment_id: null, start_week: 1 };
@@ -1542,17 +1592,17 @@ function updateAssignmentUI(classroomId, assigned, startWeek = 1, assignmentId =
 
     if (assigned) {
         statusEl.className = 'assignment-status assigned';
-        statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Assigné';
+        statusEl.innerHTML = '<i class="fas fa-check-circle"></i> ' + DECOUPAGE_I18N.assigned;
         weekInput.disabled = false;
         weekInput.value = startWeek;
-        assignBtn.innerHTML = '<i class="fas fa-unlink"></i> Retirer';
+        assignBtn.innerHTML = '<i class="fas fa-unlink"></i> ' + DECOUPAGE_I18N.remove;
         assignBtn.className = 'btn-sm btn-danger';
     } else {
         statusEl.className = 'assignment-status unassigned';
-        statusEl.innerHTML = '<i class="fas fa-minus-circle"></i> Non assigné';
+        statusEl.innerHTML = '<i class="fas fa-minus-circle"></i> ' + DECOUPAGE_I18N.notAssigned;
         weekInput.disabled = true;
         weekInput.value = 1;
-        assignBtn.innerHTML = '<i class="fas fa-link"></i> Assigner';
+        assignBtn.innerHTML = '<i class="fas fa-link"></i> ' + DECOUPAGE_I18N.assign;
         assignBtn.className = 'btn-sm btn-primary';
     }
 }
@@ -1572,13 +1622,13 @@ async function toggleAssignment(classroomId) {
                 assignments[classroomId] = { assigned: false, assignment_id: null, start_week: 1 };
                 updateAssignmentUI(classroomId, false);
                 updateDecoupageCard();
-                showNotification('success', 'Assignation retirée');
+                showNotification('success', DECOUPAGE_I18N.unassigned);
             } else {
                 showNotification('error', data.message);
             }
         } catch (error) {
             console.error('Erreur:', error);
-            showNotification('error', 'Erreur lors du retrait');
+            showNotification('error', DECOUPAGE_I18N.removeError);
         }
     } else {
         const startWeek = parseInt(document.getElementById(`week-${classroomId}`).value) || 1;
@@ -1600,13 +1650,13 @@ async function toggleAssignment(classroomId) {
                 };
                 updateAssignmentUI(classroomId, true, data.data.start_week, data.data.id);
                 updateDecoupageCard();
-                showNotification('success', 'Découpage assigné');
+                showNotification('success', DECOUPAGE_I18N.assignedOk);
             } else {
                 showNotification('error', data.message);
             }
         } catch (error) {
             console.error('Erreur:', error);
-            showNotification('error', 'Erreur lors de l\'assignation');
+            showNotification('error', DECOUPAGE_I18N.assignError);
         }
     }
 }
@@ -1631,14 +1681,14 @@ document.querySelectorAll('.week-input').forEach(input => {
 
                 if (data.success) {
                     assignments[classroomId].start_week = newWeek;
-                    showNotification('success', 'Semaine de début mise à jour');
+                    showNotification('success', DECOUPAGE_I18N.startWeekUpdated);
                 } else {
                     showNotification('error', data.message);
                     this.value = assignment.start_week;
                 }
             } catch (error) {
                 console.error('Erreur:', error);
-                showNotification('error', 'Erreur lors de la mise à jour');
+                showNotification('error', DECOUPAGE_I18N.updateError);
                 this.value = assignment.start_week;
             }
         }
@@ -1716,7 +1766,7 @@ function renderWeeksPalette() {
     pal.innerHTML = themes.map(t =>
         `<button type="button" class="week-chip" style="border-color:${t.color}; ${weeksBrush === t.id ? `background:${t.color}; color:#fff;` : `color:${t.color};`}" onclick="selectWeeksBrush(${t.id})">${_wEsc(t.name)}</button>`
     ).join('') +
-    `<button type="button" class="week-chip" style="border-color:#9CA3AF; ${weeksBrush === 'erase' ? 'background:#6B7280; color:#fff;' : 'color:#6B7280;'}" onclick="selectWeeksBrush('erase')"><i class="fas fa-eraser"></i> Gomme</button>`;
+    `<button type="button" class="week-chip" style="border-color:#9CA3AF; ${weeksBrush === 'erase' ? 'background:#6B7280; color:#fff;' : 'color:#6B7280;'}" onclick="selectWeeksBrush('erase')"><i class="fas fa-eraser"></i> ${DECOUPAGE_I18N.eraser}</button>`;
 }
 window.selectWeeksBrush = function (id) { weeksBrush = id; renderWeeksPalette(); };
 
@@ -1728,10 +1778,10 @@ function renderWeeksGrid() {
         const a = weeksAssign[String(w)] || { first: null, second: null };
         const tf = _themeById(a.first), ts = _themeById(a.second);
         html += `<div class="week-cell">
-            <div class="week-cell-num" onclick="paintWeek(${w}, 'both')">S${w}</div>
+            <div class="week-cell-num" onclick="paintWeek(${w}, 'both')">${decFmt(DECOUPAGE_I18N.weekShort, { n: w })}</div>
             <div class="week-cell-halves">
-                <div class="week-half" style="background:${tf ? tf.color : '#F3F4F6'};" title="${tf ? _wEsc(tf.name) + ' (lun-mer)' : 'S' + w + ' lun-mer'}" onclick="paintWeek(${w}, 'first')"></div>
-                <div class="week-half" style="background:${ts ? ts.color : '#F3F4F6'};" title="${ts ? _wEsc(ts.name) + ' (jeu-ven)' : 'S' + w + ' jeu-ven'}" onclick="paintWeek(${w}, 'second')"></div>
+                <div class="week-half" style="background:${tf ? tf.color : '#F3F4F6'};" title="${tf ? _wEsc(tf.name) + ' (' + DECOUPAGE_I18N.monWed + ')' : decFmt(DECOUPAGE_I18N.weekShort, { n: w }) + ' ' + DECOUPAGE_I18N.monWed}" onclick="paintWeek(${w}, 'first')"></div>
+                <div class="week-half" style="background:${ts ? ts.color : '#F3F4F6'};" title="${ts ? _wEsc(ts.name) + ' (' + DECOUPAGE_I18N.thuFri + ')' : decFmt(DECOUPAGE_I18N.weekShort, { n: w }) + ' ' + DECOUPAGE_I18N.thuFri}" onclick="paintWeek(${w}, 'second')"></div>
             </div>
         </div>`;
     }
@@ -1740,7 +1790,7 @@ function renderWeeksGrid() {
 
 window.paintWeek = function (w, part) {
     if (weeksBrush === null) {
-        showNotification('error', 'Choisissez d\'abord un thème (ou la gomme) dans la palette.');
+        showNotification('error', DECOUPAGE_I18N.pickThemeFirst);
         return;
     }
     const key = String(w);
@@ -1773,14 +1823,14 @@ window.saveWeeksAssignments = async function () {
         if (r.success) {
             currentDecoupage = r.data;
             themes = r.data.periods;
-            showNotification('success', 'Semaines enregistrées');
+            showNotification('success', DECOUPAGE_I18N.weeksSaved);
             setupWeeksUI();
             if (typeof updateDecoupageCard === 'function') updateDecoupageCard();
         } else {
-            showNotification('error', r.message || 'Erreur');
+            showNotification('error', r.message || DECOUPAGE_I18N.error);
         }
     } catch (e) {
-        showNotification('error', 'Erreur réseau');
+        showNotification('error', DECOUPAGE_I18N.networkError);
     }
 };
 </script>
