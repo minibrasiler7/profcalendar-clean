@@ -18,7 +18,9 @@
     </div>
     {% endif %}
 
-    {% if needs_subscription %}{% include 'includes/demo_invite.html' %}{% endif %}
+    {# Arrivée depuis une page réservée : on explique d'abord pourquoi. Sinon
+       l'invitation à la démo vient APRÈS l'offre d'essai (action principale). #}
+    {% if needs_subscription and locked_section %}{% include 'includes/demo_invite.html' %}{% endif %}
 
     <div class="iosp-card">
         <div class="iosp-crown"><i class="fas fa-crown"></i></div>
@@ -62,6 +64,7 @@
         <button type="button" class="iosp-cta" onclick="openIAPPaywall()">
             <i class="fas fa-crown"></i> {{ _('Essayer gratuitement') }}
         </button>
+        <p class="iosp-reassure"><i class="fas fa-shield-alt"></i> {{ _('Rien à payer aujourd’hui. Annule avant la fin de l’essai (Réglages > ton nom > Abonnements) et tu ne paies rien. On t’envoie un rappel deux jours avant.') }}</p>
         <p class="iosp-small">{{ _('Le paiement passe par votre compte Apple (App Store).') }}</p>
         <p class="iosp-legal">
             {{ _('L’essai gratuit devient automatiquement un abonnement payant à sa fin.') }}
@@ -79,6 +82,7 @@
             {% endif %}
         </div>
     </div>
+    {% if needs_subscription and not locked_section %}<div style="margin-top:20px;">{% include 'includes/demo_invite.html' %}</div>{% endif %}
 </div>
 
 {% if not is_premium %}{% set apercu_compact = true %}{% include 'includes/apercu.html' %}{% endif %}
@@ -105,6 +109,8 @@
 .iosp-plan-note { font-size: 12.5px; color: #6b7280; }
 .iosp-cta { display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; background: linear-gradient(135deg, #4F46E5, #7C3AED); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
 .iosp-small { margin: 12px 0 0; color: #6b7280; font-size: 13px; }
+.iosp-reassure { margin: 14px auto 0; max-width: 460px; color: #374151; font-size: 13.5px; line-height: 1.5; }
+.iosp-reassure i { color: #10B981; margin-right: 4px; }
 .iosp-trial { margin: 0 0 14px; color: #065F46; background: #D1FAE5; display: inline-block; padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; }
 .iosp-trial i { margin-right: 4px; }
 .iosp-legal { margin: 14px 0 0; color: #9ca3af; font-size: 12px; line-height: 1.5; }

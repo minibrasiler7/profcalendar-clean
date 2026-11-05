@@ -2018,6 +2018,14 @@ def create_app(config_name='development'):
             pass
         print(f"[schema-safety] colonnes parrainage: {e}", flush=True)
 
+    # --- Filet de sécurité schéma (journal des e-mails automatiques) ---
+    try:
+        from models.email_log import EmailLog
+        with app.app_context():
+            EmailLog.__table__.create(db.engine, checkfirst=True)
+    except Exception as e:
+        print(f"[schema-safety] table email_log: {e}", flush=True)
+
     return app
 
 # Création de l'instance par défaut (sauf si importé par render_production.py)

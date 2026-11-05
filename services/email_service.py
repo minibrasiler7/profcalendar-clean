@@ -118,6 +118,9 @@ def send_email(to_email, subject, html_content):
             "to": [to_email],
             "subject": subject,
             "html": html_content,
+            # Les e-mails invitent à « répondre » : la réponse doit arriver dans une
+            # vraie boîte (Zoho), pas sur l'adresse d'envoi technique.
+            "reply_to": os.environ.get('REPLY_TO_EMAIL', 'contact@profcalendar.org'),
         })
         _log(f"[EMAIL] SUCCÈS - '{subject}' → {to_email} - {result}")
         return True

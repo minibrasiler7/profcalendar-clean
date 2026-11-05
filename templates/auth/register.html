@@ -13,14 +13,12 @@
                choix de la formule vient juste après la vérification de
                l'email). Pas de prix dans l'app iOS : l'abonnement y passe
                par l'App Store (guideline 3.1.1). #}
-            {% if not is_ios_native_app %}
             <div style="margin-top:0.75rem; display:inline-flex; align-items:center; gap:0.5rem;
-                        background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE;
-                        padding:0.6rem 1rem; border-radius:0.5rem; font-size:0.9rem; font-weight:500;">
-                <i class="fas fa-crown" style="color:#6366F1;"></i>
-                <span>{{ _('Abonnement dès CHF 4.90 par mois, sans engagement.') }} {{ _('Satisfait ou remboursé 30 jours') }}.</span>
+                        background:#ECFDF5; color:#065F46; border:1px solid #A7F3D0;
+                        padding:0.6rem 1rem; border-radius:0.5rem; font-size:0.9rem; font-weight:600;">
+                <i class="fas fa-gift" style="color:#059669;"></i>
+                <span>{{ _('14 jours d’essai gratuit pour un premier abonnement') }}{% if not is_ios_native_app %}, {{ _('puis dès CHF 4.90 par mois, sans engagement.') }}{% else %}.{% endif %}</span>
             </div>
-            {% endif %}
         </div>
         
         <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form">
@@ -103,6 +101,36 @@
 </div>
 
 <style>
+/* Carte et champs : mêmes règles que la page de connexion. Elles manquaient
+   ici (aucune feuille commune ne les porte) : en production, l'inscription
+   s'affichait sans cadre, icônes et champs sur des lignes séparées. */
+.auth-container { max-width: 440px; margin: 4rem auto; }
+.auth-card { background-color: var(--white); border-radius: 1rem; box-shadow: var(--shadow-lg); padding: 3rem; }
+.auth-header { text-align: center; margin-bottom: 2rem; }
+.auth-icon { font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem; display: block; }
+.auth-title { font-size: 2rem; font-weight: 700; color: var(--dark-color); margin-bottom: 0.5rem; }
+.auth-subtitle { color: var(--gray-color); }
+.auth-form { margin-bottom: 2rem; }
+.input-group { position: relative; }
+.input-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--gray-color); }
+.input-group .form-control { padding-left: 3rem; }
+.toggle-password { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: none; border: none;
+                   color: var(--gray-color); cursor: pointer; padding: 0.5rem; }
+.toggle-password:hover { color: var(--primary-color); }
+.form-error { color: var(--danger-color); margin-top: 0.25rem; font-size: 0.875rem; }
+.btn-block { width: 100%; padding: 0.75rem; font-size: 1.1rem; }
+.auth-footer { text-align: center; color: var(--gray-color); }
+.auth-footer a { color: var(--primary-color); text-decoration: none; font-weight: 500; }
+.auth-footer a:hover { text-decoration: underline; }
+@media (max-width: 480px), (max-height: 760px) {
+    .auth-container { margin: 1.25rem auto; padding: 0 1rem; }
+    .auth-card { padding: 1.5rem; border-radius: 0.85rem; }
+    .auth-header { margin-bottom: 1.25rem; }
+    .auth-icon { font-size: 2.2rem; margin-bottom: 0.5rem; }
+    .auth-title { font-size: 1.5rem; }
+    .auth-form { margin-bottom: 1.25rem; }
+}
+
 /* Styles supplémentaires pour l'inscription */
 .features-list {
     background-color: var(--light-gray);

@@ -3216,6 +3216,33 @@ msgstr "Volver a mi cuenta"
 msgid "Premiers pas"
 msgstr "Primeros pasos"
 
+msgid "OK"
+msgstr "OK"
+
+msgid "En savoir plus"
+msgstr "Más información"
+
+msgid "ProfCalendar n'utilise que des cookies essentiels (session, connexion). Aucun cookie publicitaire."
+msgstr "ProfCalendar solo usa cookies esenciales (sesión, inicio de sesión). Ninguna cookie publicitaria."
+
+msgid "Essayer gratuitement 14 jours"
+msgstr "Pruébalo gratis 14 días"
+
+msgid "Explorer la démo"
+msgstr "Explorar la demo"
+
+msgid "Rien à payer pendant 14 jours, sans engagement."
+msgstr "Nada que pagar durante 14 días, sin permanencia."
+
+msgid "puis dès CHF 4.90 par mois, sans engagement."
+msgstr "después desde CHF 4.90 al mes, sin permanencia."
+
+msgid "Rien à payer aujourd’hui. Annule avant la fin de l’essai (Réglages > ton nom > Abonnements) et tu ne paies rien. On t’envoie un rappel deux jours avant."
+msgstr "Nada que pagar hoy. Cancela antes de que termine la prueba (Ajustes > tu nombre > Suscripciones) y no pagas nada. Te enviamos un recordatorio dos días antes."
+
+msgid "Tu reçois un rappel par e-mail avant la fin de l’essai."
+msgstr "Recibes un recordatorio por correo antes de que termine la prueba."
+
 msgid "14 jours gratuits, puis facturé chaque mois"
 msgstr "14 días gratis, después se factura cada mes"
 

@@ -227,6 +227,12 @@ def start_background_loop(app):
                     send_due_trial_reminders()
             except Exception:
                 logger.exception("[trial_reminders] erreur dans la boucle de fond")
+            try:
+                with app.app_context():
+                    from services.conversion_emails import send_due_conversion_emails
+                    send_due_conversion_emails()
+            except Exception as e:
+                print(f"[conversion_emails] erreur dans la boucle de fond: {e}", flush=True)
             eventlet.sleep(6 * 3600)  # toutes les 6 heures
 
     eventlet.spawn_n(_loop)

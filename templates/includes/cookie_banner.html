@@ -1,17 +1,29 @@
-<!-- Bannière cookies -->
-<div id="cookie-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:1100; background:#1F2937; color:white; padding:1rem 2rem; box-shadow:0 -4px 15px rgba(0,0,0,0.15);">
-    <div style="max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;">
-        <div style="flex:1; min-width:250px; font-size:0.9rem; line-height:1.5;">
+<!-- Bannière cookies (cookies essentiels uniquement : une simple information).
+     Compacte sur téléphone : elle masquait le bouton principal de l'accueil. -->
+<div id="cookie-banner" style="display:none;">
+    <div class="cb-inner">
+        <div class="cb-text">
             <i class="fas fa-cookie-bite" style="color:#F59E0B;"></i>
-            ProfCalendar utilise des cookies essentiels pour le fonctionnement du site (session, authentification). Aucun cookie publicitaire n'est utilisé.
-            <a href="/privacy#7" style="color:#06B6D4; text-decoration:underline;">En savoir plus</a>
+            {{ _("ProfCalendar n'utilise que des cookies essentiels (session, connexion). Aucun cookie publicitaire.") }}
+            <a href="/privacy#7">{{ _('En savoir plus') }}</a>
         </div>
-        <div style="display:flex; gap:0.5rem; flex-shrink:0;">
-            <button onclick="acceptCookies()" style="padding:0.5rem 1.25rem; border-radius:0.4rem; background:#4F46E5; color:white; border:none; font-weight:600; cursor:pointer;">Accepter</button>
-            <button onclick="acceptCookies()" style="padding:0.5rem 1.25rem; border-radius:0.4rem; background:transparent; color:white; border:1px solid rgba(255,255,255,0.3); font-weight:500; cursor:pointer;">Continuer</button>
-        </div>
+        <button type="button" onclick="acceptCookies()" class="cb-ok">{{ _('OK') }}</button>
     </div>
 </div>
+<style>
+#cookie-banner { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1100; background: #1F2937; color: #fff;
+                 padding: 0.9rem 2rem; box-shadow: 0 -4px 15px rgba(0,0,0,0.15); }
+#cookie-banner .cb-inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; gap: 1.25rem; }
+#cookie-banner .cb-text { flex: 1; font-size: 0.9rem; line-height: 1.5; }
+#cookie-banner .cb-text a { color: #06B6D4; text-decoration: underline; }
+#cookie-banner .cb-ok { flex-shrink: 0; padding: 0.5rem 1.4rem; border-radius: 0.4rem; background: #4F46E5; color: #fff; border: none; font-weight: 600; cursor: pointer; }
+@media (max-width: 600px) {
+    #cookie-banner { padding: 0.55rem 0.9rem; }
+    #cookie-banner .cb-inner { gap: 0.75rem; }
+    #cookie-banner .cb-text { font-size: 0.78rem; line-height: 1.4; }
+    #cookie-banner .cb-ok { padding: 0.45rem 1rem; }
+}
+</style>
 <script>
 // La bannière est fixée en bas, AU-DESSUS du bouton d'aide « ? » (qui ouvre
 // les tutoriels) : tant qu'elle est affichée, on remonte ce bouton de sa

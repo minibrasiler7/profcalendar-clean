@@ -1,7 +1,7 @@
 """Email de bienvenue / onboarding envoyé juste après l'inscription.
 
-La bienvenue accueille le prof, rappelle que l'outil fonctionne sur
-abonnement (choisi juste après la vérification de l'email) et donne les
+La bienvenue accueille le prof, l'invite à démarrer l'essai gratuit de
+14 jours (choisi juste après la vérification de l'email) et donne les
 premiers gestes pour activer la valeur tôt. Envoi via le helper générique
 services.email_service.send_email (échec silencieux : un email raté ne doit
 jamais casser l'inscription).
@@ -26,10 +26,13 @@ def _welcome_html(name):
         <div style="background:#ffffff; border:1px solid #E5E7EB; border-radius:12px; padding:1.75rem;">
             <h2 style="color:#4F46E5; font-size:1.3rem; margin:0 0 1rem;">Bienvenue {name} 🎉</h2>
             <p style="color:#374151; line-height:1.55;">
-                Ton compte ProfCalendar est créé. L'outil fonctionne sur
-                <strong>abonnement</strong> (mensuel ou annuel, sans engagement)&nbsp;:
-                choisis ta formule et tout est débloqué (gestion de classe, notes,
-                présences, fichiers annotés au stylet).
+                Ton compte ProfCalendar est créé. Démarre ton <strong>essai gratuit de 14 jours</strong>&nbsp;:
+                tout est débloqué (gestion de classe, notes, présences, fichiers annotés au stylet),
+                rien n'est débité pendant l'essai et tu peux arrêter à tout moment avant la fin.
+            </p>
+            <p style="color:#374151; line-height:1.55;">
+                Pour voir l'outil en 2 minutes&nbsp;: <a href="https://youtu.be/nclRivko3j4">la vidéo de présentation</a>
+                ou <a href="{APP_BASE_URL}/demo">un compte d'exemple à explorer</a>.
             </p>
             <p style="color:#374151; line-height:1.55; margin-top:1rem;"><strong>Pour bien démarrer&nbsp;:</strong></p>
             <ol style="color:#4B5563; font-size:0.95rem; line-height:1.5; padding-left:1.2rem; margin:0.5rem 0 1.5rem;">
@@ -41,7 +44,7 @@ def _welcome_html(name):
                 <a href="{DASHBOARD_URL}"
                    style="display:inline-block; background:#4F46E5; color:#fff; text-decoration:none;
                           font-weight:600; padding:0.85rem 1.75rem; border-radius:0.5rem;">
-                    Ouvrir mon tableau de bord
+                    Démarrer mon essai gratuit
                 </a>
             </div>
             <p style="color:#6B7280; font-size:0.9rem; line-height:1.5; margin-top:1.5rem;">

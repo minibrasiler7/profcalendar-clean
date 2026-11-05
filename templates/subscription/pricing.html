@@ -26,7 +26,7 @@
         {% endif %}
     </div>
 
-    {% if needs_subscription %}{% include 'includes/demo_invite.html' %}{% endif %}
+    {% if needs_subscription and locked_section %}{% include 'includes/demo_invite.html' %}{% endif %}
 
     {% if is_premium %}
     <div class="pricing-alert pricing-alert-success">
@@ -111,8 +111,10 @@
         <i class="fas fa-gift" style="color:#4F46E5;"></i>
         <strong>{{ _('Essai gratuit de 14 jours') }}</strong> :
         {{ _("ta carte est demandée, mais rien n'est débité avant la fin de l'essai. Résilie avant cette date depuis Paramètres > Abonnement et tu ne paies rien.") }}
+        {{ _('Tu reçois un rappel par e-mail avant la fin de l’essai.') }}
     </p>
     {% endif %}
+    {% if needs_subscription and not locked_section %}<div style="margin-top:1.5rem;">{% include 'includes/demo_invite.html' %}</div>{% endif %}
     <p style="text-align:center; margin:1.25rem auto 0; max-width:640px; color:#4B5563; line-height:1.5;">
         <i class="fas fa-shield-alt" style="color:#10B981;"></i>
         <strong>{{ _('Satisfait ou remboursé 30 jours') }}</strong> :

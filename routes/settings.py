@@ -566,6 +566,7 @@ def _delete_all_user_data(user_id):
     from models.deleted_classroom import DeletedClassroom
     from models.subscription import Subscription
     from models.apple_subscription import AppleSubscription
+    from models.email_log import EmailLog
     from models.absence_justification import AbsenceJustification
     from models.voucher import Voucher, user_voucher_redemptions
     from models.college import College, CollegeHoliday, CollegeBreak
@@ -776,6 +777,7 @@ def _delete_all_user_data(user_id):
     # un abonnement Stripe est résilié dans delete_account().
     AppleSubscription.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     Subscription.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    EmailLog.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     DeletedClassroom.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     Announcement.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     _dv_ids = [d.id for d in Devoir.query.filter_by(user_id=user_id).all()]

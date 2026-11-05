@@ -279,6 +279,13 @@
         }
         .lang-pill:hover { background: #EEF2FF; color: #4F46E5; }
         .lang-pill.active { background: #4F46E5; color: #fff; }
+        /* Téléphone, visiteur non connecté : langues + deux boutons ne tiennent pas
+           sur une ligne (le bouton « Inscription » sortait de l'écran). */
+        @media (max-width: 520px) {
+            .nav-auth { flex-wrap: wrap; justify-content: flex-end; row-gap: 0.35rem; }
+            .nav-auth .btn { padding: 0.45rem 0.85rem; font-size: 0.9rem; }
+            .lang-switcher-inline { width: 100%; justify-content: flex-end; padding: 0; }
+        }
     </style>
 
     <!-- Messages flash -->

@@ -3216,6 +3216,33 @@ msgstr "Back to my account"
 msgid "Premiers pas"
 msgstr "Getting started"
 
+msgid "OK"
+msgstr "OK"
+
+msgid "En savoir plus"
+msgstr "Learn more"
+
+msgid "ProfCalendar n'utilise que des cookies essentiels (session, connexion). Aucun cookie publicitaire."
+msgstr "ProfCalendar only uses essential cookies (session, sign-in). No advertising cookies."
+
+msgid "Essayer gratuitement 14 jours"
+msgstr "Try it free for 14 days"
+
+msgid "Explorer la démo"
+msgstr "Explore the demo"
+
+msgid "Rien à payer pendant 14 jours, sans engagement."
+msgstr "Nothing to pay for 14 days, cancel anytime."
+
+msgid "puis dès CHF 4.90 par mois, sans engagement."
+msgstr "then from CHF 4.90 per month, cancel anytime."
+
+msgid "Rien à payer aujourd’hui. Annule avant la fin de l’essai (Réglages > ton nom > Abonnements) et tu ne paies rien. On t’envoie un rappel deux jours avant."
+msgstr "Nothing to pay today. Cancel before the trial ends (Settings > your name > Subscriptions) and you pay nothing. We send you a reminder two days before."
+
+msgid "Tu reçois un rappel par e-mail avant la fin de l’essai."
+msgstr "You get a reminder by email before the trial ends."
+
 msgid "14 jours gratuits, puis facturé chaque mois"
 msgstr "14 days free, then billed monthly"
 
