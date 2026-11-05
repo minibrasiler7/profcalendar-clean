@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{% if not lesson %}Aucun cours{% elif is_current %}Leçon en cours{% else %}Prochain cours{% endif %} - ProfCalendar{% endblock %}
+{% block title %}{% if not lesson %}{{ _('Aucun cours') }}{% elif is_current %}{{ _('Leçon en cours') }}{% else %}{{ _('Prochain cours') }}{% endif %} - ProfCalendar{% endblock %}
 
 <!-- VERSION: 2dfd042-fix-studentsdata-tojson - 2026-01-19T16:35:00Z -->
 
@@ -18,6 +18,176 @@
        localStorage.setItem('pcDebug', '1')  puis recharger la page
      Pour les recouper : localStorage.removeItem('pcDebug') -->
 <script>
+// ============================================================
+// Chaînes traduites pour le JS inline de la page du cours (échappées via |tojson).
+// Les jetons {n}/{date}/{error}/{name}… sont remplacés en JS par lessonFmt()
+// (accolades, pas de % : pas de formatage gettext côté JS).
+// ============================================================
+const LESSON_I18N = {
+    // Langue de l'interface : formats de date (Intl) et dictée vocale
+    dateLocale: {{ {'fr': 'fr-FR', 'en': 'en-GB', 'de': 'de-CH', 'it': 'it-CH', 'es': 'es-ES'}.get(current_locale or 'fr', 'fr-FR')|tojson }},
+    speechLang: {{ {'fr': 'fr-FR', 'en': 'en-US', 'de': 'de-DE', 'it': 'it-IT', 'es': 'es-ES'}.get(current_locale or 'fr', 'fr-FR')|tojson }},
+    // Commun
+    edit: {{ _('Modifier')|tojson }},
+    delete: {{ _('Supprimer')|tojson }},
+    cancel: {{ _('Annuler')|tojson }},
+    close: {{ _('Fermer')|tojson }},
+    error: {{ _('Erreur')|tojson }},
+    loading: {{ _('Chargement...')|tojson }},
+    unknownError: {{ _('Erreur inconnue')|tojson }},
+    connectionError: {{ _('Erreur de connexion')|tojson }},
+    networkError: {{ _('Erreur réseau')|tojson }},
+    serverError: {{ _('Erreur lors de la communication avec le serveur')|tojson }},
+    retry: {{ _('Réessayer')|tojson }},
+    period: {{ _('Période')|tojson }},
+    planning: {{ _('Planification')|tojson }},
+    wholeClass: {{ _('Classe entière')|tojson }},
+    // Devoirs de la classe
+    typeExercise: {{ _('Exercice')|tojson }},
+    typeHomework: {{ _('Devoir')|tojson }},
+    confirmDeleteHomework: {{ _('Supprimer ce devoir ?')|tojson }},
+    noHomework: {{ _('Aucun devoir pour cette classe.')|tojson }},
+    viewSubmissions: {{ _('Voir les rendus')|tojson }},
+    viewResults: {{ _('Voir les résultats')|tojson }},
+    dueOn: {{ _('à rendre le {date}')|tojson }},
+    today: {{ _("aujourd'hui")|tojson }},
+    attachedDocument: {{ _('Document joint')|tojson }},
+    // Remarque rapide (puces préfaites insérées dans le champ : contenu modifiable)
+    presetRemarks: [
+        {{ _('Participation active et pertinente.')|tojson }},
+        {{ _('Beaux progrès, bravo !')|tojson }},
+        {{ _('Très bonne attitude en classe.')|tojson }},
+        {{ _('A aidé un camarade.')|tojson }},
+        {{ _("Excellent travail aujourd'hui.")|tojson }},
+        {{ _('A oublié son matériel.')|tojson }},
+        {{ _('Devoirs non faits.')|tojson }},
+        {{ _('Bavardages répétés.')|tojson }},
+        {{ _('Manque de concentration.')|tojson }},
+        {{ _('Comportement perturbateur.')|tojson }},
+        {{ _('Travail non rendu.')|tojson }},
+        {{ _('Doit faire signer le carnet.')|tojson }}
+    ],
+    writeRemark: {{ _('Écrivez une remarque.')|tojson }},
+    remarkSaved: {{ _('Remarque enregistrée')|tojson }},
+    dictationUnavailable: {{ _('Dictée indisponible — touchez le micro 🎤 du clavier.')|tojson }},
+    tapKeyboardMic: {{ _('Touchez le micro 🎤 de votre clavier pour dicter.')|tojson }},
+    useKeyboardMic: {{ _('Utilisez le micro 🎤 de votre clavier pour dicter.')|tojson }},
+    pressKeyboardMic: {{ _('Appuyez sur le micro 🎤 de votre clavier pour dicter.')|tojson }},
+    // Planification
+    readPlanning: {{ _('Lecture planification')|tojson }},
+    noDescription: {{ _('Aucune description')|tojson }},
+    saved: {{ _('Sauvegardé')|tojson }},
+    saveError: {{ _('Erreur de sauvegarde')|tojson }},
+    saving: {{ _('Sauvegarde...')|tojson }},
+    savingInProgress: {{ _('Enregistrement...')|tojson }},
+    saveFailed: {{ _("Erreur lors de l'enregistrement")|tojson }},
+    saveFailedWithMsg: {{ _("Erreur lors de l'enregistrement : {error}")|tojson }},
+    saveFailedLong: {{ _('Erreur lors de la sauvegarde')|tojson }},
+    planningSaved: {{ _('Planification enregistrée')|tojson }},
+    // Présences
+    enterLateMinutes: {{ _('Veuillez entrer le nombre de minutes de retard')|tojson }},
+    markPresent: {{ _('Remettre présent')|tojson }},
+    markLate: {{ _('Marquer en retard')|tojson }},
+    attendanceError: {{ _('Erreur lors de la mise à jour de la présence')|tojson }},
+    lessonOver: {{ _('Le cours est terminé !')|tojson }},
+    // Ressources
+    pinned: {{ _('Épinglé')|tojson }},
+    pin: {{ _('Épingler')|tojson }},
+    unpin: {{ _('Désépingler')|tojson }},
+    annotatable: {{ _('Annotable')|tojson }},
+    root: {{ _('Racine')|tojson }},
+    folder: {{ _('Dossier')|tojson }},
+    exerciseBadge: {{ _('EXERCICE')|tojson }},
+    nQuestions: {{ _('{n} questions')|tojson }},
+    nExercises: {{ _('{n} exercices')|tojson }},
+    removeFromClass: {{ _('Supprimer de la classe')|tojson }},
+    noFilesInFolder: {{ _('Aucun fichier dans ce dossier')|tojson }},
+    noFilesInClass: {{ _('Aucun fichier dans cette classe')|tojson }},
+    blankSheets: {{ _('Feuilles blanches')|tojson }},
+    lessonBlankSheets: {{ _('Feuilles blanches de la leçon')|tojson }},
+    newSheet: {{ _('Nouvelle feuille')|tojson }},
+    deleteBlankSheet: {{ _('Supprimer la feuille blanche')|tojson }},
+    noClassSelected: {{ _('Aucune classe sélectionnée.')|tojson }},
+    uploading: {{ _('Envoi...')|tojson }},
+    uploadError: {{ _("Erreur lors de l'envoi du fichier.")|tojson }},
+    uploadErrorWithMsg: {{ _("Erreur lors de l'envoi du fichier : {error}")|tojson }},
+    // Lecteur PDF, annotations, feuilles blanches
+    pageN: {{ _('Page {n}')|tojson }},
+    confirmClearPage: {{ _('Êtes-vous sûr de vouloir effacer toutes les annotations de cette page ?')|tojson }},
+    annotationsSaved: {{ _('Annotations sauvegardées')|tojson }},
+    fileLoadError: {{ _('Erreur lors du chargement du fichier')|tojson }},
+    openingFile: {{ _('Ouverture de « {name} »…')|tojson }},
+    openingFileGeneric: {{ _('Ouverture du fichier…')|tojson }},
+    viewerModalMissing: {{ _("Erreur : la fenêtre de visualisation n'existe pas.")|tojson }},
+    viewerContainerMissing: {{ _("Erreur : le conteneur de visualisation n'existe pas.")|tojson }},
+    reloadPage: {{ _('Veuillez recharger la page (Ctrl/Cmd+R).')|tojson }},
+    pdfCreateError: {{ _('Erreur lors de la création du lecteur PDF : {error}')|tojson }},
+    pdfLoadError: {{ _('Erreur lors du chargement du PDF : {error}')|tojson }},
+    viewerCreateError: {{ _('Erreur lors de la création du lecteur : {error}')|tojson }},
+    viewerLoadError: {{ _('Erreur lors du chargement du lecteur : {error}')|tojson }},
+    lessonInfoMissing: {{ _('Informations de leçon manquantes')|tojson }},
+    sheetLoadError: {{ _('Erreur lors du chargement de la feuille : {error}')|tojson }},
+    blankSheetLoadError: {{ _('Erreur lors du chargement de la feuille blanche : {error}')|tojson }},
+    confirmDeleteBlankSheet: {{ _('Êtes-vous sûr de vouloir supprimer cette feuille blanche ? Cette action est irréversible.')|tojson }},
+    deleteErrorWithMsg: {{ _('Erreur lors de la suppression : {error}')|tojson }},
+    blankSheetDeleteError: {{ _('Erreur lors de la suppression de la feuille blanche')|tojson }},
+    // Vue annuelle / planifier un jour
+    loadingAnnual: {{ _('Chargement de la vue annuelle…')|tojson }},
+    annualLoadError: {{ _('Impossible de charger la vue annuelle.')|tojson }},
+    noLessonThisDay: {{ _('Aucun cours de cette classe ce jour-là.')|tojson }},
+    untitled: {{ _('Sans titre')|tojson }},
+    freeSlot: {{ _('Créneau libre – cliquez pour planifier')|tojson }},
+    // Coches / sanctions, plan de classe
+    sanctionsBanner: {{ _("🎯 Sanctions à attribuer - Demandez aux élèves d'apporter leur agenda")|tojson }},
+    dueOnCap: {{ _('À rendre le {date}')|tojson }},
+    dateTbd: {{ _('Date à déterminer')|tojson }},
+    nChecks: {{ _('{n} coches')|tojson }},
+    updateError: {{ _('Erreur lors de la mise à jour')|tojson }},
+    teacherDesk: {{ _('Bureau du professeur')|tojson }},
+    // Ajout de ressources, exercices et missions
+    loadError: {{ _('Erreur de chargement')|tojson }},
+    loadErrorWithMsg: {{ _('Erreur de chargement : {error}')|tojson }},
+    loadFailed: {{ _('Erreur lors du chargement')|tojson }},
+    cannotDetermineLesson: {{ _('Impossible de déterminer le cours courant')|tojson }},
+    ephemeralAddError: {{ _("Erreur lors de l'ajout du fichier éphémère")|tojson }},
+    fileAddError: {{ _("Erreur lors de l'ajout du fichier")|tojson }},
+    exerciseAddError: {{ _("Erreur lors de l'ajout de l'exercice")|tojson }},
+    publishAndLaunch: {{ _('Publier et lancer')|tojson }},
+    addClassicMode: {{ _('Ajouter en mode classique')|tojson }},
+    launchCombat: {{ _('Lancer le combat !')|tojson }},
+    launching: {{ _('Lancement...')|tojson }},
+    publishError: {{ _('Erreur lors de la publication')|tojson }},
+    launchError: {{ _('Erreur lors du lancement')|tojson }},
+    modeLabelCombat: {{ _('Combat')|tojson }},
+    modeLabelClassic: {{ _('Classique')|tojson }},
+    modeCombat: {{ _('Mode Combat')|tojson }},
+    modeClassic: {{ _('Mode Classique')|tojson }},
+    liveTracking: {{ _('Suivi live')|tojson }},
+    confirmRemoveFromClass: {{ _('Supprimer « {name} » de cette classe ?')|tojson }},
+    deleteError: {{ _('Erreur lors de la suppression')|tojson }},
+    confirmRemoveResource: {{ _('Supprimer cette ressource de la planification ?')|tojson }},
+    noCombatSession: {{ _('Aucune session de combat active trouvée.')|tojson }},
+    phaseWaiting: {{ _('En attente des élèves')|tojson }},
+    phaseQuestion: {{ _('Question en cours')|tojson }},
+    phaseAction: {{ _('Choix des actions')|tojson }},
+    phaseExecute: {{ _('Exécution du round')|tojson }},
+    phaseMonsterTurn: {{ _('Tour des monstres')|tojson }},
+    phaseRoundEnd: {{ _('Fin du round')|tojson }},
+    roundN: {{ _('Round {n}')|tojson }},
+    oneFighter: {{ _('({n} combattant)')|tojson }},
+    manyFighters: {{ _('({n} combattants)')|tojson }},
+    notConnected: {{ _('Pas connecté')|tojson }},
+    waiting: {{ _('En attente')|tojson }},
+    xpCorrect: {{ _('+{xp} XP — {correct}/{total} correct')|tojson }},
+    confirmStopMission: {{ _('Arrêter la mission en direct ?')|tojson }},
+};
+// Remplace les jetons {cle} d'une chaîne traduite (fonction de remplacement :
+// pas d'interprétation des motifs $& / $' si la valeur en contient).
+function lessonFmt(str, vars) {
+    return String(str).replace(/\{(\w+)\}/g, function (m, k) {
+        return (vars && Object.prototype.hasOwnProperty.call(vars, k)) ? String(vars[k]) : m;
+    });
+}
 (function () {
     try {
         if (!localStorage.getItem('pcDebug')) {
@@ -1220,15 +1390,15 @@ input, textarea, select {
 <div style="max-width: 600px; margin: 4rem auto; text-align: center; padding: 2rem;">
     <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 12px; padding: 2rem;">
         <i class="fas fa-calendar-alt" style="font-size: 3rem; color: #F59E0B; margin-bottom: 1rem;"></i>
-        <h2 style="color: #92400E; margin-bottom: 0.5rem;">Aucun cours prévu</h2>
+        <h2 style="color: #92400E; margin-bottom: 0.5rem;">{{ _('Aucun cours prévu') }}</h2>
         <p style="color: #78350F; margin-bottom: 1.5rem;">
-            Votre horaire type n'est pas encore rempli. Configurez-le pour voir vos prochains cours ici.
+            {{ _("Votre horaire type n'est pas encore rempli. Configurez-le pour voir vos prochains cours ici.") }}
         </p>
         <a href="{{ url_for('schedule.weekly_schedule') }}"
            style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem;
                   background: #F59E0B; color: white; border-radius: 8px; text-decoration: none;
                   font-size: 1rem; font-weight: 600;">
-            <i class="fas fa-edit"></i> Remplir mon horaire type
+            <i class="fas fa-edit"></i> {{ _('Remplir mon horaire type') }}
         </a>
     </div>
 </div>
@@ -1242,11 +1412,11 @@ input, textarea, select {
                     <h1>
                         {% if is_current %}
                         <span class="lesson-badge current">
-                            <i class="fas fa-circle"></i> En cours
+                            <i class="fas fa-circle"></i> {{ _('En cours') }}
                         </span>
                         {% else %}
                         <span class="lesson-badge next">
-                            <i class="fas fa-clock"></i> Prochain cours
+                            <i class="fas fa-clock"></i> {{ _('Prochain cours') }}
                         </span>
                         {% endif %}
                         {% if lesson.classroom_id %}
@@ -1254,7 +1424,7 @@ input, textarea, select {
                 {% elif lesson.mixed_group_id %}
                     {{ lesson.mixed_group.name }} - {{ lesson.mixed_group.subject }}
                 {% else %}
-                    Cours non défini
+                    {{ _('Cours non défini') }}
                 {% endif %}
                     </h1>
                 </div>
@@ -1263,38 +1433,38 @@ input, textarea, select {
                         <i class="fas fa-calendar"></i>
                         <span>
                             {% set day_names = {
-                                'Monday': 'Lundi',
-                                'Tuesday': 'Mardi', 
-                                'Wednesday': 'Mercredi',
-                                'Thursday': 'Jeudi',
-                                'Friday': 'Vendredi',
-                                'Saturday': 'Samedi',
-                                'Sunday': 'Dimanche'
+                                'Monday': _('Lundi'),
+                                'Tuesday': _('Mardi'), 
+                                'Wednesday': _('Mercredi'),
+                                'Thursday': _('Jeudi'),
+                                'Friday': _('Vendredi'),
+                                'Saturday': _('Samedi'),
+                                'Sunday': _('Dimanche')
                             } %}
                             {% set month_names = {
-                                'January': 'janvier',
-                                'February': 'février',
-                                'March': 'mars',
-                                'April': 'avril',
-                                'May': 'mai',
-                                'June': 'juin',
-                                'July': 'juillet',
-                                'August': 'août',
-                                'September': 'septembre',
-                                'October': 'octobre',
-                                'November': 'novembre',
-                                'December': 'décembre'
+                                'January': _('janvier'),
+                                'February': _('février'),
+                                'March': _('mars'),
+                                'April': _('avril'),
+                                'May': _('mai'),
+                                'June': _('juin'),
+                                'July': _('juillet'),
+                                'August': _('août'),
+                                'September': _('septembre'),
+                                'October': _('octobre'),
+                                'November': _('novembre'),
+                                'December': _('décembre')
                             } %}
-                            {{ day_names[lesson_date.strftime('%A')] }} {{ lesson_date.strftime('%d') }} {{ month_names[lesson_date.strftime('%B')] }} {{ lesson_date.strftime('%Y') }}
+                            {{ _('%(weekday)s %(day)s %(month)s %(year)s', weekday=day_names[lesson_date.strftime('%A')], day=lesson_date.strftime('%d'), month=month_names[lesson_date.strftime('%B')], year=lesson_date.strftime('%Y')) }}
                         </span>
                     </div>
                     <div class="lesson-detail">
                         <i class="fas fa-clock"></i>
                         <span>
                             {% if lesson.is_merged and lesson.end_period_number and lesson.end_period_number != lesson.period_number %}
-                                Période {{ lesson.period_number }}-{{ lesson.end_period_number }} ({{ lesson.start_time.strftime('%H:%M') }} - {{ lesson.end_time.strftime('%H:%M') }})
+                                {{ _('Période') }} {{ lesson.period_number }}-{{ lesson.end_period_number }} ({{ lesson.start_time.strftime('%H:%M') }} - {{ lesson.end_time.strftime('%H:%M') }})
                             {% else %}
-                                Période {{ lesson.period_number }} ({{ lesson.start_time.strftime('%H:%M') }} - {{ lesson.end_time.strftime('%H:%M') }})
+                                {{ _('Période') }} {{ lesson.period_number }} ({{ lesson.start_time.strftime('%H:%M') }} - {{ lesson.end_time.strftime('%H:%M') }})
                             {% endif %}
                         </span>
                     </div>
@@ -1304,21 +1474,21 @@ input, textarea, select {
             <div class="lesson-controls">
                 <!-- Contrôles de disposition -->
                 <div class="layout-controls">
-                    <span class="layout-label">Disposition :</span>
+                    <span class="layout-label">{{ _('Disposition :') }}</span>
                     <div class="layout-buttons">
-                        <button class="layout-btn active" data-layout="default" title="Disposition par défaut (3 colonnes)">
+                        <button class="layout-btn active" data-layout="default" title="{{ _('Disposition par défaut (3 colonnes)') }}">
                             <i class="fas fa-columns"></i>
                         </button>
-                        <button class="layout-btn" data-layout="planning-focus" title="Focus planification (planification large)">
+                        <button class="layout-btn" data-layout="planning-focus" title="{{ _('Focus planification (planification large)') }}">
                             <i class="fas fa-list-alt"></i>
                         </button>
-                        <button class="layout-btn" data-layout="resources-focus" title="Focus ressources (ressources large)">
+                        <button class="layout-btn" data-layout="resources-focus" title="{{ _('Focus ressources (ressources large)') }}">
                             <i class="fas fa-folder-open"></i>
                         </button>
-                        <button class="layout-btn" data-layout="attendance-focus" title="Focus présences (présences large)">
+                        <button class="layout-btn" data-layout="attendance-focus" title="{{ _('Focus présences (présences large)') }}">
                             <i class="fas fa-user-check"></i>
                         </button>
-                        <button class="layout-btn" data-layout="vertical" title="Disposition verticale (1 colonne)">
+                        <button class="layout-btn" data-layout="vertical" title="{{ _('Disposition verticale (1 colonne)') }}">
                             <i class="fas fa-bars"></i>
                         </button>
                     </div>
@@ -1327,14 +1497,14 @@ input, textarea, select {
                 <!-- Horloge actuelle -->
                 <div class="clock-widget">
                     <div class="clock-display" id="currentClock">--:--</div>
-                    <div class="clock-label">Heure actuelle</div>
+                    <div class="clock-label">{{ _('Heure actuelle') }}</div>
                 </div>
                 
                 {% if is_current %}
                 <div class="timer-widget">
                     <div class="timer-display" id="lessonTimer">{{ time_remaining }}</div>
                     <div class="timer-controls">
-                        <button class="timer-btn" onclick="toggleTimer()" title="Pause/Reprendre">
+                        <button class="timer-btn" onclick="toggleTimer()" title="{{ _('Pause/Reprendre') }}">
                             <i class="fas fa-pause" id="timerIcon"></i>
                         </button>
                     </div>
@@ -1350,11 +1520,11 @@ input, textarea, select {
         <div class="planning-section">
             <div class="section-header">
                 <h2 class="section-title">
-                    <i class="fas fa-clipboard-list"></i> Planification du cours
+                    <i class="fas fa-clipboard-list"></i> {{ _('Planification du cours') }}
                 </h2>
                 <div style="display:flex;gap:0.5rem;">
                     <button class="edit-planning-btn" onclick="togglePlanningEdit()">
-                        <i class="fas fa-edit"></i> <span id="editBtnText">Modifier</span>
+                        <i class="fas fa-edit"></i> <span id="editBtnText">{{ _('Modifier') }}</span>
                     </button>
                 </div>
             </div>
@@ -1368,7 +1538,7 @@ input, textarea, select {
                             {% if planning %}
                                 {{ render_planning_with_checkboxes(planning) | safe }}
                             {% else %}
-                                Aucune description
+                                {{ _('Aucune description') }}
                             {% endif %}
                         </div>
 
@@ -1384,7 +1554,7 @@ input, textarea, select {
                         <!-- Section des ressources de planification -->
                         {% if planning and planning.resources.count() > 0 %}
                         <div id="planning-resources-section" style="margin-top:1.5rem;padding-top:1.5rem;border-top:2px solid #e5e7eb;">
-                            <h4 style="margin:0 0 1rem 0;font-size:0.95rem;color:#374151;"><i class="fas fa-file-alt" style="margin-right:0.5rem;color:#10b981;"></i> Ressources du cours</h4>
+                            <h4 style="margin:0 0 1rem 0;font-size:0.95rem;color:#374151;"><i class="fas fa-file-alt" style="margin-right:0.5rem;color:#10b981;"></i> {{ _('Ressources du cours') }}</h4>
                             <div id="planning-resources-list" style="display:flex;flex-direction:column;gap:0.5rem;">
                                 {% for resource in planning.resources.all() %}
                                 {# Le nom du fichier passe par des attributs data-*, PAS par un
@@ -1405,18 +1575,18 @@ input, textarea, select {
                                         <i class="fas fa-{{ resource.display_icon or 'file' }}" style="color:{{ '#dc2626' if resource.display_icon == 'file-pdf' else '#3b82f6' if resource.display_icon == 'file-image' else '#6b7280' }};font-size:1.1rem;"></i>
                                         <div style="flex:1;">
                                             <div style="font-weight:600;font-size:0.9rem;color:#1f2937;">{{ resource.display_name }}</div>
-                                            <div style="font-size:0.75rem;color:#9ca3af;">PDF/Document</div>
+                                            <div style="font-size:0.75rem;color:#9ca3af;">{{ _('PDF/Document') }}</div>
                                         </div>
                                         <i class="fas fa-external-link-alt" style="color:#10b981;font-size:0.9rem;"></i>
-                                        <button class="btn-delete-resource" data-resource-id="{{ resource.id }}" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="Supprimer"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
+                                        <button class="btn-delete-resource" data-resource-id="{{ resource.id }}" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="{{ _('Supprimer') }}"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
                                     {% elif resource.resource_type == 'ephemeral' %}
                                         <i class="fas fa-hourglass-half" style="color:#F59E0B;font-size:1.1rem;"></i>
                                         <div style="flex:1;">
                                             <div style="font-weight:600;font-size:0.9rem;color:#1f2937;">{{ resource.display_name }}</div>
-                                            <div style="font-size:0.75rem;color:#B45309;">Éphémère — supprimé automatiquement le lendemain du cours</div>
+                                            <div style="font-size:0.75rem;color:#B45309;">{{ _('Éphémère — supprimé automatiquement le lendemain du cours') }}</div>
                                         </div>
                                         <i class="fas fa-external-link-alt" style="color:#10b981;font-size:0.9rem;"></i>
-                                        <button class="btn-delete-resource" data-resource-id="{{ resource.id }}" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="Supprimer"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
+                                        <button class="btn-delete-resource" data-resource-id="{{ resource.id }}" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="{{ _('Supprimer') }}"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
                                     {% elif resource.resource_type == 'exercise' %}
                                         <i class="fas fa-gamepad" style="color:#667eea;font-size:1.1rem;"></i>
                                         <div style="flex:1;">
@@ -1424,15 +1594,15 @@ input, textarea, select {
                                             <div style="font-size:0.75rem;color:#9ca3af;">
                                                 {% if resource.status == 'published' %}
                                                     <span style="background:{{ '#fef2f2' if resource.mode == 'combat' else '#eef2ff' }};color:{{ '#ef4444' if resource.mode == 'combat' else '#10b981' }};padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;">
-                                                        {{ '⚔️ Combat' if resource.mode == 'combat' else '📖 Classique' }}
+                                                        {{ '⚔️ ' ~ _('Combat') if resource.mode == 'combat' else '📖 ' ~ _('Classique') }}
                                                     </span>
                                                 {% else %}
-                                                    <span style="background:#f0fdf4;color:#10b981;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;">Non publié</span>
+                                                    <span style="background:#f0fdf4;color:#10b981;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;">{{ _('Non publié') }}</span>
                                                 {% endif %}
                                             </div>
                                         </div>
                                         <i class="fas fa-play-circle" style="color:#667eea;font-size:0.9rem;"></i>
-                                        <button class="btn-delete-resource" data-resource-id="{{ resource.id }}" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="Supprimer"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
+                                        <button class="btn-delete-resource" data-resource-id="{{ resource.id }}" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="{{ _('Supprimer') }}"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
                                     {% endif %}
                                 </div>
                                 {% endfor %}
@@ -1447,16 +1617,16 @@ input, textarea, select {
                 <!-- ===== Devoirs (Phase 2) : créer un devoir + liste de la classe ===== -->
                 <div id="devoirsSection" class="devoirs-section" style="margin-top: 1.5rem;">
                     <div class="devoirs-head">
-                        <h4><i class="fas fa-book"></i> Devoirs de la classe</h4>
+                        <h4><i class="fas fa-book"></i> {{ _('Devoirs de la classe') }}</h4>
                         <button type="button" class="btn-devoir-create" onclick="openDevoirModal()">
-                            <i class="fas fa-plus"></i> Créer un devoir
+                            <i class="fas fa-plus"></i> {{ _('Créer un devoir') }}
                         </button>
                     </div>
                     <div style="display:flex;justify-content:flex-end;margin-top:0.5rem;">
                         <button type="button" id="uploadEphemeralBtn" class="add-resource-btn" onclick="document.getElementById('lessonEphemeralInput').click()"
-                                title="Fichier éphémère : joint à ce cours (créé au besoin) et supprimé automatiquement le lendemain"
+                                title="{{ _('Fichier éphémère : joint à ce cours (créé au besoin) et supprimé automatiquement le lendemain') }}"
                                 style="background: #FEF3C7; color: #92400E;">
-                            <i class="fas fa-hourglass-half"></i> Fichier éphémère
+                            <i class="fas fa-hourglass-half"></i> {{ _('Fichier éphémère') }}
                         </button>
                         <input type="file" id="lessonEphemeralInput" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" style="display:none;" onchange="uploadEphemeralFromLesson(this)">
                     </div>
@@ -1496,9 +1666,9 @@ input, textarea, select {
                         return { cid: a && a.dataset.classroomId, date: a && a.dataset.lessonDate };
                     }
                     const TYPE_ICON = { submission: 'fa-camera', exercise: 'fa-gamepad', classic: 'fa-list-check' };
-                    const TYPE_LABEL = { exercise: 'Exercice · ', classic: 'Devoir · ' };
-                    const MONTHS = ['', 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-                    function fmtDate(iso) { if (!iso) return ''; const p = iso.split('-').map(Number); return `${p[2]} ${MONTHS[p[1]]}`; }
+                    const TYPE_LABEL = { exercise: LESSON_I18N.typeExercise + ' · ', classic: LESSON_I18N.typeHomework + ' · ' };
+                    // Date courte (« 5 janv. ») dans la langue de l'interface (Intl, cf. LESSON_I18N.dateLocale).
+                    function fmtDate(iso) { if (!iso) return ''; const p = iso.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString(LESSON_I18N.dateLocale, { day: 'numeric', month: 'short' }); }
                     function esc(s) { return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
                     // Devoirs actuellement affichés, indexés par id (pour l'édition).
@@ -1514,7 +1684,7 @@ input, textarea, select {
                     };
 
                     window.deleteDevoirItem = async function (id) {
-                        if (!window.confirm('Supprimer ce devoir ?')) return;
+                        if (!window.confirm(LESSON_I18N.confirmDeleteHomework)) return;
                         try {
                             const j = await (await fetch('/api/devoirs/' + id, { method: 'DELETE' })).json();
                             if (j.success) loadDevoirs();
@@ -1533,24 +1703,24 @@ input, textarea, select {
                             const items = j.devoirs || [];
                             devoirsById = {};
                             items.forEach(d => { devoirsById[d.id] = d; });
-                            if (!items.length) { list.innerHTML = '<div class="devoirs-empty">Aucun devoir pour cette classe.</div>'; return; }
+                            if (!items.length) { list.innerHTML = '<div class="devoirs-empty">' + LESSON_I18N.noHomework + '</div>'; return; }
                             list.innerHTML = items.map(d => {
                                 const today = date && d.due_date === date;
                                 // Un devoir classique n'a ni rendus ni résultats à consulter.
                                 const action = d.type === 'submission'
-                                    ? `<a class="devoir-item-view" title="Voir les rendus" href="/planning/devoir/${d.id}/submissions"><i class="fas fa-inbox"></i></a>`
+                                    ? `<a class="devoir-item-view" title="${LESSON_I18N.viewSubmissions}" href="/planning/devoir/${d.id}/submissions"><i class="fas fa-inbox"></i></a>`
                                     : (d.type === 'exercise'
-                                        ? `<a class="devoir-item-view" title="Voir les résultats" href="/planning/devoir/${d.id}/resultats"><i class="fas fa-chart-simple"></i></a>`
+                                        ? `<a class="devoir-item-view" title="${LESSON_I18N.viewResults}" href="/planning/devoir/${d.id}/resultats"><i class="fas fa-chart-simple"></i></a>`
                                         : '');
                                 return `<div class="devoir-item${today ? ' due-today' : ''}">
                                     <i class="fas ${TYPE_ICON[d.type] || 'fa-book'}"></i>
                                     <div class="devoir-item-main">
                                         <span class="devoir-item-title">${esc(d.title)}</span>
-                                        <span class="devoir-item-meta">${TYPE_LABEL[d.type] || ''}à rendre le ${fmtDate(d.due_date)}${today ? " · aujourd'hui" : ''}${d.has_document ? ' · <i class="fas fa-paperclip" title="Document joint"></i>' : ''}</span>
+                                        <span class="devoir-item-meta">${TYPE_LABEL[d.type] || ''}${lessonFmt(LESSON_I18N.dueOn, { date: fmtDate(d.due_date) })}${today ? ' · ' + LESSON_I18N.today : ''}${d.has_document ? ' · <i class="fas fa-paperclip" title="' + LESSON_I18N.attachedDocument + '"></i>' : ''}</span>
                                     </div>
                                     ${action}
-                                    <button type="button" class="devoir-item-edit" title="Modifier" onclick="openDevoirModalForEdit(${d.id})"><i class="fas fa-pen"></i></button>
-                                    <button type="button" class="devoir-item-del" title="Supprimer" onclick="deleteDevoirItem(${d.id})"><i class="fas fa-trash"></i></button>
+                                    <button type="button" class="devoir-item-edit" title="${LESSON_I18N.edit}" onclick="openDevoirModalForEdit(${d.id})"><i class="fas fa-pen"></i></button>
+                                    <button type="button" class="devoir-item-del" title="${LESSON_I18N.delete}" onclick="deleteDevoirItem(${d.id})"><i class="fas fa-trash"></i></button>
                                 </div>`;
                             }).join('');
                         } catch (e) {}
@@ -1565,30 +1735,30 @@ input, textarea, select {
                 <div id="planningEdit" style="display: none;">
                     <form id="planningForm" onsubmit="savePlanning(event)">
                         <div class="form-group">
-                            <label class="form-label">Titre du cours</label>
+                            <label class="form-label">{{ _('Titre du cours') }}</label>
                             <input type="text"
                                    id="planningTitle"
                                    class="form-control"
-                                   placeholder="Ex: Introduction aux fractions"
+                                   placeholder="{{ _('Ex: Introduction aux fractions') }}"
                                    value="{{ planning.title if planning else '' }}">
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Planification</label>
+                            <label class="form-label">{{ _('Planification') }}</label>
                             <textarea id="planningDescription"
                                       class="form-control"
                                       rows="8"
-                                      placeholder="Objectifs du cours, activités prévues, exercices, devoirs...">{{ planning.description if planning else '' }}</textarea>
+                                      placeholder="{{ _('Objectifs du cours, activités prévues, exercices, devoirs...') }}">{{ planning.description if planning else '' }}</textarea>
                             <div class="checklist-help">
-                                Astuce : Commencez une ligne par "-" pour créer une case à cocher
+                                {{ _('Astuce : Commencez une ligne par "-" pour créer une case à cocher') }}
                             </div>
                         </div>
 
                         <!-- Exercices interactifs : juste avant les mémos (masqués : FEATURE_EXERCISES) -->
                         {% if students_space and FEATURE_EXERCISES %}
                         <div style="margin-bottom:0.75rem;">
-                            <button type="button" class="edit-planning-btn" onclick="showAddResourceModal()" title="Ajouter un exercice interactif" style="background:#10b981;color:white;border:none;padding:0.4rem 0.8rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
-                                <i class="fas fa-gamepad"></i> + exercice interactif
+                            <button type="button" class="edit-planning-btn" onclick="showAddResourceModal()" title="{{ _('Ajouter un exercice interactif') }}" style="background:#10b981;color:white;border:none;padding:0.4rem 0.8rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
+                                <i class="fas fa-gamepad"></i> {{ _('+ exercice interactif') }}
                             </button>
                         </div>
                         {% endif %}
@@ -1598,16 +1768,16 @@ input, textarea, select {
                             <!-- Formulaire création remarque -->
                             <div id="remarkCreationForm" class="memo-form" style="display: none;">
                                 <div class="form-group">
-                                    <label class="form-label">Sélectionner un ou plusieurs élèves</label>
+                                    <label class="form-label">{{ _('Sélectionner un ou plusieurs élèves') }}</label>
                                     <input type="text"
                                            id="remarkStudentInput"
                                            class="form-control"
-                                           placeholder="Commencez à taper le nom d'un élève..."
+                                           placeholder="{{ _("Commencez à taper le nom d'un élève...") }}"
                                            autocomplete="off">
                                     <div id="remarkStudentAutocomplete" class="memo-autocomplete" style="display: none;"></div>
 
                                     <div id="selectedStudentsDiv" class="selected-students" style="display: none;">
-                                        <label class="form-label">Élèves sélectionnés :</label>
+                                        <label class="form-label">{{ _('Élèves sélectionnés :') }}</label>
                                         <div id="selectedStudentsList"></div>
                                         <button type="button" class="btn btn-primary btn-sm" onclick="confirmStudentSelection()">
                                             <i class="fas fa-check"></i> OK
@@ -1616,22 +1786,22 @@ input, textarea, select {
                                 </div>
 
                                 <div id="remarkContentDiv" class="form-group" style="display: none;">
-                                    <label class="form-label">Contenu de la remarque</label>
-                                    <textarea id="remarkContent" class="form-control" rows="3" placeholder="Entrez la remarque..."></textarea>
+                                    <label class="form-label">{{ _('Contenu de la remarque') }}</label>
+                                    <textarea id="remarkContent" class="form-control" rows="3" placeholder="{{ _('Entrez la remarque...') }}"></textarea>
 
                                     <div class="form-check" style="margin-top: 1rem; margin-bottom: 1rem;{% if not students_space %} display:none;{% endif %}">
                                         <input type="checkbox" class="form-check-input" id="sendToParentAndStudent">
                                         <label class="form-check-label" for="sendToParentAndStudent">
-                                            <i class="fas fa-paper-plane"></i> Envoyer aux parents et à l'élève
+                                            <i class="fas fa-paper-plane"></i> {{ _("Envoyer aux parents et à l'élève") }}
                                         </label>
                                     </div>
 
                                     <div class="memo-form-actions">
                                         <button type="button" class="btn btn-primary" onclick="submitRemark()">
-                                            <i class="fas fa-plus"></i> Ajouter
+                                            <i class="fas fa-plus"></i> {{ _('Ajouter') }}
                                         </button>
                                         <button type="button" class="btn btn-outline" onclick="cancelRemarkCreation()">
-                                            Annuler
+                                            {{ _('Annuler') }}
                                         </button>
                                     </div>
                                 </div>
@@ -1645,10 +1815,10 @@ input, textarea, select {
 
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Enregistrer
+                                <i class="fas fa-save"></i> {{ _('Enregistrer') }}
                             </button>
                             <button type="button" class="btn btn-outline" onclick="cancelPlanningEdit()">
-                                Annuler
+                                {{ _('Annuler') }}
                             </button>
                         </div>
                     </form>
@@ -1658,9 +1828,9 @@ input, textarea, select {
                 {% if not planning %}
                 <div id="emptyPlanning" class="no-resources">
                     <i class="fas fa-clipboard"></i>
-                    <p>Aucune planification pour ce cours</p>
+                    <p>{{ _('Aucune planification pour ce cours') }}</p>
                     <button class="btn btn-primary" onclick="togglePlanningEdit()">
-                        <i class="fas fa-plus"></i> Créer une planification
+                        <i class="fas fa-plus"></i> {{ _('Créer une planification') }}
                     </button>
                 </div>
                 {% endif %}
@@ -1675,28 +1845,28 @@ input, textarea, select {
              data-period-number="{{ lesson.period_number }}">
             <div class="section-header">
                 <h2 class="section-title">
-                    <i class="fas fa-user-check"></i> Suivi des élèves
+                    <i class="fas fa-user-check"></i> {{ _('Suivi des élèves') }}
                 </h2>
             </div>
 
             <!-- Onglets de suivi -->
             <div class="tracking-tabs">
                 <button class="tracking-tab active" onclick="showTrackingTab('attendance')">
-                    <i class="fas fa-user-check"></i> Présences
+                    <i class="fas fa-user-check"></i> {{ _('Présences') }}
                 </button>
                 {% if imported_sanctions %}
                 <button class="tracking-tab" onclick="showTrackingTab('sanctions')">
-                    <i class="fas fa-exclamation-triangle"></i> Coches ({{ imported_sanctions|length }})
+                    <i class="fas fa-exclamation-triangle"></i> {{ _('Coches') }} ({{ imported_sanctions|length }})
                 </button>
                 {% endif %}
                 {% if seating_plan %}
                 <button class="tracking-tab" onclick="showTrackingTab('seating-plan')">
-                    <i class="fas fa-th"></i> Plan de classe
+                    <i class="fas fa-th"></i> {{ _('Plan de classe') }}
                 </button>
                 {% endif %}
                 {% if lesson_classroom %}
                 <button class="tracking-tab" onclick="showTrackingTab('annual')">
-                    <i class="fas fa-calendar-alt"></i> Vue annuelle
+                    <i class="fas fa-calendar-alt"></i> {{ _('Vue annuelle') }}
                 </button>
                 {% endif %}
             </div>
@@ -1706,15 +1876,15 @@ input, textarea, select {
                 <div class="attendance-stats">
                     <div class="stat-item present">
                         <div class="stat-value" id="presentCount">0</div>
-                        <div class="stat-label">Présents</div>
+                        <div class="stat-label">{{ _('Présents') }}</div>
                     </div>
                     <div class="stat-item absent">
                         <div class="stat-value" id="absentCount">0</div>
-                        <div class="stat-label">Absents</div>
+                        <div class="stat-label">{{ _('Absents') }}</div>
                     </div>
                     <div class="stat-item late">
                         <div class="stat-value" id="lateCount">0</div>
-                        <div class="stat-label">Retards</div>
+                        <div class="stat-label">{{ _('Retards') }}</div>
                     </div>
                 </div>
 
@@ -1723,23 +1893,23 @@ input, textarea, select {
                 <div style="margin-bottom: 1rem; padding: 0.5rem; background-color: #f8f9fa; border-radius: 0.375rem; border-left: 4px solid {{ current_group.color }};">
                     <h4 style="margin: 0; font-size: 0.875rem; color: #374151; display: flex; align-items: center;">
                         <i class="fas fa-users" style="margin-right: 0.5rem; color: {{ current_group.color }};"></i>
-                        Groupe : {{ current_group.name }}
+                        {{ _('Groupe : %(name)s', name=current_group.name) }}
                         {% if current_group.description %}
                         <span style="font-weight: normal; color: #6b7280; margin-left: 0.5rem;">({{ current_group.description }})</span>
                         {% endif %}
                     </h4>
                     <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: #6b7280;">
-                        {{ students|length }} élève(s) dans ce groupe
+                        {{ _('%(n)s élève(s) dans ce groupe', n=students|length) }}
                     </p>
                 </div>
                 {% else %}
                 <div style="margin-bottom: 1rem; padding: 0.5rem; background-color: #f8f9fa; border-radius: 0.375rem;">
                     <h4 style="margin: 0; font-size: 0.875rem; color: #374151; display: flex; align-items: center;">
                         <i class="fas fa-users" style="margin-right: 0.5rem; color: #6b7280;"></i>
-                        Classe entière
+                        {{ _('Classe entière') }}
                     </h4>
                     <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: #6b7280;">
-                        {{ students|length }} élève(s) dans la classe
+                        {{ _('%(n)s élève(s) dans la classe', n=students|length) }}
                     </p>
                 </div>
                 {% endif %}
@@ -1776,14 +1946,14 @@ input, textarea, select {
 
                         <button type="button" class="student-remark-btn"
                                 onclick="event.stopPropagation(); openQuickRemark({{ student.id }})"
-                                title="Ajouter une remarque">
+                                title="{{ _('Ajouter une remarque') }}">
                             <i class="fas fa-comment-medical"></i>
                         </button>
 
                         <div class="late-controls">
                             <button class="late-btn decrease"
                                     onclick="adjustLateMinutes({{ student.id }}, -1)"
-                                    title="Diminuer de 1 minute">
+                                    title="{{ _('Diminuer de 1 minute') }}">
                                 <i class="fas fa-minus"></i>
                             </button>
                             <input type="number"
@@ -1796,12 +1966,12 @@ input, textarea, select {
                                    onchange="setLateStatus({{ student.id }})">
                             <button class="late-btn increase"
                                     onclick="adjustLateMinutes({{ student.id }}, 1)"
-                                    title="Augmenter de 1 minute">
+                                    title="{{ _('Augmenter de 1 minute') }}">
                                 <i class="fas fa-plus"></i>
                             </button>
                             <button class="btn-late"
                                     onclick="setLateStatus({{ student.id }})"
-                                    title="Marquer en retard">
+                                    title="{{ _('Marquer en retard') }}">
                                 <i class="fas fa-clock"></i>
                             </button>
                         </div>
@@ -1831,16 +2001,16 @@ input, textarea, select {
                 </style>
                 <div id="quickRemarkPanel" class="quick-remark-panel" style="display: none;">
                     <div class="qr-header">
-                        <span class="qr-title"><i class="fas fa-comment-dots"></i> Remarque — <strong id="qrStudentName"></strong></span>
-                        <button type="button" class="qr-close" onclick="closeQuickRemark()" aria-label="Fermer">&times;</button>
+                        <span class="qr-title"><i class="fas fa-comment-dots"></i> {{ _('Remarque') }} — <strong id="qrStudentName"></strong></span>
+                        <button type="button" class="qr-close" onclick="closeQuickRemark()" aria-label="{{ _('Fermer') }}">&times;</button>
                     </div>
-                    <textarea id="qrContent" class="form-control" rows="2" placeholder="Note la remarque…"></textarea>
+                    <textarea id="qrContent" class="form-control" rows="2" placeholder="{{ _('Notez la remarque…') }}"></textarea>
                     <div class="qr-presets" id="qrPresets"></div>
                     <div class="qr-footer">
-                        <label class="qr-parent"{% if not students_space %} style="display:none;"{% endif %}><input type="checkbox" id="qrSendParent"> <i class="fas fa-paper-plane"></i> Envoyer aux parents/élève</label>
+                        <label class="qr-parent"{% if not students_space %} style="display:none;"{% endif %}><input type="checkbox" id="qrSendParent"> <i class="fas fa-paper-plane"></i> {{ _('Envoyer aux parents/élève') }}</label>
                         <div class="qr-actions">
-                            <button type="button" class="qr-mic" id="qrMic" onclick="qrDictate()" style="display: none;"><i class="fas fa-microphone"></i> Dicter</button>
-                            <button type="button" class="btn btn-primary btn-sm" id="qrSaveBtn" onclick="saveQuickRemark()"><i class="fas fa-check"></i> Enregistrer</button>
+                            <button type="button" class="qr-mic" id="qrMic" onclick="qrDictate()" style="display: none;"><i class="fas fa-microphone"></i> {{ _('Dicter') }}</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="qrSaveBtn" onclick="saveQuickRemark()"><i class="fas fa-check"></i> {{ _('Enregistrer') }}</button>
                         </div>
                     </div>
                 </div>
@@ -1848,20 +2018,7 @@ input, textarea, select {
 
             <script>
             (function () {
-                const PRESET_REMARKS = [
-                    "Participation active et pertinente.",
-                    "Beaux progrès, bravo !",
-                    "Très bonne attitude en classe.",
-                    "A aidé un camarade.",
-                    "Excellent travail aujourd'hui.",
-                    "A oublié son matériel.",
-                    "Devoirs non faits.",
-                    "Bavardages répétés.",
-                    "Manque de concentration.",
-                    "Comportement perturbateur.",
-                    "Travail non rendu.",
-                    "Doit faire signer le carnet."
-                ];
+                const PRESET_REMARKS = LESSON_I18N.presetRemarks;
                 let qrStudentId = null;
                 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -1895,7 +2052,7 @@ input, textarea, select {
 
                 window.saveQuickRemark = async function () {
                     const content = document.getElementById('qrContent').value.trim();
-                    if (!qrStudentId || !content) { showNotification('error', 'Écris une remarque.'); return; }
+                    if (!qrStudentId || !content) { showNotification('error', LESSON_I18N.writeRemark); return; }
                     const a = document.querySelector('.attendance-section');
                     const btn = document.getElementById('qrSaveBtn');
                     btn.disabled = true;
@@ -1912,7 +2069,7 @@ input, textarea, select {
                         });
                         const data = await resp.json();
                         if (data.success) {
-                            showNotification('success', 'Remarque enregistrée');
+                            showNotification('success', LESSON_I18N.remarkSaved);
                             const row = document.getElementById('student-' + qrStudentId);
                             if (row) row.classList.add('has-remark');
                             // Rafraîchir la liste des mémos/remarques de la section planification
@@ -1923,10 +2080,10 @@ input, textarea, select {
                             }
                             closeQuickRemark();
                         } else {
-                            showNotification('error', data.error || 'Erreur');
+                            showNotification('error', data.error || LESSON_I18N.error);
                             btn.disabled = false;
                         }
-                    } catch (e) { showNotification('error', 'Erreur réseau'); btn.disabled = false; }
+                    } catch (e) { showNotification('error', LESSON_I18N.networkError); btn.disabled = false; }
                 };
 
                 // Dictée vocale :
@@ -1958,30 +2115,30 @@ input, textarea, select {
                                     window.__qrDictating = false;
                                     if (mic) mic.classList.remove('recording');
                                     ta.focus();
-                                    showNotification('info', 'Dictée indisponible — touche le micro 🎤 du clavier.');
+                                    showNotification('info', LESSON_I18N.dictationUnavailable);
                                 }
                             };
-                            window.nativeSpeech.start('fr-FR');
+                            window.nativeSpeech.start(LESSON_I18N.speechLang);
                             return;
                         }
                         // Sinon (ancien build sans pont natif) → clavier système.
                         ta.focus();
-                        showNotification('info', 'Touche le micro 🎤 de ton clavier pour dicter.');
+                        showNotification('info', LESSON_I18N.tapKeyboardMic);
                         return;
                     }
                     if (SR) {
                         try {
                             const rec = new SR();
-                            rec.lang = 'fr-FR'; rec.interimResults = false; rec.continuous = false;
+                            rec.lang = LESSON_I18N.speechLang; rec.interimResults = false; rec.continuous = false;
                             if (mic) mic.classList.add('recording');
                             rec.onresult = function (e) { const t = e.results[0][0].transcript; ta.value = ta.value.trim() ? (ta.value.trim() + ' ' + t) : t; };
-                            rec.onerror = function () { if (mic) mic.classList.remove('recording'); ta.focus(); showNotification('info', 'Utilise le micro 🎤 de ton clavier pour dicter.'); };
+                            rec.onerror = function () { if (mic) mic.classList.remove('recording'); ta.focus(); showNotification('info', LESSON_I18N.useKeyboardMic); };
                             rec.onend = function () { if (mic) mic.classList.remove('recording'); };
                             rec.start();
                         } catch (e) { ta.focus(); }
                     } else {
                         ta.focus();
-                        showNotification('info', 'Appuie sur le micro 🎤 de ton clavier pour dicter.');
+                        showNotification('info', LESSON_I18N.pressKeyboardMic);
                     }
                 };
 
@@ -2007,7 +2164,7 @@ input, textarea, select {
                     <table class="sanctions-table">
                         <thead>
                             <tr>
-                                <th class="student-column">Élève</th>
+                                <th class="student-column">{{ _('Élève') }}</th>
                                 {% for sanction in imported_sanctions %}
                                 <th class="sanction-column">{{ sanction.name }}</th>
                                 {% endfor %}
@@ -2045,11 +2202,11 @@ input, textarea, select {
             <div class="seating-plan-content tracking-content" id="seating-plan-content">
                 <div class="seating-plan-header">
                     <div class="seating-plan-info">
-                        <h3><i class="fas fa-th"></i> Plan de classe</h3>
-                        <p>Cliquez sur les tables pour ajouter des avertissements : jaune → rouge → noir</p>
+                        <h3><i class="fas fa-th"></i> {{ _('Plan de classe') }}</h3>
+                        <p>{{ _('Cliquez sur les tables pour ajouter des avertissements : jaune → rouge → noir') }}</p>
                     </div>
                     <button id="undo-warning-btn" class="btn btn-primary" onclick="undoLastWarning()" disabled>
-                        <i class="fas fa-undo"></i> Annuler
+                        <i class="fas fa-undo"></i> {{ _('Annuler') }}
                     </button>
                 </div>
                 <div class="seating-plan-container">
@@ -2070,16 +2227,16 @@ input, textarea, select {
                 <div class="annual-embed-toolbar">
                     <span class="annual-embed-hint">
                         <i class="fas fa-info-circle"></i>
-                        Cliquez sur un jour de cours pour le planifier, ou sur S{n} pour ouvrir la semaine.
+                        {{ _('Cliquez sur un jour de cours pour le planifier, ou sur un numéro de semaine pour ouvrir la semaine.') }}
                     </span>
                     <a href="{{ url_for('planning.calendar_view') }}?classroom=classroom_{{ lesson_classroom.id }}"
                        class="btn btn-primary" style="margin-left:auto;padding:0.35rem 0.75rem;font-size:0.8rem;">
-                        <i class="fas fa-external-link-alt"></i> Ouvrir le calendrier
+                        <i class="fas fa-external-link-alt"></i> {{ _('Ouvrir le calendrier') }}
                     </a>
                 </div>
                 <div id="annualEmbedContainer">
                     <div class="annual-embed-loading">
-                        <i class="fas fa-spinner fa-spin"></i> Chargement de la vue annuelle…
+                        <i class="fas fa-spinner fa-spin"></i> {{ _('Chargement de la vue annuelle…') }}
                     </div>
                 </div>
             </div>
@@ -2091,14 +2248,14 @@ input, textarea, select {
         <div class="resources-section">
             <div class="section-header">
                 <h2 class="section-title">
-                    <i class="fas fa-folder-open"></i> Ressources du cours
+                    <i class="fas fa-folder-open"></i> {{ _('Ressources du cours') }}
                 </h2>
                 <div class="resource-controls">
-                    <button class="add-resource-btn" onclick="showBlankSheetsMenu()" title="Créer ou ouvrir des feuilles blanches" style="margin-right: 0.5rem;">
-                        <i class="fas fa-file-medical"></i> Feuilles blanches
+                    <button class="add-resource-btn" onclick="showBlankSheetsMenu()" title="{{ _('Créer ou ouvrir des feuilles blanches') }}" style="margin-right: 0.5rem;">
+                        <i class="fas fa-file-medical"></i> {{ _('Feuilles blanches') }}
                     </button>
-                    <button type="button" id="uploadClassFileBtn" class="add-resource-btn" onclick="triggerClassFileUpload()" title="Ajouter un fichier depuis votre ordinateur">
-                        <i class="fas fa-plus"></i> Fichier
+                    <button type="button" id="uploadClassFileBtn" class="add-resource-btn" onclick="triggerClassFileUpload()" title="{{ _('Ajouter un fichier depuis votre ordinateur') }}">
+                        <i class="fas fa-plus"></i> {{ _('Fichier') }}
                     </button>
                     <input type="file" id="classFileUploadInput" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.pages" style="display:none;" onchange="uploadClassFileFromComputer(this)">
                 </div>
@@ -2108,14 +2265,14 @@ input, textarea, select {
                 <!-- Chargement initial -->
                 <div class="resources-loading" id="resourcesLoading">
                     <i class="fas fa-spinner fa-spin"></i>
-                    <p>Chargement des ressources...</p>
+                    <p>{{ _('Chargement des ressources...') }}</p>
                 </div>
 
                 <!-- Ressources épinglées -->
                 <div class="pinned-resources" id="pinnedResources" style="display: none;">
                     <div class="pinned-header">
                         <i class="fas fa-thumbtack"></i>
-                        <span>Ressources épinglées</span>
+                        <span>{{ _('Ressources épinglées') }}</span>
                     </div>
                     <div class="pinned-list" id="pinnedList">
                         <!-- Les ressources épinglées seront chargées ici -->
@@ -2126,7 +2283,7 @@ input, textarea, select {
                 <div class="folder-navigation" id="folderNavigation" style="display: none;">
                     <div class="breadcrumb" id="resourceBreadcrumb">
                         <span class="breadcrumb-item active" data-path="" onclick="navigateToFolder('')">
-                            <i class="fas fa-home"></i> Racine
+                            <i class="fas fa-home"></i> {{ _('Racine') }}
                         </span>
                     </div>
                 </div>
@@ -2139,9 +2296,9 @@ input, textarea, select {
                 <!-- État vide -->
                 <div class="no-resources" id="noResources" style="display: none;">
                     <i class="fas fa-folder-open"></i>
-                    <p>Aucune ressource dans cette classe</p>
+                    <p>{{ _('Aucune ressource dans cette classe') }}</p>
                     <p style="font-size: 0.875rem; margin-top: 0.5rem;">
-                        Utilisez le gestionnaire de fichiers pour ajouter des ressources à cette classe
+                        {{ _('Utilisez le gestionnaire de fichiers pour ajouter des ressources à cette classe') }}
                     </p>
                 </div>
             </div>
@@ -2152,21 +2309,21 @@ input, textarea, select {
 <!-- Indicateur de sauvegarde -->
 <div class="saving-indicator" id="savingIndicator">
     <i class="fas fa-spinner fa-spin"></i>
-    <span id="savingText">Sauvegarde...</span>
+    <span id="savingText">{{ _('Sauvegarde...') }}</span>
 </div>
 
 <!-- Vue côte-à-côte pour édition avec PDF -->
 <div class="split-view-container" id="splitViewContainer">
     <div class="split-view-left">
         <div class="split-view-header">
-            <h2>Éditer la planification</h2>
+            <h2>{{ _('Éditer la planification') }}</h2>
         </div>
         <div id="splitViewPlanningEdit">
             <!-- Le contenu du formulaire sera copié ici -->
         </div>
     </div>
     <div class="split-view-right" id="splitViewRight">
-        <button class="split-view-close" onclick="closeSplitView()" title="Fermer la vue côte-à-côte">
+        <button class="split-view-close" onclick="closeSplitView()" title="{{ _('Fermer la vue côte-à-côte') }}">
             <i class="fas fa-times"></i>
         </button>
         <!-- Le viewer PDF sera intégré ici -->
@@ -2360,7 +2517,7 @@ function togglePlanningEdit() {
         if (emptyPlanning) emptyPlanning.style.display = 'none';
         if (memosViewContainer) memosViewContainer.style.display = 'none';
         planningEdit.style.display = 'block';
-        editBtnText.textContent = 'Lecture planification';
+        editBtnText.textContent = LESSON_I18N.readPlanning;
 
         // Attacher la conversion des tirets en checkboxes
         attachDashConversion();
@@ -2392,7 +2549,7 @@ function togglePlanningEdit() {
         const descText = descDisplay ? descDisplay.textContent.trim() : '';
         const hasPlanning = LESSON_HAS_PLANNING ||
                             (titleText && titleText !== 'Cours sans titre') ||
-                            (descText && descText !== 'Aucune description') ||
+                            (descText && descText !== LESSON_I18N.noDescription) ||
                             !!document.getElementById('planning-resources-section');
 
         if (hasPlanning) {
@@ -2408,7 +2565,7 @@ function togglePlanningEdit() {
         // Toujours afficher les mémos en mode lecture
         if (memosViewContainer) memosViewContainer.style.display = 'block';
 
-        editBtnText.textContent = 'Modifier';
+        editBtnText.textContent = LESSON_I18N.edit;
 
         // Recharger les mémos/remarques pour la vue en lecture seule
         if (typeof lessonMemosManager !== 'undefined' && lessonMemosManager) {
@@ -2531,7 +2688,7 @@ async function updateCheckboxState(index, checked) {
             const result = await response.json();
 
             if (result.success) {
-                showSavingIndicator('success', 'Sauvegardé');
+                showSavingIndicator('success', LESSON_I18N.saved);
             } else {
                 // En cas d'erreur, rétablir l'état précédent
                 checklistStates[index] = !checked;
@@ -2539,7 +2696,7 @@ async function updateCheckboxState(index, checked) {
                 if (checkbox) {
                     checkbox.checked = !checked;
                 }
-                showSavingIndicator('error', 'Erreur de sauvegarde');
+                showSavingIndicator('error', LESSON_I18N.saveError);
             }
         } catch (error) {
             console.error('Erreur:', error);
@@ -2549,13 +2706,13 @@ async function updateCheckboxState(index, checked) {
             if (checkbox) {
                 checkbox.checked = !checked;
             }
-            showSavingIndicator('error', 'Erreur de connexion');
+            showSavingIndicator('error', LESSON_I18N.connectionError);
         }
     }, 500); // Délai de 500ms pour regrouper les changements
 }
 
 // Fonction pour afficher l'indicateur de sauvegarde
-function showSavingIndicator(status = 'saving', message = 'Sauvegarde...') {
+function showSavingIndicator(status = 'saving', message = LESSON_I18N.saving) {
     const indicator = document.getElementById('savingIndicator');
     const text = document.getElementById('savingText');
     const icon = indicator.querySelector('i');
@@ -2616,7 +2773,7 @@ async function savePlanning(event) {
 
     // Désactiver le bouton et afficher un loader
     submitButton.disabled = true;
-    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + LESSON_I18N.savingInProgress;
 
     try {
         const response = await fetch('{{ url_for("planning.save_lesson_planning") }}', {
@@ -2641,11 +2798,11 @@ async function savePlanning(event) {
             // Recharger la page pour afficher les changements
             window.location.reload();
         } else {
-            showPlanningNotification('error', result.message || 'Erreur lors de l\'enregistrement');
+            showPlanningNotification('error', result.message || LESSON_I18N.saveFailed);
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showPlanningNotification('error', 'Erreur lors de la communication avec le serveur');
+        showPlanningNotification('error', LESSON_I18N.serverError);
     } finally {
         submitButton.disabled = false;
         submitButton.innerHTML = originalText;
@@ -2750,7 +2907,7 @@ async function setLateStatus(studentId) {
         const minutes = lateInput.value;
 
         if (!minutes || minutes <= 0) {
-            alert('Veuillez entrer le nombre de minutes de retard');
+            alert(LESSON_I18N.enterLateMinutes);
             return;
         }
 
@@ -2765,11 +2922,11 @@ function updateAttendanceButtons(studentId) {
     
     if (studentElement.classList.contains('late')) {
         // Élève en retard - bouton pour remettre présent
-        lateButton.title = 'Remettre présent';
+        lateButton.title = LESSON_I18N.markPresent;
         lateButton.innerHTML = '<i class="fas fa-undo"></i>';
     } else {
         // Élève présent ou absent - bouton pour marquer en retard
-        lateButton.title = 'Marquer en retard';
+        lateButton.title = LESSON_I18N.markLate;
         lateButton.innerHTML = '<i class="fas fa-clock"></i>';
     }
 }
@@ -2835,11 +2992,11 @@ async function updateAttendance(studentId, status, lateMinutes) {
             // Afficher une notification visuelle
             showQuickNotification(studentElement, status);
         } else {
-            alert('Erreur lors de la mise à jour de la présence');
+            alert(LESSON_I18N.attendanceError);
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de la communication avec le serveur');
+        alert(LESSON_I18N.serverError);
     } finally {
         // Toujours libérer le verrou et réactiver les boutons
         pendingRequests.delete(studentId);
@@ -3109,12 +3266,12 @@ function renderPinnedResources(pinnedFiles) {
                         </div>
                         <div class="resource-meta">
                             <span>${formatFileSize(file.file_size)}</span>
-                            <span>Épinglé</span>
-                            ${isAnnotatable ? '<span class="annotatable-badge">✏️ Annotable</span>' : ''}
+                            <span>${LESSON_I18N.pinned}</span>
+                            ${isAnnotatable ? '<span class="annotatable-badge">✏️ ' + LESSON_I18N.annotatable + '</span>' : ''}
                         </div>
                     </div>
                     <div class="resource-actions">
-                        <button class="resource-action-btn pinned" onclick="togglePinResource(${file.id})" title="Désépingler">
+                        <button class="resource-action-btn pinned" onclick="togglePinResource(${file.id})" title="${LESSON_I18N.unpin}">
                             <i class="fas fa-thumbtack"></i>
                         </button>
                     </div>
@@ -3146,7 +3303,7 @@ function renderBreadcrumb() {
     let html = `
         <span class="breadcrumb-item ${currentFolderPath === '' ? 'active' : ''}" 
               data-path="" onclick="navigateToFolder('')">
-            <i class="fas fa-home"></i> Racine
+            <i class="fas fa-home"></i> ${LESSON_I18N.root}
         </span>
     `;
     
@@ -3222,7 +3379,7 @@ function renderResourceTree(files) {
                     <div class="resource-main">
                         <div class="resource-name">${folderName}</div>
                         <div class="resource-meta">
-                            <span>Dossier</span>
+                            <span>${LESSON_I18N.folder}</span>
                         </div>
                     </div>
                 </div>
@@ -3242,12 +3399,12 @@ function renderResourceTree(files) {
                     <div class="resource-info">
                         <div class="resource-main">
                             <div class="resource-name clickable-file" onclick="window.location.href='/exercises/${file.exercise_id}/edit'">
-                                <span style="background:#eef2ff;color:#4338ca;font-size:0.6rem;font-weight:700;padding:0.1rem 0.3rem;border-radius:4px;margin-right:0.3rem;">EXERCICE</span>
+                                <span style="background:#eef2ff;color:#4338ca;font-size:0.6rem;font-weight:700;padding:0.1rem 0.3rem;border-radius:4px;margin-right:0.3rem;">${LESSON_I18N.exerciseBadge}</span>
                                 ${file.original_filename}
                             </div>
                             <div class="resource-meta">
                                 <span>${file.total_points || 0} XP</span>
-                                <span>${file.block_count || 0} questions</span>
+                                <span>${lessonFmt(LESSON_I18N.nQuestions, { n: file.block_count || 0 })}</span>
                                 ${file.uploaded_at ? `<span>${formatDate(file.uploaded_at)}</span>` : ''}
                             </div>
                         </div>
@@ -3274,18 +3431,18 @@ function renderResourceTree(files) {
                         <div class="resource-meta">
                             <span>${formatFileSize(file.file_size)}</span>
                             ${file.uploaded_at ? `<span>${formatDate(file.uploaded_at)}</span>` : ''}
-                            ${isAnnotatable ? '<span class="annotatable-badge">✏️ Annotable</span>' : ''}
+                            ${isAnnotatable ? '<span class="annotatable-badge">✏️ ' + LESSON_I18N.annotatable + '</span>' : ''}
                         </div>
                     </div>
                     <div class="resource-actions">
                         <button class="resource-action-btn ${isPinned ? 'pinned' : ''}" 
                                 onclick="togglePinResource(${file.id})" 
-                                title="${isPinned ? 'Désépingler' : 'Épingler'}">
+                                title="${isPinned ? LESSON_I18N.unpin : LESSON_I18N.pin}">
                             <i class="fas fa-thumbtack"></i>
                         </button>
                         <button class="resource-action-btn" style="color:#DC2626;"
                                 onclick="deleteLessonClassFile(${file.id}, '${file.source || ''}', '${(file.original_filename || '').replace(/'/g, "\\'")}')"
-                                title="Supprimer de la classe">
+                                title="${LESSON_I18N.removeFromClass}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -3294,7 +3451,7 @@ function renderResourceTree(files) {
         `;
     });
     
-    treeElement.innerHTML = html || '<p style="text-align: center; color: #6B7280; padding: 2rem;">Aucun fichier dans ce dossier</p>';
+    treeElement.innerHTML = html || '<p style="text-align: center; color: #6B7280; padding: 2rem;">' + LESSON_I18N.noFilesInFolder + '</p>';
 }
 
 // Fonction pour charger et afficher les feuilles blanches de la leçon
@@ -3326,7 +3483,7 @@ async function renderBlankSheets() {
             blankSheetsSection.className = 'blank-sheets-section';
             blankSheetsSection.innerHTML = `
                 <h4 class="section-subtitle">
-                    <i class="fas fa-file"></i> Feuilles blanches
+                    <i class="fas fa-file"></i> ${LESSON_I18N.blankSheets}
                 </h4>
                 <div class="blank-sheets-list">
                     ${data.sheets.map(sheet => `
@@ -3339,11 +3496,11 @@ async function renderBlankSheets() {
                                     <div class="resource-name clickable-file">${escapeHtml(sheet.title)}</div>
                                     <div class="resource-meta">
                                         <span>${formatDateTime(sheet.created_at)}</span>
-                                        <span class="annotatable-badge">✏️ Annotable</span>
+                                        <span class="annotatable-badge">✏️ ${LESSON_I18N.annotatable}</span>
                                     </div>
                                 </div>
                             </div>
-                            <button class="btn-delete-blank-sheet" data-sheet-id="${sheet.id}" title="Supprimer la feuille blanche">
+                            <button class="btn-delete-blank-sheet" data-sheet-id="${sheet.id}" title="${LESSON_I18N.deleteBlankSheet}">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -3404,7 +3561,7 @@ function formatDateTime(isoString) {
     if (!isoString) return '';
     const date = new Date(isoString);
     const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return date.toLocaleDateString('fr-FR', options);
+    return date.toLocaleDateString(LESSON_I18N.dateLocale, options);
 }
 
 // Fonction pour naviguer vers un dossier
@@ -3474,7 +3631,7 @@ async function uploadClassFileFromComputer(input) {
     if (!file) return;
 
     if (!classroomId || classroomId === 'null') {
-        alert('Aucune classe sélectionnée.');
+        alert(LESSON_I18N.noClassSelected);
         input.value = '';
         return;
     }
@@ -3483,7 +3640,7 @@ async function uploadClassFileFromComputer(input) {
     const originalBtnHtml = uploadBtn ? uploadBtn.innerHTML : null;
     if (uploadBtn) {
         uploadBtn.disabled = true;
-        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + LESSON_I18N.uploading;
     }
 
     try {
@@ -3503,11 +3660,11 @@ async function uploadClassFileFromComputer(input) {
             // Recharger les ressources en conservant le dossier ouvert
             await loadClassResources();
         } else {
-            alert(result.message || "Erreur lors de l'envoi du fichier.");
+            alert(result.message || LESSON_I18N.uploadError);
         }
     } catch (error) {
         console.error('Erreur upload fichier de classe:', error);
-        alert("Erreur lors de l'envoi du fichier : " + error.message);
+        alert(lessonFmt(LESSON_I18N.uploadErrorWithMsg, { error: error.message }));
     } finally {
         if (uploadBtn) {
             uploadBtn.disabled = false;
@@ -3548,7 +3705,7 @@ function formatFileSize(bytes) {
 
 function formatDate(dateString) {
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR');
+    return date.toLocaleDateString(LESSON_I18N.dateLocale);
 }
 
 {% if is_current %}
@@ -3576,7 +3733,7 @@ function updateTimer() {
 
         if (remainingSeconds === 0) {
             clearInterval(timerInterval);
-            alert('Le cours est terminé !');
+            alert(LESSON_I18N.lessonOver);
         }
     }
 }
@@ -3903,7 +4060,7 @@ async function renderAllPages() {
         // Ajouter le numéro de page
         const pageNumber = document.createElement('div');
         pageNumber.className = 'pdf-page-number';
-        pageNumber.textContent = `Page ${pageNum}`;
+        pageNumber.textContent = lessonFmt(LESSON_I18N.pageN, { n: pageNum });
         pageWrapper.appendChild(pageNumber);
         
         // Créer les canvas pour le PDF et les annotations
@@ -6295,7 +6452,7 @@ function undo() {
 
 // Tout effacer
 function clearAll() {
-    if (confirm('Êtes-vous sûr de vouloir effacer toutes les annotations de cette page ?')) {
+    if (confirm(LESSON_I18N.confirmClearPage)) {
         const removedCount = annotations.length;
         annotations = []; // Vider toutes les annotations de la page actuelle
         undoHistory = []; // Vider l'historique aussi
@@ -6486,7 +6643,7 @@ async function saveAnnotations() {
     const saveStatus = document.getElementById('saveStatus');
     if (saveStatus) {
         saveStatus.className = 'save-status saving';
-        saveStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sauvegarde...';
+        saveStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + LESSON_I18N.saving;
     }
     
     try {
@@ -6513,13 +6670,13 @@ async function saveAnnotations() {
         if (result.success) {
             if (saveStatus) {
                 saveStatus.className = 'save-status';
-                saveStatus.innerHTML = '<i class="fas fa-check"></i> Annotations sauvegardées';
+                saveStatus.innerHTML = '<i class="fas fa-check"></i> ' + LESSON_I18N.annotationsSaved;
             }
             console.log('💾 Annotations sauvegardées avec succès pour toutes les pages');
         } else {
             if (saveStatus) {
                 saveStatus.className = 'save-status error';
-                saveStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erreur de sauvegarde';
+                saveStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + LESSON_I18N.saveError;
             }
             console.error('Erreur de sauvegarde:', result.message);
         }
@@ -6527,7 +6684,7 @@ async function saveAnnotations() {
         console.error('Erreur lors de la sauvegarde:', error);
         if (saveStatus) {
             saveStatus.className = 'save-status error';
-            saveStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erreur de connexion';
+            saveStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + LESSON_I18N.connectionError;
         }
     }
 }
@@ -6540,7 +6697,7 @@ function showError(message) {
             <i class="fas fa-exclamation-triangle fa-2x"></i>
             <p>${message}</p>
             <button onclick="closeFileViewer()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4F46E5; color: white; border: none; border-radius: 0.5rem; cursor: pointer;">
-                Fermer
+                ${LESSON_I18N.close}
             </button>
         </div>
     `;
@@ -6548,7 +6705,7 @@ function showError(message) {
 
 // Charger le contenu du fichier
 async function loadFileContent(fileId, fileType, container) {
-    container.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Chargement...</p></div>';
+    container.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>' + LESSON_I18N.loading + '</p></div>';
     
     console.log('Chargement du fichier:', {fileId, fileType});
     
@@ -6564,10 +6721,10 @@ async function loadFileContent(fileId, fileType, container) {
         container.innerHTML = `
             <div style="color: #FC8181; text-align: center; padding: 2rem;">
                 <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                <h3>Erreur lors du chargement du fichier</h3>
+                <h3>${LESSON_I18N.fileLoadError}</h3>
                 <p style="margin-top: 1rem; font-size: 0.9rem;">${error.message}</p>
                 <button onclick="closeFileViewer()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4F46E5; color: white; border: none; border-radius: 0.5rem; cursor: pointer;">
-                    Fermer
+                    ${LESSON_I18N.close}
                 </button>
             </div>
         `;
@@ -6783,7 +6940,7 @@ async function openSplitView(fileId, filename, fileType) {
         
     } catch (error) {
         console.error('Erreur lors du chargement du fichier:', error);
-        showError('Erreur lors du chargement du fichier');
+        showError(LESSON_I18N.fileLoadError);
     }
 }
 
@@ -6862,7 +7019,7 @@ async function savePlanningFromSplitView() {
         const data = await response.json();
         
         if (data.success) {
-            showSuccess('Planification enregistrée');
+            showSuccess(LESSON_I18N.planningSaved);
             
             // Synchroniser avec le formulaire original
             const originalTitle = document.getElementById('planningTitle');
@@ -6873,11 +7030,11 @@ async function savePlanningFromSplitView() {
             // Mettre à jour l'affichage si nécessaire
             updatePlanningDisplay();
         } else {
-            showError(data.message || 'Erreur lors de la sauvegarde');
+            showError(data.message || LESSON_I18N.saveFailedLong);
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showError('Erreur lors de la sauvegarde');
+        showError(LESSON_I18N.saveFailedLong);
     } finally {
         showSavingIndicator(false);
     }
@@ -6960,7 +7117,7 @@ async function loadAnnualEmbed(force) {
     {% endif %}
     if (!classroomParam) return;
 
-    box.innerHTML = '<div class="annual-embed-loading"><i class="fas fa-spinner fa-spin"></i> Chargement de la vue annuelle…</div>';
+    box.innerHTML = '<div class="annual-embed-loading"><i class="fas fa-spinner fa-spin"></i> ' + LESSON_I18N.loadingAnnual + '</div>';
     try {
         const res = await fetch(`/planning/calendar?classroom=${encodeURIComponent(classroomParam)}&fragment=annual`,
                                 { headers: { 'Accept': 'application/json' } });
@@ -6979,7 +7136,7 @@ async function loadAnnualEmbed(force) {
         __annualEmbedLoaded = true;
     } catch (e) {
         console.warn('[Vue annuelle] chargement impossible:', e);
-        box.innerHTML = '<div class="annual-embed-loading">Impossible de charger la vue annuelle.</div>';
+        box.innerHTML = '<div class="annual-embed-loading">' + LESSON_I18N.annualLoadError + '</div>';
     }
 }
 
@@ -7015,8 +7172,8 @@ function openDayPlanModal(dateStr) {
     dayPlanCtx = { date: dateStr };
     const d = new Date(dateStr + 'T12:00:00');
     document.getElementById('dayPlanTitle').innerHTML =
-        '<i class="fas fa-calendar-day"></i> Planification – ' +
-        d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        '<i class="fas fa-calendar-day"></i> ' + LESSON_I18N.planning + ' – ' +
+        d.toLocaleDateString(LESSON_I18N.dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     document.getElementById('dayPlanEdit').style.display = 'none';
     document.getElementById('dayPlanSlots').style.display = 'block';
     modal.style.display = 'flex';
@@ -7039,7 +7196,7 @@ function dayPlanBackToSlots() {
 // en tenant compte des périodes liées (double période = un seul créneau).
 async function loadDayPlanSlots(dateStr) {
     const box = document.getElementById('dayPlanSlots');
-    box.innerHTML = '<div class="dayplan-empty"><i class="fas fa-spinner fa-spin"></i> Chargement…</div>';
+    box.innerHTML = '<div class="dayplan-empty"><i class="fas fa-spinner fa-spin"></i> ' + LESSON_I18N.loading + '</div>';
 
     let planningsByPeriod = {};
     try {
@@ -7074,7 +7231,7 @@ async function loadDayPlanSlots(dateStr) {
     });
 
     if (!slots.length) {
-        box.innerHTML = '<div class="dayplan-empty"><i class="fas fa-calendar-times"></i><br>Aucun cours de cette classe ce jour-là.</div>';
+        box.innerHTML = '<div class="dayplan-empty"><i class="fas fa-calendar-times"></i><br>' + LESSON_I18N.noLessonThisDay + '</div>';
         return;
     }
 
@@ -7084,12 +7241,12 @@ async function loadDayPlanSlots(dateStr) {
         const hasContent = p && (p.title || p.description);
         return `<div class="dayplan-slot" onclick="openDayPlanSlot('${s.label}', ${s.base})">
             <div class="dayplan-slot-head">
-                <span class="dayplan-slot-period">Période ${s.label}</span>
+                <span class="dayplan-slot-period">${LESSON_I18N.period} ${s.label}</span>
                 <span class="dayplan-slot-hours">${s.start} – ${s.end}</span>
             </div>
             ${hasContent
-                ? `<div class="dayplan-slot-title">${title || '<em>Sans titre</em>'}</div>`
-                : '<div class="dayplan-slot-empty">Créneau libre – cliquez pour planifier</div>'}
+                ? `<div class="dayplan-slot-title">${title || '<em>' + LESSON_I18N.untitled + '</em>'}</div>`
+                : '<div class="dayplan-slot-empty">' + LESSON_I18N.freeSlot + '</div>'}
             ${p && p.group_name ? `<span class="dayplan-slot-group"><i class="fas fa-users"></i> ${escapeHtmlDayPlan(p.group_name)}</span>` : ''}
         </div>`;
     }).join('');
@@ -7106,7 +7263,7 @@ async function openDayPlanSlot(label, basePeriod) {
     dayPlanCtx.basePeriod = basePeriod;
     document.getElementById('dayPlanSlots').style.display = 'none';
     document.getElementById('dayPlanEdit').style.display = 'block';
-    document.getElementById('dayPlanEditPeriod').textContent = 'Période ' + label;
+    document.getElementById('dayPlanEditPeriod').textContent = LESSON_I18N.period + ' ' + label;
     document.getElementById('dayPlanTitleInput').value = '';
     const descEl = document.getElementById('dayPlanDescInput');
     descEl.value = '';
@@ -7135,7 +7292,7 @@ async function loadDayPlanGroups(selectedId) {
         const res = await fetch(`/planning/get-groups/${LESSON_CLASSROOM_PARAM.split('_')[1]}`);
         const data = await res.json();
         if (data.success && (data.groups || []).length) {
-            sel.innerHTML = '<option value="">Classe entière</option>' +
+            sel.innerHTML = '<option value="">' + LESSON_I18N.wholeClass + '</option>' +
                 data.groups.map(g => `<option value="${g.id}">${escapeHtmlDayPlan(g.name)}</option>`).join('');
             if (selectedId) sel.value = String(selectedId);
             wrap.style.display = 'block';
@@ -7181,7 +7338,7 @@ async function saveDayPlanSlot() {
     const btn = document.getElementById('dayPlanSaveBtn');
     const original = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement…';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + LESSON_I18N.savingInProgress;
     const title = document.getElementById('dayPlanTitleInput').value.trim();
     const description = document.getElementById('dayPlanDescInput').value.trim();
     const groupSel = document.getElementById('dayPlanGroup');
@@ -7204,7 +7361,7 @@ async function saveDayPlanSlot() {
             })
         });
         const data = await res.json();
-        if (data.success === false) throw new Error(data.error || data.message || 'Erreur');
+        if (data.success === false) throw new Error(data.error || data.message || LESSON_I18N.error);
 
         if (repeat) {
             await fetch('/planning/apply-group-pattern', {
@@ -7225,7 +7382,7 @@ async function saveDayPlanSlot() {
         loadAnnualEmbed(true);
         closeDayPlanModal();
     } catch (e) {
-        alert('Erreur lors de l\'enregistrement : ' + (e.message || e));
+        alert(lessonFmt(LESSON_I18N.saveFailedWithMsg, { error: e.message || e }));
     } finally {
         btn.disabled = false;
         btn.innerHTML = original;
@@ -7340,7 +7497,7 @@ async function showSanctionNotification(breaches) {
             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
                 <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem;"></i>
                 <h3 style="margin: 0; font-size: 1.25rem; font-weight: bold;">
-                    🎯 Sanctions à attribuer - Demandez aux élèves d'apporter leur agenda
+                    ${LESSON_I18N.sanctionsBanner}
                 </h3>
                 <button onclick="closeSanctionNotification()" style="margin-left: auto; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #92400E;">
                     <i class="fas fa-times"></i>
@@ -7370,7 +7527,7 @@ async function showSanctionNotification(breaches) {
                 
                 const dateResult = await dateResponse.json();
                 if (dateResult.success && dateResult.next_date) {
-                    dateInfo = ` - <strong>À rendre le ${dateResult.formatted_date}</strong>`;
+                    dateInfo = ` - <strong>${lessonFmt(LESSON_I18N.dueOnCap, { date: dateResult.formatted_date })}</strong>`;
                     
                     // Ajouter à la planification
                     await fetch('{{ url_for("planning.add_sanction_to_planning") }}', {
@@ -7388,17 +7545,17 @@ async function showSanctionNotification(breaches) {
                         })
                     });
                 } else {
-                    dateInfo = ' - <em>Date à déterminer</em>';
+                    dateInfo = ' - <em>' + LESSON_I18N.dateTbd + '</em>';
                 }
             } catch (error) {
                 console.error('Erreur calcul date:', error);
-                dateInfo = ' - <em>Date à déterminer</em>';
+                dateInfo = ' - <em>' + LESSON_I18N.dateTbd + '</em>';
             }
         }
         
         notificationHTML += `
             <div style="background: rgba(255, 255, 255, 0.3); padding: 0.75rem; margin: 0.5rem 0; border-radius: 0.5rem; border-left: 4px solid #F59E0B;">
-                <strong>${breach.student_name}</strong> - ${breach.sanction_template} (${breach.threshold} coches) : 
+                <strong>${breach.student_name}</strong> - ${breach.sanction_template} (${lessonFmt(LESSON_I18N.nChecks, { n: breach.threshold })}) : 
                 <strong>${breach.sanction_text}</strong>${dateInfo}
             </div>
         `;
@@ -7495,11 +7652,11 @@ async function updateSanctionCount(studentId, sanctionId, delta) {
                 countElement.style.transform = 'scale(1)';
             }, 200);
         } else {
-            alert(result.message || 'Erreur lors de la mise à jour');
+            alert(result.message || LESSON_I18N.updateError);
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de la communication avec le serveur');
+        alert(LESSON_I18N.serverError);
     }
 }
 
@@ -7796,7 +7953,7 @@ function createSeatingElement(elementData) {
         element.className += ' teacher-desk';
         element.style.width = '120px';
         element.style.height = '80px';
-        element.innerHTML = 'Bureau du professeur';
+        element.innerHTML = LESSON_I18N.teacherDesk;
     }
     
     return element;
@@ -10040,7 +10197,7 @@ function showFileOpeningLoader(fileName) {
             + '<style>@keyframes lessonFileSpin{to{transform:rotate(360deg)}}</style>';
         document.body.appendChild(el);
     }
-    el.querySelector('.lesson-file-loader-text').textContent = fileName ? ('Ouverture de « ' + fileName + ' »…') : 'Ouverture du fichier…';
+    el.querySelector('.lesson-file-loader-text').textContent = fileName ? lessonFmt(LESSON_I18N.openingFile, { name: fileName }) : LESSON_I18N.openingFileGeneric;
     el.style.display = 'flex';
     // Filet de sécurité : ne jamais rester bloqué sur ce loader
     clearTimeout(showFileOpeningLoader._t);
@@ -10069,7 +10226,7 @@ function openFileWithUnifiedViewer(filePath, fileName, pdfUrlOverride) {
 
     if (!modal) {
         console.error('❌ Impossible de trouver la modal avec querySelector et getElementById');
-        alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+        alert(LESSON_I18N.viewerModalMissing + '\n\n' + LESSON_I18N.reloadPage);
         return;
     }
 
@@ -10096,7 +10253,7 @@ function openFileWithUnifiedViewer(filePath, fileName, pdfUrlOverride) {
                 console.log('✅ Container recréé avec succès');
             } else {
                 console.error('❌ Wrapper introuvable, impossible de recréer le container');
-                alert('Erreur: Le container de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+                alert(LESSON_I18N.viewerContainerMissing + '\n\n' + LESSON_I18N.reloadPage);
                 modal.style.display = 'none';
                 return;
             }
@@ -10183,7 +10340,7 @@ function openFileWithUnifiedViewer(filePath, fileName, pdfUrlOverride) {
         } catch (error) {
             hideFileOpeningLoader();
             console.error('❌ Erreur lors de la création du lecteur:', error);
-            alert('Erreur lors de la création du lecteur PDF: ' + error.message);
+            alert(lessonFmt(LESSON_I18N.pdfCreateError, { error: error.message }));
             return;
         }
     } else {
@@ -10197,7 +10354,7 @@ function openFileWithUnifiedViewer(filePath, fileName, pdfUrlOverride) {
         cleanPDFViewer.loadPDF(pdfUrl, fileName)
             .catch(error => {
                 console.error('❌ Erreur lors du chargement du PDF:', error);
-                alert('Erreur lors du chargement du PDF: ' + error.message);
+                alert(lessonFmt(LESSON_I18N.pdfLoadError, { error: error.message }));
             });
         // Le lecteur affiche déjà sa propre progression (showLoading synchrone dans loadPDF)
         hideFileOpeningLoader();
@@ -10220,7 +10377,7 @@ async function showBlankSheetsMenu() {
     const classroomId = {{ lesson_classroom.id if lesson_classroom else 'null' }};
 
     if (!lessonDate || !periodNumber) {
-        alert('Informations de leçon manquantes');
+        alert(LESSON_I18N.lessonInfoMissing);
         return;
     }
 
@@ -10265,7 +10422,7 @@ function displayBlankSheetsMenu(sheets, lessonDate, periodNumber, classroomId) {
     menu.className = 'blank-sheets-menu';
     menu.innerHTML = `
         <div class="menu-header">
-            <h4>Feuilles blanches de la leçon</h4>
+            <h4>${LESSON_I18N.lessonBlankSheets}</h4>
             <button class="close-menu-btn">×</button>
         </div>
         <div class="menu-list">
@@ -10280,7 +10437,7 @@ function displayBlankSheetsMenu(sheets, lessonDate, periodNumber, classroomId) {
             `).join('')}
         </div>
         <button class="btn-primary new-sheet-btn">
-            <i class="fas fa-plus"></i> Nouvelle feuille
+            <i class="fas fa-plus"></i> ${LESSON_I18N.newSheet}
         </button>
     `;
 
@@ -10334,7 +10491,7 @@ function openNewBlankSheet(lessonDate, periodNumber, classroomId) {
 
     if (!modal) {
         console.error('❌ Impossible de trouver la modal avec querySelector et getElementById');
-        alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+        alert(LESSON_I18N.viewerModalMissing + '\n\n' + LESSON_I18N.reloadPage);
         return;
     }
 
@@ -10361,7 +10518,7 @@ function openNewBlankSheet(lessonDate, periodNumber, classroomId) {
                 console.log('✅ Container recréé avec succès');
             } else {
                 console.error('❌ Wrapper introuvable, impossible de recréer le container');
-                alert('Erreur: Le container de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+                alert(LESSON_I18N.viewerContainerMissing + '\n\n' + LESSON_I18N.reloadPage);
                 modal.style.display = 'none';
                 return;
             }
@@ -10426,7 +10583,7 @@ function openNewBlankSheet(lessonDate, periodNumber, classroomId) {
         console.log('✅ Nouvelle feuille blanche créée');
     } catch (error) {
         console.error('❌ Erreur lors de la création du viewer:', error);
-        alert('Erreur lors de la création du viewer: ' + error.message);
+        alert(lessonFmt(LESSON_I18N.viewerCreateError, { error: error.message }));
         return;
     }
 }
@@ -10443,7 +10600,7 @@ async function openExistingBlankSheet(sheetId) {
         const data = await response.json();
 
         if (!data.success) {
-            alert('Erreur lors du chargement de la feuille: ' + (data.message || 'Erreur inconnue'));
+            alert(lessonFmt(LESSON_I18N.sheetLoadError, { error: data.message || LESSON_I18N.unknownError }));
             return;
         }
 
@@ -10484,7 +10641,7 @@ async function openExistingBlankSheet(sheetId) {
                 allModals: document.querySelectorAll('[id*="modal"]').length,
                 allViewers: document.querySelectorAll('[id*="viewer"]').length
             });
-            alert('Erreur: La modal de visualisation n\'existe pas dans le DOM.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+            alert(LESSON_I18N.viewerModalMissing + '\n\n' + LESSON_I18N.reloadPage);
             return;
         }
 
@@ -10511,7 +10668,7 @@ async function openExistingBlankSheet(sheetId) {
                     console.log('✅ Container recréé avec succès');
                 } else {
                     console.error('❌ Wrapper introuvable, impossible de recréer le container');
-                    alert('Erreur: Le container de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+                    alert(LESSON_I18N.viewerContainerMissing + '\n\n' + LESSON_I18N.reloadPage);
                     modal.style.display = 'none';
                     return;
                 }
@@ -10579,14 +10736,14 @@ async function openExistingBlankSheet(sheetId) {
             console.log('✅ Feuille blanche chargée');
         } catch (error) {
             console.error('❌ Erreur lors du chargement du viewer:', error);
-            alert('Erreur lors du chargement du viewer: ' + error.message);
+            alert(lessonFmt(LESSON_I18N.viewerLoadError, { error: error.message }));
             modal.style.display = 'none';
             document.body.style.overflow = '';
             return;
         }
     } catch (error) {
         console.error('Erreur lors du chargement de la feuille blanche:', error);
-        alert('Erreur lors du chargement de la feuille blanche: ' + error.message);
+        alert(lessonFmt(LESSON_I18N.blankSheetLoadError, { error: error.message }));
     }
 }
 
@@ -10597,7 +10754,7 @@ function formatDateTime(isoString) {
     if (!isoString) return '';
     const date = new Date(isoString);
     const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return date.toLocaleDateString('fr-FR', options);
+    return date.toLocaleDateString(LESSON_I18N.dateLocale, options);
 }
 
 /**
@@ -10607,7 +10764,7 @@ async function deleteBlankSheet(sheetId) {
     console.log('🗑️ Suppression feuille blanche:', sheetId);
 
     // Confirmer la suppression
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette feuille blanche ? Cette action est irréversible.')) {
+    if (!confirm(LESSON_I18N.confirmDeleteBlankSheet)) {
         return;
     }
 
@@ -10624,11 +10781,11 @@ async function deleteBlankSheet(sheetId) {
             // Recharger la liste des ressources
             await loadClassResources();
         } else {
-            alert('Erreur lors de la suppression: ' + (data.message || 'Erreur inconnue'));
+            alert(lessonFmt(LESSON_I18N.deleteErrorWithMsg, { error: data.message || LESSON_I18N.unknownError }));
         }
     } catch (error) {
         console.error('Erreur lors de la suppression de la feuille blanche:', error);
-        alert('Erreur lors de la suppression de la feuille blanche');
+        alert(LESSON_I18N.blankSheetDeleteError);
     }
 }
 
@@ -10686,7 +10843,7 @@ function openBlankPages() {
             console.log('✅ Viewer avec pages blanches créé, ID:', blankPagesId);
         } catch (error) {
             console.error('❌ Erreur lors de la création du viewer:', error);
-            alert('Erreur lors de la création du viewer: ' + error.message);
+            alert(lessonFmt(LESSON_I18N.viewerCreateError, { error: error.message }));
             return;
         }
     } else {
@@ -10801,8 +10958,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="dayPlanModal" class="dayplan-overlay" style="display:none;" onclick="if(event.target===this) closeDayPlanModal()">
     <div class="dayplan-box" role="dialog" aria-modal="true" aria-labelledby="dayPlanTitle">
         <div class="dayplan-head">
-            <h3 id="dayPlanTitle"><i class="fas fa-calendar-day"></i> Planification</h3>
-            <button type="button" class="dayplan-close" onclick="closeDayPlanModal()" aria-label="Fermer"><i class="fas fa-times"></i></button>
+            <h3 id="dayPlanTitle"><i class="fas fa-calendar-day"></i> {{ _('Planification') }}</h3>
+            <button type="button" class="dayplan-close" onclick="closeDayPlanModal()" aria-label="{{ _('Fermer') }}"><i class="fas fa-times"></i></button>
         </div>
 
         <!-- Étape 1 : liste des créneaux du jour -->
@@ -10810,27 +10967,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <!-- Étape 2 : édition d'un créneau -->
         <div id="dayPlanEdit" class="dayplan-body" style="display:none;">
-            <button type="button" class="dayplan-back" onclick="dayPlanBackToSlots()"><i class="fas fa-arrow-left"></i> Retour aux créneaux</button>
+            <button type="button" class="dayplan-back" onclick="dayPlanBackToSlots()"><i class="fas fa-arrow-left"></i> {{ _('Retour aux créneaux') }}</button>
             <div id="dayPlanEditPeriod" class="dayplan-period"></div>
-            <label class="dayplan-label" for="dayPlanTitleInput">Titre du cours <span class="dayplan-opt">(facultatif)</span></label>
-            <input type="text" id="dayPlanTitleInput" class="dayplan-input" maxlength="200" placeholder="Ex. Nombres relatifs">
-            <label class="dayplan-label" for="dayPlanDescInput">Contenu du cours</label>
-            <textarea id="dayPlanDescInput" class="dayplan-input" rows="7" placeholder="Un tiret en début de ligne crée une case à cocher"></textarea>
+            <label class="dayplan-label" for="dayPlanTitleInput">{{ _('Titre du cours') }} <span class="dayplan-opt">{{ _('(facultatif)') }}</span></label>
+            <input type="text" id="dayPlanTitleInput" class="dayplan-input" maxlength="200" placeholder="{{ _('Ex. Nombres relatifs') }}">
+            <label class="dayplan-label" for="dayPlanDescInput">{{ _('Contenu du cours') }}</label>
+            <textarea id="dayPlanDescInput" class="dayplan-input" rows="7" placeholder="{{ _('Un tiret en début de ligne crée une case à cocher') }}"></textarea>
             <div id="dayPlanGroupWrap" style="display:none;">
-                <label class="dayplan-label" for="dayPlanGroup">Groupe d'élèves</label>
+                <label class="dayplan-label" for="dayPlanGroup">{{ _("Groupe d'élèves") }}</label>
                 <select id="dayPlanGroup" class="dayplan-input" onchange="dayPlanToggleRepeat()">
-                    <option value="">Classe entière</option>
+                    <option value="">{{ _('Classe entière') }}</option>
                 </select>
                 <div id="dayPlanRepeat" style="display:none;margin-top:0.5rem;">
-                    <label class="dayplan-label">Répéter ce groupe</label>
-                    <label class="dayplan-radio"><input type="radio" name="dayPlanRepeatOpt" value="none" checked> Cette semaine seulement</label>
-                    <label class="dayplan-radio"><input type="radio" name="dayPlanRepeatOpt" value="same"> Le même groupe toutes les semaines</label>
-                    <label class="dayplan-radio"><input type="radio" name="dayPlanRepeatOpt" value="alternate"> Alterner les groupes chaque semaine</label>
+                    <label class="dayplan-label">{{ _('Répéter ce groupe') }}</label>
+                    <label class="dayplan-radio"><input type="radio" name="dayPlanRepeatOpt" value="none" checked> {{ _('Cette semaine seulement') }}</label>
+                    <label class="dayplan-radio"><input type="radio" name="dayPlanRepeatOpt" value="same"> {{ _('Le même groupe toutes les semaines') }}</label>
+                    <label class="dayplan-radio"><input type="radio" name="dayPlanRepeatOpt" value="alternate"> {{ _('Alterner les groupes chaque semaine') }}</label>
                 </div>
             </div>
             <div class="dayplan-actions">
-                <button type="button" class="btn btn-secondary" onclick="dayPlanBackToSlots()">Annuler</button>
-                <button type="button" class="btn btn-primary" id="dayPlanSaveBtn" onclick="saveDayPlanSlot()"><i class="fas fa-save"></i> Enregistrer</button>
+                <button type="button" class="btn btn-secondary" onclick="dayPlanBackToSlots()">{{ _('Annuler') }}</button>
+                <button type="button" class="btn btn-primary" id="dayPlanSaveBtn" onclick="saveDayPlanSlot()"><i class="fas fa-save"></i> {{ _('Enregistrer') }}</button>
             </div>
         </div>
     </div>
@@ -10840,17 +10997,17 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="add-resource-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);justify-content:center;align-items:center;">
     <div style="background:white;border-radius:16px;padding:1.5rem;max-width:600px;width:90%;max-height:85vh;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:flex;flex-direction:column;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-            <h3 style="margin:0;font-size:1.1rem;"><i class="fas fa-plus-circle" style="color:#10b981;"></i> Ajouter une ressource</h3>
+            <h3 style="margin:0;font-size:1.1rem;"><i class="fas fa-plus-circle" style="color:#10b981;"></i> {{ _('Ajouter une ressource') }}</h3>
             <button onclick="closeAddResourceModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9ca3af;"><i class="fas fa-times"></i></button>
         </div>
 
         <!-- Onglets -->
         <div style="display:flex;gap:0.5rem;margin-bottom:1rem;border-bottom:2px solid #e5e7eb;">
             <button id="tab-files-btn" onclick="switchResourceTab('files')" style="display:none;padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-weight:600;border-bottom:3px solid #10b981;color:#10b981;transition:all 0.2s;">
-                <i class="fas fa-folder-open"></i> Fichiers de classe
+                <i class="fas fa-folder-open"></i> {{ _('Fichiers de classe') }}
             </button>
             <button id="tab-exercises-btn" onclick="switchResourceTab('exercises')" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-weight:600;border-bottom:3px solid transparent;color:#9ca3af;transition:all 0.2s;{% if not (students_space and FEATURE_EXERCISES) %}display:none;{% endif %}">
-                <i class="fas fa-gamepad"></i> Exercices interactifs
+                <i class="fas fa-gamepad"></i> {{ _('Exercices interactifs') }}
             </button>
         </div>
 
@@ -10861,12 +11018,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 {% if lesson_classroom %}
                 <div id="class-files-tree-container" style="min-height:100px;">
                     <div style="text-align:center;padding:2rem;color:#9ca3af;">
-                        <i class="fas fa-spinner fa-spin"></i> Chargement des fichiers...
+                        <i class="fas fa-spinner fa-spin"></i> {{ _('Chargement des fichiers...') }}
                     </div>
                 </div>
                 {% else %}
                 <div style="text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">
-                    Aucune classe sélectionnée
+                    {{ _('Aucune classe sélectionnée') }}
                 </div>
                 {% endif %}
             </div>
@@ -10877,7 +11034,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div id="exercises-breadcrumb" style="display:none;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #e5e7eb;">
                     <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:#6b7280;flex-wrap:wrap;">
                         <button id="breadcrumb-root" onclick="loadExercisesAtFolder(null)" style="background:none;border:none;color:#667eea;cursor:pointer;font-weight:600;padding:0;">
-                            <i class="fas fa-home"></i> Accueil
+                            <i class="fas fa-home"></i> {{ _('Accueil') }}
                         </button>
                         <span id="breadcrumb-path"></span>
                     </div>
@@ -10885,7 +11042,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <!-- Loading state -->
                 <div id="exercises-loading" style="text-align:center;padding:2rem;color:#9ca3af;">
-                    <i class="fas fa-spinner fa-spin"></i> Chargement des exercices...
+                    <i class="fas fa-spinner fa-spin"></i> {{ _('Chargement des exercices...') }}
                 </div>
 
                 <!-- Content container -->
@@ -10898,7 +11055,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <!-- Error/empty state -->
                 <div id="exercises-empty-state" style="display:none;text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">
-                    Aucun exercice disponible
+                    {{ _('Aucun exercice disponible') }}
                 </div>
             </div>
         </div>
@@ -10909,7 +11066,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="mode-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);justify-content:center;align-items:center;">
     <div style="background:white;border-radius:20px;padding:1.5rem;max-width:480px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
-            <h3 style="margin:0;font-size:1.05rem;"><i class="fas fa-rocket" style="color:#667eea;"></i> Lancer l'exercice</h3>
+            <h3 style="margin:0;font-size:1.05rem;"><i class="fas fa-rocket" style="color:#667eea;"></i> {{ _("Lancer l'exercice") }}</h3>
             <button onclick="closeModeModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9ca3af;"><i class="fas fa-times"></i></button>
         </div>
         <p id="mode-exercise-title" style="font-size:0.85rem;color:#6b7280;margin-bottom:1rem;"></p>
@@ -10922,9 +11079,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-book-open" style="color:white;font-size:1.2rem;"></i>
                 </div>
                 <div style="flex:1;">
-                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Classique</div>
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">{{ _('Mode Classique') }}</div>
                     <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">
-                        Les élèves font l'exercice à leur rythme. Pas de suivi en direct.
+                        {{ _("Les élèves font l'exercice à leur rythme. Pas de suivi en direct.") }}
                     </div>
                 </div>
                 <i class="fas fa-check-circle" id="mode-classique-check" style="color:#10b981;font-size:1.2rem;display:none;"></i>
@@ -10939,9 +11096,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-bolt" style="color:white;font-size:1.2rem;"></i>
                 </div>
                 <div style="flex:1;">
-                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Combat</div>
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">{{ _('Mode Combat') }}</div>
                     <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">
-                        Mission en direct ! Suivez la progression de chaque élève en temps réel.
+                        {{ _('Mission en direct ! Suivez la progression de chaque élève en temps réel.') }}
                     </div>
                 </div>
                 <i class="fas fa-check-circle" id="mode-combat-check" style="color:#ef4444;font-size:1.2rem;display:none;"></i>
@@ -10950,7 +11107,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <button id="launch-exercise-btn" onclick="launchExercise()" disabled
                 style="width:100%;padding:0.75rem;border:none;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;background:#d1d5db;color:white;transition:all 0.2s;">
-            <i class="fas fa-play"></i> Lancer la mission
+            <i class="fas fa-play"></i> {{ _('Lancer la mission') }}
         </button>
     </div>
 </div>
@@ -10965,7 +11122,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p id="tracking-subtitle" style="margin:0;color:rgba(255,255,255,0.6);font-size:0.8rem;margin-top:0.2rem;"></p>
             </div>
             <button onclick="closeTrackingModal()" style="background:rgba(255,255,255,0.1);border:none;color:white;padding:0.5rem 0.8rem;border-radius:10px;cursor:pointer;font-size:0.85rem;">
-                <i class="fas fa-times"></i> Fermer
+                <i class="fas fa-times"></i> {{ _('Fermer') }}
             </button>
         </div>
 
@@ -10973,19 +11130,19 @@ document.addEventListener('DOMContentLoaded', function() {
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:1rem;">
             <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
                 <div id="track-total" style="color:white;font-size:1.5rem;font-weight:800;">0</div>
-                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Élèves</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">{{ _('Élèves') }}</div>
             </div>
             <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
                 <div id="track-started" style="color:#f59e0b;font-size:1.5rem;font-weight:800;">0</div>
-                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">En cours</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">{{ _('En cours') }}</div>
             </div>
             <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
                 <div id="track-completed" style="color:#10b981;font-size:1.5rem;font-weight:800;">0</div>
-                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Terminé</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">{{ _('Terminé') }}</div>
             </div>
             <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
                 <div id="track-avg" style="color:#667eea;font-size:1.5rem;font-weight:800;">—</div>
-                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Moyenne</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">{{ _('Moyenne') }}</div>
             </div>
         </div>
 
@@ -10996,11 +11153,11 @@ document.addEventListener('DOMContentLoaded', function() {
         <div id="combat-arena-section" style="display:none;text-align:center;margin-bottom:1rem;">
             <div style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(220,38,38,0.15));border:1px solid rgba(239,68,68,0.3);border-radius:14px;padding:1rem;margin-bottom:0.5rem;">
                 <div style="color:white;font-size:0.85rem;margin-bottom:0.5rem;">
-                    <i class="fas fa-gamepad"></i> Combat RPG — <span id="combat-status-text">En attente</span>
+                    <i class="fas fa-gamepad"></i> {{ _('Combat RPG') }} — <span id="combat-status-text">{{ _('En attente') }}</span>
                     <span id="combat-participants-text" style="color:rgba(255,255,255,0.5);margin-left:0.5rem;"></span>
                 </div>
                 <button id="open-arena-btn" onclick="openCombatArena()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">
-                    <i class="fas fa-tv"></i> Ouvrir l'arène RPG (projecteur)
+                    <i class="fas fa-tv"></i> {{ _("Ouvrir l'arène RPG (projecteur)") }}
                 </button>
             </div>
         </div>
@@ -11008,7 +11165,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- Bouton arrêter -->
         <div style="text-align:center;margin-top:1.5rem;">
             <button id="stop-mission-btn" onclick="stopMission()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.85rem;">
-                <i class="fas fa-stop-circle"></i> Arrêter la mission
+                <i class="fas fa-stop-circle"></i> {{ _('Arrêter la mission') }}
             </button>
         </div>
     </div>
@@ -11074,7 +11231,7 @@ async function loadClassFilesTree(classroomId) {
                 // Organiser par dossiers
                 const filesByFolder = {};
                 allFiles.forEach(file => {
-                    const folder = file.folder_path || 'Racine';
+                    const folder = file.folder_path || LESSON_I18N.root;
                     if (!filesByFolder[folder]) {
                         filesByFolder[folder] = [];
                     }
@@ -11095,10 +11252,10 @@ async function loadClassFilesTree(classroomId) {
                                 <i class="fas fa-gamepad" style="color:#667eea;"></i>
                                 <div style="flex:1;min-width:0;">
                                     <div style="font-weight:500;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                        <span style="background:#eef2ff;color:#4338ca;font-size:0.55rem;font-weight:700;padding:0.1rem 0.2rem;border-radius:3px;margin-right:0.2rem;">EXERCICE</span>
+                                        <span style="background:#eef2ff;color:#4338ca;font-size:0.55rem;font-weight:700;padding:0.1rem 0.2rem;border-radius:3px;margin-right:0.2rem;">${LESSON_I18N.exerciseBadge}</span>
                                         ${file.original_filename}
                                     </div>
-                                    <div style="font-size:0.7rem;color:#6b7280;">${file.total_points || 0} XP — ${file.block_count || 0} questions</div>
+                                    <div style="font-size:0.7rem;color:#6b7280;">${file.total_points || 0} XP — ${lessonFmt(LESSON_I18N.nQuestions, { n: file.block_count || 0 })}</div>
                                 </div>
                             </div>`;
                         } else {
@@ -11109,7 +11266,7 @@ async function loadClassFilesTree(classroomId) {
                                 <div style="flex:1;min-width:0;">
                                     <div style="font-weight:500;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.original_filename}</div>
                                 </div>
-                                <button onclick="event.stopPropagation(); deleteLessonClassFile(${file.id}, '${file.source || ''}', '${file.original_filename.replace(/'/g, "\\'")}')" title="Supprimer de la classe" style="border:none;background:transparent;color:#DC2626;cursor:pointer;padding:0.25rem;flex-shrink:0;">
+                                <button onclick="event.stopPropagation(); deleteLessonClassFile(${file.id}, '${file.source || ''}', '${file.original_filename.replace(/'/g, "\\'")}')" title="${LESSON_I18N.removeFromClass}" style="border:none;background:transparent;color:#DC2626;cursor:pointer;padding:0.25rem;flex-shrink:0;">
                                     <i class="fas fa-trash"></i>
                                 </button>
                                 <i class="fas fa-plus-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i>
@@ -11120,13 +11277,13 @@ async function loadClassFilesTree(classroomId) {
                 });
                 container.innerHTML = html;
             } else {
-                container.innerHTML = '<div style="text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">Aucun fichier dans cette classe</div>';
+                container.innerHTML = '<div style="text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">' + LESSON_I18N.noFilesInClass + '</div>';
             }
         } else {
-            container.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444;">Erreur de chargement</div>';
+            container.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444;">' + LESSON_I18N.loadError + '</div>';
         }
     } catch(e) {
-        container.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444;">Erreur de chargement: ' + e.message + '</div>';
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444;">' + lessonFmt(LESSON_I18N.loadErrorWithMsg, { error: e.message }) + '</div>';
         console.error('Erreur loadClassFilesTree:', e);
     }
 }
@@ -11167,7 +11324,7 @@ async function uploadEphemeralFromLesson(input) {
         if (lessonClassroom) fd.append('classroom_id', lessonClassroom);
         else if (lessonMixedGroup) fd.append('mixed_group_id', lessonMixedGroup);
     } else {
-        alert('Impossible de déterminer le cours courant');
+        alert(LESSON_I18N.cannotDetermineLesson);
         return;
     }
     try {
@@ -11176,10 +11333,10 @@ async function uploadEphemeralFromLesson(input) {
         if (d.success) {
             location.reload();
         } else {
-            alert(d.error || "Erreur lors de l'ajout du fichier éphémère");
+            alert(d.error || LESSON_I18N.ephemeralAddError);
         }
     } catch (e) {
-        alert('Erreur de connexion');
+        alert(LESSON_I18N.connectionError);
     }
 }
 
@@ -11212,10 +11369,10 @@ async function addFileResourceToPlanning(fileId, fileName, fileType) {
             // Recharger la vue de planification
             location.reload();
         } else {
-            alert(data.error || data.message || 'Erreur lors de l\'ajout du fichier');
+            alert(data.error || data.message || LESSON_I18N.fileAddError);
         }
     } catch(e) {
-        alert('Erreur de connexion');
+        alert(LESSON_I18N.connectionError);
         console.error('Erreur addFileResourceToPlanning:', e);
     }
 }
@@ -11247,10 +11404,10 @@ async function addExerciseToPlanning(exerciseId, exerciseTitle) {
             // Recharger la vue de planification
             location.reload();
         } else {
-            alert(data.error || data.message || 'Erreur lors de l\'ajout de l\'exercice');
+            alert(data.error || data.message || LESSON_I18N.exerciseAddError);
         }
     } catch(e) {
-        alert('Erreur de connexion');
+        alert(LESSON_I18N.connectionError);
         console.error('Erreur addExerciseToPlanning:', e);
     }
 }
@@ -11306,7 +11463,7 @@ async function loadExercisesAtFolder(folderId) {
                             <i class="fas fa-folder" style="color:#f59e0b;font-size:1.1rem;"></i>
                             <div style="flex:1;">
                                 <div style="font-weight:600;font-size:0.9rem;color:#1f2937;">${folder.name}</div>
-                                <div style="font-size:0.7rem;color:#9ca3af;">${folder.exercise_count || 0} exercices</div>
+                                <div style="font-size:0.7rem;color:#9ca3af;">${lessonFmt(LESSON_I18N.nExercises, { n: folder.exercise_count || 0 })}</div>
                             </div>
                             <i class="fas fa-chevron-right" style="color:#d1d5db;font-size:0.9rem;"></i>
                         </div>
@@ -11323,7 +11480,7 @@ async function loadExercisesAtFolder(folderId) {
                             <i class="fas fa-gamepad" style="color:#667eea;font-size:1.1rem;"></i>
                             <div style="flex:1;">
                                 <div style="font-weight:600;font-size:0.9rem;color:#1f2937;">${exercise.title}</div>
-                                <div style="font-size:0.7rem;color:#9ca3af;">${exercise.total_points || 0} XP — ${exercise.block_count || 0} questions</div>
+                                <div style="font-size:0.7rem;color:#9ca3af;">${exercise.total_points || 0} XP — ${lessonFmt(LESSON_I18N.nQuestions, { n: exercise.block_count || 0 })}</div>
                             </div>
                             <i class="fas fa-plus-circle" style="color:#667eea;font-size:1rem;"></i>
                         </div>
@@ -11346,13 +11503,13 @@ async function loadExercisesAtFolder(folderId) {
                 container.style.display = 'none';
             }
         } else {
-            throw new Error(data.error || 'Erreur lors du chargement');
+            throw new Error(data.error || LESSON_I18N.loadFailed);
         }
     } catch(e) {
         console.error('Erreur loadExercisesAtFolder:', e);
         loading.style.display = 'none';
         container.style.display = 'none';
-        empty.innerHTML = `<div style="color:#ef4444;">Erreur de chargement: ${e.message}</div>`;
+        empty.innerHTML = `<div style="color:#ef4444;">${lessonFmt(LESSON_I18N.loadErrorWithMsg, { error: e.message })}</div>`;
         empty.style.display = 'block';
     }
 }
@@ -11429,14 +11586,14 @@ function selectMode(mode) {
         classiqueBtn.style.background = '#f0fdf4';
         combatBtn.style.background = 'white';
         launchBtn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
-        launchBtn.innerHTML = modeModalContext === 'publish' ? '<i class="fas fa-play"></i> Publier et lancer' : '<i class="fas fa-plus"></i> Ajouter en mode classique';
+        launchBtn.innerHTML = modeModalContext === 'publish' ? '<i class="fas fa-play"></i> ' + LESSON_I18N.publishAndLaunch : '<i class="fas fa-plus"></i> ' + LESSON_I18N.addClassicMode;
     } else {
         combatCheck.style.display = 'inline';
         combatBtn.style.borderColor = '#ef4444';
         combatBtn.style.background = '#fef2f2';
         classiqueBtn.style.background = 'white';
         launchBtn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
-        launchBtn.innerHTML = '<i class="fas fa-bolt"></i> Lancer le combat !';
+        launchBtn.innerHTML = '<i class="fas fa-bolt"></i> ' + LESSON_I18N.launchCombat;
     }
     launchBtn.disabled = false;
 }
@@ -11446,7 +11603,7 @@ async function launchExercise() {
 
     const launchBtn = document.getElementById('launch-exercise-btn');
     launchBtn.disabled = true;
-    launchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lancement...';
+    launchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + LESSON_I18N.launching;
 
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -11476,9 +11633,9 @@ async function launchExercise() {
                 // Ouvrir le suivi live pour tous les modes
                 openTracking(data.publication_id);
             } else {
-                alert(data.error || data.message || 'Erreur lors de la publication');
+                alert(data.error || data.message || LESSON_I18N.publishError);
                 launchBtn.disabled = false;
-                launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+                launchBtn.innerHTML = '<i class="fas fa-play"></i> ' + LESSON_I18N.retry;
             }
         } else {
             // Ancien comportement: ajouter et publier immédiatement (via add-resource modal)
@@ -11498,13 +11655,13 @@ async function launchExercise() {
                 const descEl = document.getElementById('planningDescriptionDisplay');
                 if (descEl) {
                     const link = document.createElement('div');
-                    const modeLabel = selectedMode === 'combat' ? '⚔️ Combat' : '📖 Classique';
+                    const modeLabel = selectedMode === 'combat' ? '⚔️ ' + LESSON_I18N.modeLabelCombat : '📖 ' + LESSON_I18N.modeLabelClassic;
                     const modeColor = selectedMode === 'combat' ? '#fef2f2;border:1px solid #fecaca' : '#eef2ff;border:1px solid #c7d2fe';
                     link.style.cssText = `margin-top:0.5rem;padding:0.5rem 0.8rem;background:${modeColor};border-radius:8px;display:flex;align-items:center;justify-content:space-between;`;
                     link.innerHTML = `
                         <span><i class="fas fa-gamepad" style="color:#667eea;"></i> <strong>${selectedExerciseTitle}</strong>
                         <span style="font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:6px;background:${selectedMode==='combat'?'#ef4444':'#10b981'};color:white;margin-left:0.3rem;">${modeLabel}</span></span>
-                        ${selectedMode === 'combat' ? `<button onclick="openTracking(${data.publication_id})" style="background:#667eea;color:white;border:none;padding:0.3rem 0.6rem;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:600;"><i class="fas fa-eye"></i> Suivi live</button>` : ''}
+                        ${selectedMode === 'combat' ? `<button onclick="openTracking(${data.publication_id})" style="background:#667eea;color:white;border:none;padding:0.3rem 0.6rem;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:600;"><i class="fas fa-eye"></i> ${LESSON_I18N.liveTracking}</button>` : ''}
                     `;
                     descEl.appendChild(link);
                 }
@@ -11520,15 +11677,15 @@ async function launchExercise() {
                 // Ouvrir le suivi live pour tous les modes
                 openTracking(data.publication_id);
             } else {
-                alert(data.error || data.message || 'Erreur lors du lancement');
+                alert(data.error || data.message || LESSON_I18N.launchError);
                 launchBtn.disabled = false;
-                launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+                launchBtn.innerHTML = '<i class="fas fa-play"></i> ' + LESSON_I18N.retry;
             }
         }
     } catch(e) {
-        alert('Erreur de connexion');
+        alert(LESSON_I18N.connectionError);
         launchBtn.disabled = false;
-        launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+        launchBtn.innerHTML = '<i class="fas fa-play"></i> ' + LESSON_I18N.retry;
         console.error('Erreur launchExercise:', e);
     }
 }
@@ -11570,11 +11727,11 @@ function deleteLessonClassFile(fileId, source, name) {
         <div style="background:#fff;border-radius:.6rem;max-width:420px;width:92%;padding:1.25rem 1.5rem;box-shadow:0 20px 50px rgba(0,0,0,.3);">
             <p style="margin:0 0 1rem;color:#111827;"></p>
             <div style="display:flex;justify-content:flex-end;gap:.6rem;">
-                <button data-role="cancel" style="padding:.5rem 1rem;border:1px solid #D1D5DB;background:#fff;border-radius:.4rem;cursor:pointer;"><i class="fas fa-times"></i> Annuler</button>
-                <button data-role="ok" style="padding:.5rem 1rem;border:none;background:#DC2626;color:#fff;border-radius:.4rem;cursor:pointer;"><i class="fas fa-trash"></i> Supprimer</button>
+                <button data-role="cancel" style="padding:.5rem 1rem;border:1px solid #D1D5DB;background:#fff;border-radius:.4rem;cursor:pointer;"><i class="fas fa-times"></i> ${LESSON_I18N.cancel}</button>
+                <button data-role="ok" style="padding:.5rem 1rem;border:none;background:#DC2626;color:#fff;border-radius:.4rem;cursor:pointer;"><i class="fas fa-trash"></i> ${LESSON_I18N.delete}</button>
             </div>
         </div>`;
-    overlay.querySelector('p').textContent = `Supprimer « ${name} » de cette classe ?`;
+    overlay.querySelector('p').textContent = lessonFmt(LESSON_I18N.confirmRemoveFromClass, { name: name });
     overlay.querySelector('[data-role="cancel"]').onclick = () => overlay.remove();
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
     overlay.querySelector('[data-role="ok"]').onclick = async () => {
@@ -11591,17 +11748,17 @@ function deleteLessonClassFile(fileId, source, name) {
                     try { loadClassResources(); } catch (e) {}
                 }
             } else {
-                alert(d.message || 'Erreur lors de la suppression');
+                alert(d.message || LESSON_I18N.deleteError);
             }
         } catch (e) {
-            alert('Erreur de connexion');
+            alert(LESSON_I18N.connectionError);
         }
     };
     document.body.appendChild(overlay);
 }
 
 async function deleteResource(resourceId, btn) {
-    if (!confirm('Supprimer cette ressource de la planification ?')) return;
+    if (!confirm(LESSON_I18N.confirmRemoveResource)) return;
     try {
         const res = await fetch('/planning/delete-resource', {
             method: 'POST',
@@ -11619,11 +11776,11 @@ async function deleteResource(resourceId, btn) {
                 if (section) section.remove();
             }
         } else {
-            alert(data.error || 'Erreur lors de la suppression');
+            alert(data.error || LESSON_I18N.deleteError);
         }
     } catch (e) {
         console.error('Erreur lors de la suppression:', e);
-        alert('Erreur de connexion');
+        alert(LESSON_I18N.connectionError);
     }
 }
 
@@ -11678,7 +11835,7 @@ function openCombatArena() {
     if (currentCombatSessionId) {
         window.open(`/combat/${currentCombatSessionId}/arena`, '_blank');
     } else {
-        alert('Aucune session de combat active trouvée.');
+        alert(LESSON_I18N.noCombatSession);
     }
 }
 
@@ -11698,7 +11855,7 @@ async function refreshTracking() {
         if (!data.success) return;
 
         document.getElementById('tracking-title').textContent = data.exercise_title;
-        document.getElementById('tracking-subtitle').textContent = `${data.blocks_count} questions — Mode ${data.mode}`;
+        document.getElementById('tracking-subtitle').textContent = lessonFmt(LESSON_I18N.nQuestions, { n: data.blocks_count }) + ' — ' + (data.mode === 'combat' ? LESSON_I18N.modeCombat : LESSON_I18N.modeClassic);
         document.getElementById('track-total').textContent = data.total_students;
         document.getElementById('track-started').textContent = data.started;
         document.getElementById('track-completed').textContent = data.completed;
@@ -11709,19 +11866,19 @@ async function refreshTracking() {
             currentCombatSessionId = data.combat_session_id;
             document.getElementById('combat-arena-section').style.display = 'block';
             const phaseLabels = {
-                'waiting': 'En attente des élèves',
-                'question': 'Question en cours',
-                'action': 'Choix des actions',
-                'execute': 'Exécution du round',
-                'monster_turn': 'Tour des monstres',
-                'round_end': 'Fin du round',
+                'waiting': LESSON_I18N.phaseWaiting,
+                'question': LESSON_I18N.phaseQuestion,
+                'action': LESSON_I18N.phaseAction,
+                'execute': LESSON_I18N.phaseExecute,
+                'monster_turn': LESSON_I18N.phaseMonsterTurn,
+                'round_end': LESSON_I18N.phaseRoundEnd,
             };
             const statusLabel = data.combat_status === 'active'
-                ? `Round ${data.combat_round} — ${phaseLabels[data.combat_phase] || data.combat_phase}`
-                : 'En attente des élèves';
+                ? lessonFmt(LESSON_I18N.roundN, { n: data.combat_round }) + ' — ' + (phaseLabels[data.combat_phase] || data.combat_phase)
+                : LESSON_I18N.phaseWaiting;
             document.getElementById('combat-status-text').textContent = statusLabel;
             document.getElementById('combat-participants-text').textContent =
-                data.combat_participants > 0 ? `(${data.combat_participants} combattant${data.combat_participants > 1 ? 's' : ''})` : '';
+                data.combat_participants > 0 ? lessonFmt(data.combat_participants > 1 ? LESSON_I18N.manyFighters : LESSON_I18N.oneFighter, { n: data.combat_participants }) : '';
         } else {
             document.getElementById('combat-arena-section').style.display = 'none';
         }
@@ -11743,7 +11900,7 @@ async function refreshTracking() {
                 } else {
                     statusIcon = 'clock';
                     statusColor = '#6b7280';
-                    statusText = 'Pas connecté';
+                    statusText = LESSON_I18N.notConnected;
                     progressWidth = 0;
                 }
             } else {
@@ -11762,7 +11919,7 @@ async function refreshTracking() {
                 } else {
                     statusIcon = 'clock';
                     statusColor = '#6b7280';
-                    statusText = 'En attente';
+                    statusText = LESSON_I18N.waiting;
                     progressWidth = 0;
                 }
             }
@@ -11782,7 +11939,7 @@ async function refreshTracking() {
                         <div style="width:100%;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
                             <div style="width:${progressWidth}%;height:100%;background:${hpBarColor};border-radius:2px;transition:width 0.5s ease;"></div>
                         </div>
-                        ${!isCombat && s.status === 'completed' ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.2rem;">+${s.xp_earned} XP — ${s.correct_count}/${s.blocks_count} correct</div>` : ''}
+                        ${!isCombat && s.status === 'completed' ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.2rem;">${lessonFmt(LESSON_I18N.xpCorrect, { xp: s.xp_earned, correct: s.correct_count, total: s.blocks_count })}</div>` : ''}
                     </div>
                 </div>
             `;
@@ -11795,7 +11952,7 @@ async function refreshTracking() {
 
 async function stopMission() {
     if (!currentPubId) return;
-    if (!confirm('Arrêter la mission en direct ?')) return;
+    if (!confirm(LESSON_I18N.confirmStopMission)) return;
 
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -11805,7 +11962,7 @@ async function stopMission() {
         });
         closeTrackingModal();
     } catch(e) {
-        alert('Erreur');
+        alert(LESSON_I18N.error);
     }
 }
 </script>

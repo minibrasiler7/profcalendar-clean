@@ -10633,7 +10633,7 @@ class CleanPDFViewer {
             const ta = panel.querySelector('#qrContent');
             const content = ta ? ta.value.trim() : '';
             if (!currentStudentId || !content) {
-                if (typeof showNotification === 'function') showNotification('error', 'Écris une remarque.');
+                if (typeof showNotification === 'function') showNotification('error', 'Écrivez une remarque.');
                 return;
             }
             const cb = panel.querySelector('#qrSendParent');

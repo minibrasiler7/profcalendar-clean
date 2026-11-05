@@ -6,8 +6,8 @@
 {% set _vsfx = '' if current_locale not in ['en', 'de', 'it', 'es'] else '_' ~ current_locale %}
 <div class="noclass-cta" role="region" aria-label="{{ _('Premiers pas') }}">
     <div class="noclass-icon"><i class="fas fa-chalkboard-teacher"></i></div>
-    <h2>{{ _('Commence par créer tes classes') }}</h2>
-    <p>{{ _('Cette page se remplit dès que tes classes et ton horaire sont en place. Ça prend environ deux minutes.') }}</p>
+    <h2>{{ _('Commencez par créer vos classes') }}</h2>
+    <p>{{ _('Cette page se remplit dès que vos classes et votre horaire sont en place. Cela prend environ deux minutes.') }}</p>
     <div class="noclass-actions">
         <a href="{{ url_for('planning.dashboard') }}#onboarding-steps" class="noclass-btn"><i class="fas fa-plus"></i> {{ _('Créer mes classes') }}</a>
         <a href="{{ url_for('static', filename='videos/bien_demarrer' ~ _vsfx ~ '.mp4') }}" target="_blank" rel="noopener" class="noclass-video"><i class="fas fa-play-circle"></i> {{ _('Voir comment faire en vidéo') }}</a>

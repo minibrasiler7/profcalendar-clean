@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask_babel import gettext as _gettext
 from flask_login import login_required, current_user
 from extensions import db
 from models.classroom import Classroom
@@ -80,7 +81,7 @@ def weekly_schedule():
     # Si déjà complété, le signaler — seulement s'il existe vraiment des périodes
     # (un nouveau compte a schedule_completed=True par défaut mais un horaire vide).
     if current_user.schedule_completed and Schedule.query.filter_by(user_id=current_user.id).first():
-        flash('Votre horaire type est déjà configuré. Vous pouvez le modifier ici.', 'info')
+        flash(_gettext('Votre horaire type est déjà configuré. Vous pouvez le modifier ici.'), 'info')
 
     # Récupérer les groupes mixtes d'abord pour filtrer les classes auto-créées
     from models.mixed_group import MixedGroup

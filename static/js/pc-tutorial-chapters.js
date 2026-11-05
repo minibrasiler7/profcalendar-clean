@@ -256,7 +256,7 @@
                 </div>
             </div>
             <div id="cl-paste" style="display:none;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:9px;padding:12px;margin-bottom:10px">
-                <div class="pt-label"><i class="fas fa-file-import"></i> Importer des élèves — colle directement depuis Excel/Numbers (ou choisis un fichier CSV)</div>
+                <div class="pt-label"><i class="fas fa-file-import"></i> Importer des élèves — collez directement depuis Excel/Numbers (ou choisissez un fichier CSV)</div>
                 <div class="pt-textarea" id="cl-paste-t" style="min-height:64px" data-ph="Prénom	Nom…"></div>
                 <div style="display:flex;justify-content:flex-end;margin-top:8px"><span class="pt-b primary" id="cl-import-go"><i class="fas fa-file-import"></i> Importer</span></div>
             </div>
@@ -300,7 +300,7 @@
                     <div class="pt-cls-row" id="fm-c1"><b>${C1.name}</b><span class="s">${C1.subj}</span><br><small id="fm-c1-n">7 fichiers · 6 élève(s)</small></div>
                     <div class="pt-cls-row" id="fm-c2"><b>${C2.name}</b><span class="s">${C2.subj}</span><br><small>12 fichiers · 18 élève(s)</small></div>
                     <div class="pt-cls-row" id="fm-c3"><b>${C3.name}</b><span class="s">${C3.subj}</span><br><small>5 fichiers · 20 élève(s)</small></div>
-                    <div class="pt-hint"><i class="fas fa-hand-pointer"></i> Glisse un fichier ou un dossier sur une classe pour l'y copier.</div>
+                    <div class="pt-hint"><i class="fas fa-hand-pointer"></i> Glissez un fichier ou un dossier sur une classe pour l'y copier.</div>
                 </div>
             </div>`);
     }
@@ -343,24 +343,24 @@
     // ------------------------------------------------------------ chapitre 1
     async function chapPlanning(k) {
         await k.scene(calendarScene());
-        await k.cap('Voici ton calendrier : ton horaire y est déjà. Chaque case est une période de cours.', '#cal-week');
-        await k.cap('Pour planifier un cours, clique sur sa période.', '#c-0-2');
+        await k.cap('Voici votre calendrier : votre horaire y est déjà. Chaque case est une période de cours.', '#cal-week');
+        await k.cap('Pour planifier un cours, cliquez sur sa période.', '#c-0-2');
         await k.click('#c-0-2', () => k.modal(planningModalHtml()));
 
-        await k.cap('Un document juste pour aujourd\'hui ? Ajoute un fichier éphémère.', '#m-eph');
+        await k.cap('Un document juste pour aujourd\'hui ? Ajoutez un fichier éphémère.', '#m-eph');
         await k.click('#m-eph', () => {
             k.add('#m-att-list', attachedRow('correction-serie-3.pdf', true));
             k.html('#m-att-n', '1');
         });
         await k.cap('Il est supprimé tout seul le lendemain du cours : rien à ranger.', '#m-att-list');
 
-        await k.cap('Donne un titre au cours.', '#m-title');
+        await k.cap('Donnez un titre au cours.', '#m-title');
         await k.type('#m-title', 'Fractions – exercices');
 
         await k.cap('Dans la description, une ligne qui commence par « - » devient une tâche à cocher.', '#m-desc');
         await k.type('#m-desc', '- Corriger la série 3\n- Fractions équivalentes : exemples\n- Devoirs : p. 42 n° 1 à 5', { checkbox: true });
 
-        await k.cap('Ce bouton ouvre les documents de la classe : pratique pour voir où tu t\'es arrêté.', '#m-files');
+        await k.cap('Ce bouton ouvre les documents de la classe : pratique pour voir où vous vous êtes arrêté.', '#m-files');
         await k.click('#m-files', () => {
             k.$('#m-split').style.gridTemplateColumns = '1fr 300px';
             k.show('#m-pane');
@@ -371,7 +371,7 @@
             k.html('#m-att-n', '2');
         });
 
-        await k.cap('Enregistre.', '#m-save');
+        await k.cap('Enregistrez.', '#m-save');
         await k.click('#m-save', () => {
             k.closeModal();
             k.html('#c-0-2', cblock(C1, 'Fractions – exercices', '<i class="far fa-check-square"></i> 3 · <i class="fas fa-paperclip"></i> 2'));
@@ -381,10 +381,10 @@
 
         await k.scene(lessonScene());
         await k.cap('La page « Prochain cours » affiche le cours en train d\'être donné… ou le prochain.', '#l-head');
-        await k.cap('Ta planification est là. Coche les tâches au fur et à mesure.', '#l-checks .pt-check');
+        await k.cap('Votre planification est là. Cochez les tâches au fur et à mesure.', '#l-checks .pt-check');
         await k.click('#l-checks .pt-check', (el) => { el.classList.add('done'); el.querySelector('.box').innerHTML = '<i class="fas fa-check"></i>'; });
 
-        await k.cap('Tu peux aussi planifier directement depuis cette page.', '#l-edit');
+        await k.cap('Vous pouvez aussi planifier directement depuis cette page.', '#l-edit');
         await k.click('#l-edit', () => {
             k.html('#l-plan-body', `<input class="pt-input" value="Fractions – exercices" style="margin-bottom:8px">
                 <div class="pt-textarea" id="l-desc" style="min-height:110px">[x] Corriger la série 3\n[ ] Fractions équivalentes : exemples\n[ ] Devoirs : p. 42 n° 1 à 5</div>
@@ -396,14 +396,14 @@
                 <div>${checkLine('Corriger la série 3', true)}${checkLine('Fractions équivalentes : exemples')}${checkLine('Devoirs : p. 42 n° 1 à 5')}${checkLine('Rappel : test vendredi')}</div>`);
             k.toast('Planification enregistrée');
         });
-        await k.cap('C\'est tout : ton premier cours est planifié.', '#l-plan');
+        await k.cap('C\'est tout : votre premier cours est planifié.', '#l-plan');
     }
 
     // ------------------------------------------------------------ chapitre 2
     async function chapClasses(k) {
         await k.scene(classesScene('students'));
-        await k.cap('Gestion de classe : choisis la classe ici, puis un onglet.', '.pt-hcard .pt-select');
-        await k.cap('Commence par ajouter tes élèves, un par un…', '#cl-add');
+        await k.cap('Gestion de classe : choisissez la classe ici, puis un onglet.', '.pt-hcard .pt-select');
+        await k.cap('Commencez par ajouter vos élèves, un par un…', '#cl-add');
         await k.click('#cl-add', () => k.show('#cl-form'));
         await k.type('#cl-fn', 'Léa');
         await k.type('#cl-ln', 'Martin');
@@ -413,7 +413,7 @@
             k.toast('Élève ajouté');
         });
 
-        await k.cap('…ou colle ta liste entière depuis Excel.', '#cl-import');
+        await k.cap('…ou collez votre liste entière depuis Excel.', '#cl-import');
         await k.click('#cl-import', () => k.show('#cl-paste'));
         await k.type('#cl-paste-t', 'Noah\tBernard\nEmma\tRochat\nLouis\tFavre', { ms: 30 });
         await k.click('#cl-import-go', () => {
@@ -423,7 +423,7 @@
         });
         await k.cap('Chaque élève a sa carte. Le crayon modifie, la corbeille supprime.', '#cl-r-1');
 
-        await k.cap('Onglet Notes : crée une évaluation.', '#ct-grades');
+        await k.cap('Onglet Notes : créez une évaluation.', '#ct-grades');
         await switchTab(k, '.pt-tabs', '#ct-grades', '#cl-body', gradesBody(false));
         await k.click('#gr-new', () => k.modal(`
             <div class="pt-modal-h"><h3><i class="fas fa-clipboard-check" style="color:#4F46E5"></i> Nouvelle évaluation</h3><span class="x"><i class="fas fa-times"></i></span></div>
@@ -437,7 +437,7 @@
             </div>
             <div class="pt-modal-f"><span class="pt-b">Annuler</span><span class="pt-b primary" id="gr-next">Suivant : saisir les notes <i class="fas fa-arrow-right"></i></span></div>`));
         await k.type('#gr-t', 'Test – Fractions');
-        await k.cap('Puis saisis les notes, élève par élève.', '#gr-next');
+        await k.cap('Puis saisissez les notes, élève par élève.', '#gr-next');
         await k.click('#gr-next', () => {
             k.html('#gr-body', `<div class="pt-label" style="margin-bottom:8px">Test – Fractions · note sur 6</div>` +
                 STUDENTS.slice(0, 4).map((n, i) => `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span class="pt-avatar">${ini(n)}</span><span style="flex:1;font-size:13px">${n}</span><input class="pt-input" id="gr-n-${i}" style="width:70px;text-align:center"></div>`).join(''));
@@ -453,7 +453,7 @@
             <tr><td>Léa Martin</td><td>18.09</td><td>P2</td><td><span class="pt-chip" style="background:#FEF2F2;color:#991B1B">Absence</span></td><td><i class="fas fa-check" style="color:#10B981"></i> par les parents</td></tr>
             <tr><td>Noah Bernard</td><td>15.09</td><td>P1</td><td><span class="pt-chip" style="background:#FFFBEB;color:#92400E">Retard 5 min</span></td><td>—</td></tr>
             </tbody></table>`);
-        await k.cap('Plan de classe : place tes élèves sur les tables.', '#ct-seating');
+        await k.cap('Plan de classe : placez vos élèves sur les tables.', '#ct-seating');
         await switchTab(k, '.pt-tabs', '#ct-seating', '#cl-body', `<div class="pt-sec-title"><i class="fas fa-th"></i> Plan de classe</div>${desksBody()}`);
         await k.cap('Groupes, aménagements, annonces : chaque onglet a son rôle.', '#ct-groups');
         await switchTab(k, '.pt-tabs', '#ct-groups', '#cl-body', `<div class="pt-sec-title"><i class="fas fa-users"></i> Groupes</div>
@@ -476,11 +476,11 @@
         await k.cap('Présences : un clic sur un nom, l\'élève est absent.', '#at-0 .n');
         await k.click('#at-0 .n', () => { k.$('#at-0').className = 'pt-att absent'; k.html('#st-p', '5'); k.html('#st-a', '1'); });
 
-        await k.cap('Retard : tape les minutes, puis clique sur l\'horloge.', '#min-1');
+        await k.cap('Retard : tapez les minutes, puis cliquez sur l\'horloge.', '#min-1');
         await k.type('#min-1', '5', { after: 200 });
         await k.click('#clk-1', () => { k.$('#at-1').className = 'pt-att late'; k.html('#st-p', '4'); k.html('#st-l', '1'); });
 
-        await k.cap('Coches : oublis, bavardages… tu choisis quoi compter.', '#tr-coches');
+        await k.cap('Coches : oublis, bavardages… vous choisissez quoi compter.', '#tr-coches');
         await switchTab(k, '#l-track', '#tr-coches', '#l-track-body', cochesBody(['Oubli', 'Bavardage']));
         await k.click('#co-2-0-p', () => k.html('#co-2-0', '1'), { after: 400 });
         await k.click('#co-2-0-p', () => k.html('#co-2-0', '2'));
@@ -493,7 +493,7 @@
         await switchTab(k, '#l-track', '#tr-pres', '#l-track-body', attendanceList());
         await k.cap('Une remarque sur un élève ? Cette icône, à côté de son nom.', '#rm-2');
         await k.click('#rm-2', () => k.add('#l-track-body', `<div class="pt-qr" id="qr"><div class="h"><i class="fas fa-comment-dots"></i> Remarque — Emma Rochat</div>
-            <div class="pt-textarea" id="qr-t" style="min-height:44px" data-ph="Ta remarque…"></div>
+            <div class="pt-textarea" id="qr-t" style="min-height:44px" data-ph="Votre remarque…"></div>
             <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:6px"><span class="pt-b sm">Annuler</span><span class="pt-b primary sm" id="qr-save">Enregistrer</span></div></div>`, true));
         await k.type('#qr-t', 'Excellent travail en groupe');
         await k.click('#qr-save', () => { k.$('#qr').remove(); k.toast('Remarque enregistrée'); });
@@ -514,9 +514,9 @@
     // ------------------------------------------------------------ chapitre 4
     async function chapFiles(k) {
         await k.scene(filesScene());
-        await k.cap('Le gestionnaire de fichiers. Le compte Premium t\'offre 50 Go.', '#fm-store');
-        await k.cap('À gauche : tes documents, conservés d\'une année à l\'autre.', '#fm-tree');
-        await k.cap('Importe un dossier entier depuis ton ordinateur.', '#fm-import');
+        await k.cap('Le gestionnaire de fichiers. Le compte Premium vous offre 50 Go.', '#fm-store');
+        await k.cap('À gauche : vos documents, conservés d\'une année à l\'autre.', '#fm-tree');
+        await k.cap('Importez un dossier entier depuis votre ordinateur.', '#fm-import');
         await k.click('#fm-import', () => {
             k.add('#fm-tree', `<div class="f d sel" id="fm-f3" style="padding-left:24px"><i class="fas fa-folder-open"></i> Chap. 3 · Fractions <span style="margin-left:auto;color:#9CA3AF;font-weight:400;font-size:11px">3 fichiers</span></div>
                 <div class="f file pt-appear" style="padding-left:46px"><i class="fas fa-file-pdf"></i> Fractions – théorie.pdf</div>
@@ -526,12 +526,12 @@
             if (sci) k.$('#fm-tree').appendChild(sci);
             k.toast('3 fichiers importés');
         });
-        await k.cap('À droite, tes classes. Glisse le dossier sur une classe : elle reçoit sa copie.', '#fm-f3');
+        await k.cap('À droite, vos classes. Glissez le dossier sur une classe : elle reçoit sa copie.', '#fm-f3');
         await k.drag('#fm-f3', '#fm-c1', '<i class="fas fa-folder" style="color:#F59E0B"></i> Chap. 3 · Fractions', () => {
             k.html('#fm-c1-n', '<b style="color:#10B981">+3</b> · 10 fichiers · 6 élève(s)');
             k.toast('Dossier copié dans 9VG2');
         });
-        await k.cap('La classe a maintenant ses propres fichiers, indépendants des tiens.', '#fm-c1');
+        await k.cap('La classe a maintenant ses propres fichiers, indépendants des vôtres.', '#fm-c1');
 
         await k.scene(classesScene('files', { body: `<div class="pt-sec-title"><i class="fas fa-folder-open"></i> Fichiers par discipline</div>
             <div class="pt-subj"><span><i class="fas fa-book"></i> ${C1.subj}</span><span style="display:flex;gap:6px"><span class="pt-b purple sm"><i class="fas fa-folder-plus"></i> Nouveau dossier</span><span class="pt-b success sm" id="cf-up"><i class="fas fa-upload"></i> Fichiers</span><span class="pt-b sm"><i class="fas fa-folder"></i> Dossier</span></span></div>
@@ -540,7 +540,7 @@
                 <div class="pt-tile folder"><i class="fas fa-folder"></i>Chap. 2 · Nombres relatifs<div class="pt-hint">3 fichiers</div></div>
                 <div class="pt-tile folder pt-appear"><i class="fas fa-folder"></i>Chap. 3 · Fractions<div class="pt-hint">3 fichiers</div></div>
             </div>` }));
-        await k.cap('Tu peux aussi ajouter des fichiers depuis Gestion de classe, onglet Fichiers.', '#cf-up');
+        await k.cap('Vous pouvez aussi ajouter des fichiers depuis Gestion de classe, onglet Fichiers.', '#cf-up');
         await k.click('#cf-up', () => k.add('#cf-grid', '<div class="pt-tile pdf"><i class="fas fa-file-pdf"></i>Fiche-révision.pdf<div class="pt-hint">240 Ko</div></div>'));
 
         await k.scene(lessonScene());
@@ -571,9 +571,9 @@
 
         await k.scene(pdfScene());
         await k.cap('Le lecteur PDF. Tous les outils sont dans cette barre.', '#t-pen');
-        await k.cap('Le stylo : annote directement sur la page.', '#t-pen');
+        await k.cap('Le stylo : annotez directement sur la page.', '#t-pen');
         await on('#t-pen');
-        await k.cap('Choisis une couleur.', '#c-red');
+        await k.cap('Choisissez une couleur.', '#c-red');
         await k.click('#c-red', (el) => { k.$('#c-black').classList.remove('on'); el.classList.add('on'); }, { after: 200 });
         await ink('M 70 140 C 110 100, 150 180, 200 130 S 280 110, 330 150', '#EF4444', 3, [70, 140], [330, 150]);
         await ink('M 400 128 l 18 20 l 34 -42', '#EF4444', 3.5, [400, 128], [452, 106]);
@@ -591,7 +591,7 @@
         await ink('M 90 328 L 430 328', '#111827', 2.5, [90, 328], [430, 328]);
         k.$('#pdf-extra .pt-ruler').remove();
 
-        await k.cap('Masque une réponse, révèle-la plus tard en classe.', '#t-hider');
+        await k.cap('Masquez une réponse, révélez-la plus tard en classe.', '#t-hider');
         await on('#t-hider');
         await k.click('#pdf-page', () => k.add('#pdf-extra', '<div class="mask" style="left:40px;top:410px;width:260px;height:16px"></div>'), { dy: 60 });
 
@@ -607,12 +607,12 @@
         });
         await k.click('#tk-1-p', () => k.html('#tk-1', '1'));
 
-        await k.cap('Télécharge le PDF avec tes annotations et tes pages ajoutées.', '#t-dl');
+        await k.cap('Téléchargez le PDF avec vos annotations et vos pages ajoutées.', '#t-dl');
         await k.click('#t-dl', () => {
             const t = k.$('#trk'); if (t) t.remove();
             k.add('.pt-pdf', `<div class="pt-dl-menu"><div class="on"><i class="fas fa-file-download"></i> Télécharger le PDF annoté</div><div><i class="fas fa-paper-plane"></i> Envoyer à toute la classe</div><div><i class="fas fa-user-slash"></i> Envoyer aux absents</div><div><i class="fas fa-user-check"></i> Choisir les élèves</div></div>`);
         });
-        await k.cap('Ou envoie-le directement aux élèves, même seulement aux absents.', '.pt-dl-menu .on');
+        await k.cap('Ou envoyez-le directement aux élèves, même seulement aux absents.', '.pt-dl-menu .on');
     }
 
     // ------------------------------------------------------------ chapitre 6
@@ -655,16 +655,16 @@
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center"><span class="pt-b sm"><i class="fas fa-plus"></i> Ajouter un seuil</span><span style="display:flex;gap:8px"><span class="pt-b">Annuler</span><span class="pt-b primary" id="sa-save"><i class="fas fa-save"></i> Enregistrer</span></span></div>
             </div>`));
-        await k.cap('Donne un nom au type de problème.', '#sa-name');
+        await k.cap('Donnez un nom au type de problème.', '#sa-name');
         await k.type('#sa-name', 'Oubli de matériel');
         await k.cap('Après combien de coches ?', '#sa-thr');
         await k.type('#sa-thr', '3', { after: 200 });
-        await k.cap('Et quelle sanction, avec un délai en jours si tu veux.', '#sa-s1');
+        await k.cap('Et quelle sanction, avec un délai en jours si vous voulez.', '#sa-s1');
         await k.type('#sa-s1', 'Copier p. 17–18 de l\'aide-mémoire');
         await k.click('#sa-save', () => k.toast('Modèle enregistré'));
         await k.scene(sanctionsIndex(true));
 
-        await k.cap('Coche le modèle, puis importe-le dans les classes de ton choix.', '#sa-chk');
+        await k.cap('Cochez le modèle, puis importez-le dans les classes de votre choix.', '#sa-chk');
         await k.click('#sa-chk', (el) => { el.querySelector('.box').innerHTML = '<i class="fas fa-check"></i>'; el.classList.add('done'); k.$('#sa-import').style.opacity = '1'; });
         await k.click('#sa-import', () => k.modal(`<div class="pt-modal-h"><h3>Importer vers les classes</h3><span class="x"><i class="fas fa-times"></i></span></div>
             <div class="pt-modal-b"><div class="pt-label" style="margin-bottom:8px">Sélectionnez les classes :</div>
@@ -707,13 +707,13 @@
                     <div class="pt-hint" style="margin:8px 0 12px"><i class="fas fa-chart-bar"></i> Prévisualisation</div>
                     <div class="pt-seg" id="dc-seg"><div style="flex:1;background:#E5E7EB;color:#9CA3AF">38 semaines libres</div></div>
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="pt-sec-title" style="margin:0"><i class="fas fa-layer-group"></i> Thèmes</div><span class="pt-b primary sm" id="dc-addt"><i class="fas fa-plus"></i> Ajouter</span></div>
-                    <div id="dc-themes"><div class="pt-empty" id="dc-empty">Aucun thème. Cliquez sur « Ajouter » pour créer un thème.</div></div>` : '<div class="pt-empty">Sélectionne ou crée un découpage</div>'}</div>
+                    <div id="dc-themes"><div class="pt-empty" id="dc-empty">Aucun thème. Cliquez sur « Ajouter » pour créer un thème.</div></div>` : '<div class="pt-empty">Sélectionnez ou créez un découpage</div>'}</div>
             </div>`);
     }
 
     async function chapDecoupage(k) {
         await k.scene(decoupageScene(false));
-        await k.cap('Le découpage : ton année découpée en thèmes, pour savoir toujours où tu en es.', '#dc-new');
+        await k.cap('Le découpage : votre année découpée en thèmes, pour savoir toujours où vous en êtes.', '#dc-new');
         await k.click('#dc-new', () => k.modal(`<div class="pt-modal-h"><h3>Nouveau découpage</h3><span class="x"><i class="fas fa-times"></i></span></div>
             <div class="pt-modal-b"><div class="pt-fg"><label class="pt-label">Nom du découpage</label><input class="pt-input" id="dc-name" placeholder="Ex: Découpage Maths 2026"></div>
             <div class="pt-fg"><label class="pt-label">Discipline</label><input class="pt-input" id="dc-sub" placeholder="Ex: Mathématiques"></div>
@@ -744,12 +744,12 @@
                 segs.push({ n: name, w: weeks, c: color }); renderSeg();
             });
         };
-        await addTheme('Les fractions', 4, '#4F46E5', 'Ajoute un thème et sa durée en semaines.');
+        await addTheme('Les fractions', 4, '#4F46E5', 'Ajoutez un thème et sa durée en semaines.');
         await addTheme('Géométrie plane', 3, '#10B981');
         await addTheme('Calcul littéral', 5, '#F59E0B');
         await k.cap('La barre montre l\'année qui se remplit.', '#dc-seg');
 
-        await k.cap('Puis assigne le découpage à une classe.', '#dc-assign');
+        await k.cap('Puis assignez le découpage à une classe.', '#dc-assign');
         await k.click('#dc-assign', () => k.modal(`<div class="pt-modal-h"><h3><i class="fas fa-link" style="color:#4F46E5"></i> Assigner « Maths 9e » à une classe</h3><span class="x"><i class="fas fa-times"></i></span></div>
             <div class="pt-modal-b">${[C1, C3, C2].map((c, i) => `<div class="pt-res"><span class="pt-chip" style="background:${c.bg};color:${c.color}">${c.name}</span> ${c.subj}<span class="pt-b primary sm" id="dc-a${i}" style="margin-left:auto">Assigner</span></div>`).join('')}</div>
             <div class="pt-modal-f"><span class="pt-b primary" id="dc-done">Terminé</span></div>`));
@@ -762,16 +762,16 @@
         await k.scene(nav('cal') + page(`
             <div class="pt-cal-title"><span class="arr"><i class="fas fa-chevron-left"></i></span><h2>Vue annuelle — ${C1.name} · ${C1.subj}</h2><span class="arr"><i class="fas fa-chevron-right"></i></span><span class="pt-b sm"><i class="fas fa-calendar-week"></i> Vue hebdo</span></div>
             <div class="pt-card"><div class="pt-annual" id="an-grid">${weeks.map(x => `<div class="pt-wk ${x.hol ? 'hol' : ''}">S${x.w}${x.hol ? '<div style="font-size:8px;color:#9CA3AF">vacances</div>' : ''}${x.t ? `<div class="rib" style="background:${x.t[1]}22;color:${x.t[1]};border-bottom:2px solid ${x.t[1]}">${x.t[0]}</div>` : ''}</div>`).join('')}</div>
-            <div class="pt-hint" style="margin-top:10px"><i class="fas fa-info-circle"></i> Survole un bandeau pour voir les objectifs du thème.</div></div>`));
+            <div class="pt-hint" style="margin-top:10px"><i class="fas fa-info-circle"></i> Survolez un bandeau pour voir les objectifs du thème.</div></div>`));
         await k.cap('Les thèmes apparaissent sur la vue annuelle, semaine par semaine.', '#an-grid');
     }
 
     // ------------------------------------------------------------ chapitre 8
     async function chapAccounts(k) {
         await k.scene(classesScene('students', { students: STUDENTS.slice(0, 4) }));
-        await k.cap('Pour que tes élèves aient un compte, génère un code de classe.', '#cl-code-e');
+        await k.cap('Pour que vos élèves aient un compte, générez un code de classe.', '#cl-code-e');
         await k.click('#cl-code-e', () => k.modal(`<div class="pt-modal-h"><h3><i class="fas fa-key" style="color:#4F46E5"></i> Code élèves — ${C1.name}</h3><span class="x"><i class="fas fa-times"></i></span></div>
-            <div class="pt-modal-b" style="text-align:center"><div class="pt-hint">Communique ce code à tes élèves :</div><div class="pt-code">X6VRK6</div>
+            <div class="pt-modal-b" style="text-align:center"><div class="pt-hint">Communiquez ce code à vos élèves :</div><div class="pt-code">X6VRK6</div>
             <div class="pt-hint">Avec ce code, chaque élève crée son compte et rejoint la classe.</div></div>
             <div class="pt-modal-f"><span class="pt-b"><i class="fas fa-copy"></i> Copier</span><span class="pt-b primary">Fermer</span></div>`));
         await k.cap('Un seul code pour toute la classe.', '.pt-code');
@@ -787,15 +787,15 @@
         await k.type('#st-mail', 'lea.martin@exemple.ch');
         await k.type('#st-pw', '••••••••', { ms: 70 });
         await k.click('#st-go', () => k.html('#st-ok', '<div class="pt-ok pt-appear" style="margin-top:12px"><i class="fas fa-check-circle"></i> Compte lié à 9VG2 · Léa Martin</div>'));
-        await k.cap('Le compte est lié à ta classe.', '#st-ok');
+        await k.cap('Le compte est lié à votre classe.', '#st-ok');
 
         await k.scene(classesScene('students', { students: STUDENTS.slice(0, 4) }));
         await k.cap('Même principe pour les parents : un code par classe.', '#cl-code-p');
         await k.click('#cl-code-p', () => k.modal(`<div class="pt-modal-h"><h3><i class="fas fa-users" style="color:#4F46E5"></i> Code parents — ${C1.name}</h3><span class="x"><i class="fas fa-times"></i></span></div>
-            <div class="pt-modal-b" style="text-align:center"><div class="pt-hint">Donne ce code aux parents, avec ton nom d'utilisateur :</div><div class="pt-code">P4K2ZQ</div>
+            <div class="pt-modal-b" style="text-align:center"><div class="pt-hint">Donnez ce code aux parents, avec votre nom d'utilisateur :</div><div class="pt-code">P4K2ZQ</div>
             <div class="pt-hint">Nom d'utilisateur : <b>mme.favre</b></div></div>
             <div class="pt-modal-f"><span class="pt-b"><i class="fas fa-copy"></i> Copier</span><span class="pt-b primary">Fermer</span></div>`));
-        await k.cap('Les parents auront besoin du code et de ton nom d\'utilisateur.', '.pt-code');
+        await k.cap('Les parents auront besoin du code et de votre nom d\'utilisateur.', '.pt-code');
 
         await k.scene(phoneScene(`<div class="pt-phone"><h4>Liaison avec l'enseignant</h4><div class="sub">Espace parents · ProfCalendar</div>
             <div class="pt-fg"><label class="pt-label">Nom d'utilisateur de l'enseignant</label><input class="pt-input" id="pa-name"></div>
@@ -803,7 +803,7 @@
             <div class="pt-fg"><label class="pt-label">Mon enfant</label><div class="pt-select">Léa Martin</div></div>
             <span class="pt-b primary" id="pa-go" style="width:100%;justify-content:center"><i class="fas fa-link"></i> Valider la liaison</span>
             <div id="pa-ok"></div></div>`));
-        await k.cap('Le parent saisit ton nom et le code : le lien est fait.', '#pa-name');
+        await k.cap('Le parent saisit votre nom et le code : le lien est fait.', '#pa-name');
         await k.type('#pa-name', 'mme.favre');
         await k.type('#pa-code', 'P4K2ZQ');
         await k.click('#pa-go', () => k.html('#pa-ok', '<div class="pt-ok pt-appear" style="margin-top:12px"><i class="fas fa-check-circle"></i> Léa Martin est liée à votre compte</div>'));
@@ -834,7 +834,7 @@
                 <div class="pt-tile folder"><i class="fas fa-folder"></i>Nombres relatifs<div class="pt-hint">2 exercices</div></div>
                 <div class="pt-tile" style="border-left:3px solid #667eea"><i class="fas fa-gamepad" style="color:#667eea"></i>Relatifs – addition<div class="pt-hint">120 XP · 6 questions</div></div>
             </div></div>`));
-        await k.cap('Les exercices interactifs : tes élèves y répondent sur leur téléphone ou tablette.', '#ex-new');
+        await k.cap('Les exercices interactifs : vos élèves y répondent sur leur téléphone ou tablette.', '#ex-new');
         await k.click('#ex-new', () => {});
         await k.scene(nav('dash') + page(`
             <div class="pt-hcard">
@@ -853,12 +853,12 @@
                         <div class="pt-tool-tile" id="ex-qcm"><i class="fas fa-list-check"></i>QCM</div><div class="pt-tool-tile"><i class="fas fa-pen"></i>Réponse courte</div><div class="pt-tool-tile"><i class="fas fa-paragraph"></i>Texte à trous</div>
                         <div class="pt-tool-tile"><i class="fas fa-sort"></i>Classement</div><div class="pt-tool-tile"><i class="fas fa-arrows-alt-h"></i>Associations</div><div class="pt-tool-tile"><i class="fas fa-image"></i>Image interactive</div>
                     </div>
-                    <div id="ex-blocks"><div class="pt-empty" id="ex-empty"><i class="fas fa-puzzle-piece" style="font-size:26px;color:#D1D5DB;display:block;margin-bottom:6px"></i>Ajoute un premier bloc avec les boutons ci-dessus</div></div>
+                    <div id="ex-blocks"><div class="pt-empty" id="ex-empty"><i class="fas fa-puzzle-piece" style="font-size:26px;color:#D1D5DB;display:block;margin-bottom:6px"></i>Ajoutez un premier bloc avec les boutons ci-dessus</div></div>
                 </div></div>
             </div>`));
-        await k.cap('Donne un titre à l\'exercice.', '#ex-title');
+        await k.cap('Donnez un titre à l\'exercice.', '#ex-title');
         await k.type('#ex-title', 'Fractions – QCM');
-        await k.cap('Ajoute un bloc : QCM, réponse courte, texte à trous, classement…', '#ex-qcm');
+        await k.cap('Ajoutez un bloc : QCM, réponse courte, texte à trous, classement…', '#ex-qcm');
         await k.click('#ex-qcm', () => {
             k.$('#ex-empty').remove();
             k.add('#ex-blocks', `<div class="pt-block"><span class="bt">QCM</span><span style="float:right;color:#9CA3AF;font-size:11px"><i class="far fa-clock"></i> 30 s · <b>20 XP</b></span>
@@ -870,10 +870,10 @@
         await k.type('#ex-o0', '2/4', { after: 200 });
         await k.type('#ex-o1', '3/5', { after: 200 });
         await k.type('#ex-o2', '1/3', { after: 200 });
-        await k.cap('Coche la bonne réponse.', '#ex-r0');
+        await k.cap('Cochez la bonne réponse.', '#ex-r0');
         await k.click('#ex-r0', (el) => el.classList.add('on'));
 
-        await k.cap('Publie-le dans une classe.', '#ex-pub');
+        await k.cap('Publiez-le dans une classe.', '#ex-pub');
         await k.click('#ex-pub', () => k.modal(`<div class="pt-modal-h"><h3><i class="fas fa-paper-plane" style="color:#10B981"></i> Publier l'exercice</h3><span class="x"><i class="fas fa-times"></i></span></div>
             <div class="pt-modal-b"><div class="pt-hint" style="margin-bottom:8px">Sélectionnez les classes pour lesquelles publier cet exercice :</div>
             ${[C1, C3, C2].map((c, i) => `<div class="pt-check" id="ex-c${i}"><span class="box"></span><span><span class="pt-chip" style="background:${c.bg};color:${c.color}">${c.name}</span> ${c.subj}</span></div>`).join('')}</div>
@@ -882,9 +882,9 @@
         await k.click('#ex-go', () => { k.closeModal(); k.toast('Exercice publié dans 9VG2'); });
 
         await k.scene(lessonScene({ current: true, exercise: true }));
-        await k.cap('Sur la page du cours, l\'exercice est dans les ressources. Lance-le en direct.', '#r-launch');
+        await k.cap('Sur la page du cours, l\'exercice est dans les ressources. Lancez-le en direct.', '#r-launch');
         await k.click('#r-launch', () => k.modal(`<div class="pt-modal-h"><h3><i class="fas fa-rocket" style="color:#667eea"></i> Lancer l'exercice</h3><span class="x"><i class="fas fa-times"></i></span></div>
-            <div class="pt-modal-b"><div class="pt-select" style="border-color:#4F46E5;background:#EEF2FF;margin-bottom:8px"><b>📖 Mode classique</b><div class="pt-hint">Chaque élève avance à son rythme, tu suis la progression en direct.</div></div></div>
+            <div class="pt-modal-b"><div class="pt-select" style="border-color:#4F46E5;background:#EEF2FF;margin-bottom:8px"><b>📖 Mode classique</b><div class="pt-hint">Chaque élève avance à son rythme, vous suivez la progression en direct.</div></div></div>
             <div class="pt-modal-f"><span class="pt-b">Annuler</span><span class="pt-b primary" id="ex-start"><i class="fas fa-play"></i> Lancer la mission</span></div>`));
         await k.click('#ex-start', () => {
             k.closeModal();
@@ -895,7 +895,7 @@
                 ${STUDENTS.slice(0, 4).map((n, i) => `<div class="pt-live"><span class="pt-avatar">${ini(n)}</span><span style="width:96px">${n.split(' ')[0]}</span><div class="bar"><div id="lv-${i}"></div></div><b id="lvx-${i}" style="width:44px;text-align:right;color:#10B981">0 XP</b></div>`).join('')}
             </div>`);
         });
-        await k.cap('Tu suis la progression de chaque élève en temps réel.', '#ex-live');
+        await k.cap('Vous suivez la progression de chaque élève en temps réel.', '#ex-live');
         const prog = [[100, '60 XP'], [66, '40 XP'], [33, '20 XP'], [100, '40 XP']];
         for (let round = 1; round <= 3; round++) {
             prog.forEach((p, i) => { k.$('#lv-' + i).style.width = Math.min(p[0], round * 34) + '%'; });
@@ -910,7 +910,7 @@
         { id: 'planning', title: 'Ma première planification', desc: 'Calendrier, fichier éphémère, tâches à cocher, page du cours.', icon: 'fa-calendar-plus', color: '#4F46E5', seconds: 105, reco: true, steps: 15, run: chapPlanning },
         { id: 'classes', title: 'Gérer ma classe', desc: 'Élèves, notes, absences, plan de classe, rapport élève.', icon: 'fa-users', color: '#10B981', seconds: 100, steps: 12, run: chapClasses },
         { id: 'lesson', title: 'La page du cours', desc: 'Présences, coches, plan de classe, remarques, fichiers épinglés.', icon: 'fa-graduation-cap', color: '#F59E0B', seconds: 80, steps: 11, run: chapLesson },
-        { id: 'files', title: 'Le gestionnaire de fichiers', desc: 'Tes documents, d\'une année à l\'autre, à copier dans tes classes.', icon: 'fa-folder-open', color: '#0EA5E9', seconds: 50, steps: 7, run: chapFiles },
+        { id: 'files', title: 'Le gestionnaire de fichiers', desc: 'Vos documents, d\'une année à l\'autre, à copier dans vos classes.', icon: 'fa-folder-open', color: '#0EA5E9', seconds: 50, steps: 7, run: chapFiles },
         { id: 'pdf', title: 'Le lecteur PDF', desc: 'Stylo, surligneur, règle, masque, suivi des élèves, export annoté.', icon: 'fa-file-pdf', color: '#DC2626', seconds: 70, steps: 10, run: chapPdf },
         { id: 'sanctions', title: 'Les coches et sanctions', desc: 'Un modèle, des seuils, et la sanction qui s\'affiche en cours.', icon: 'fa-exclamation-triangle', color: '#EA580C', seconds: 75, steps: 9, run: chapSanctions },
         { id: 'decoupage', title: 'Le découpage de l\'année', desc: 'Des thèmes, une durée, une classe : la vue annuelle se remplit.', icon: 'fa-layer-group', color: '#7C3AED', seconds: 70, steps: 6, run: chapDecoupage },

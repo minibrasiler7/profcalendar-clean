@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, session
 from flask_login import login_required, current_user
+from flask_babel import gettext as _gettext
 from extensions import db
 from models.planning import Planning
 from models.classroom import Classroom
@@ -412,11 +413,31 @@ def get_current_or_next_lesson(user):
         current_date = now.date()
         weekday = current_date.weekday()
     
-    current_app.logger.info(f"🚀 NEW LESSON DETECTION DEPLOYED 🚀 current_time: {current_time}, date: {current_date}, weekday: {weekday}")
-
     # Récupérer les périodes du jour
     periods = calculate_periods(user)
     current_app.logger.debug(f"=== LESSON DEBUG === Periods found: {len(periods)}")
+
+    # Données chargées UNE fois (3 requêtes) au lieu de 2 requêtes par période
+    # et par jour : sans cours à venir (compte neuf, vacances), la recherche
+    # sur 35 jours faisait plusieurs centaines de requêtes et la page du cours
+    # comme le tableau de bord mettaient jusqu'à 1,5 s (novembre 2026).
+    _horizon_end = current_date + timedelta(days=35)
+    _plannings_at = {}
+    for _p in Planning.query.filter(
+            Planning.user_id == user.id,
+            Planning.date >= current_date,
+            Planning.date <= _horizon_end).order_by(Planning.id).all():
+        _plannings_at.setdefault((_p.date, _p.period_number), _p)
+    _schedules_at = {}
+    for _s in Schedule.query.filter_by(user_id=user.id).order_by(Schedule.id).all():
+        _schedules_at.setdefault((_s.weekday, _s.period_number), _s)
+    _user_holidays = user.holidays.all()
+
+    def _planning_at(date, period_number):
+        return _plannings_at.get((date, period_number))
+
+    def _schedule_at(weekday_num, period_number):
+        return _schedules_at.get((weekday_num, period_number))
     
     def is_lesson_period(planning=None, schedule=None):
         """Vérifie si une période représente un cours (pas de type 'Autre')"""
@@ -431,11 +452,7 @@ def get_current_or_next_lesson(user):
     def get_lesson_for_period(date, period_number, weekday_num):
         """Récupère une leçon pour une période donnée - suit la logique du calendrier"""
         # 1. Chercher d'abord dans Planning (priorité comme le calendrier)
-        planning = Planning.query.filter_by(
-            user_id=user.id,
-            date=date,
-            period_number=period_number
-        ).first()
+        planning = _planning_at(date, period_number)
         
         current_app.logger.debug(f"=== LESSON DEBUG === P{period_number} on {date}: Planning found: {planning is not None}, classroom_id: {getattr(planning, 'classroom_id', None)}, mixed_group_id: {getattr(planning, 'mixed_group_id', None)}")
         
@@ -450,11 +467,7 @@ def get_current_or_next_lesson(user):
             is_merged = False
             
             # D'abord vérifier l'horaire type (Schedule) pour les périodes fusionnées
-            schedule = Schedule.query.filter_by(
-                user_id=user.id,
-                weekday=weekday_num,
-                period_number=period_number
-            ).first()
+            schedule = _schedule_at(weekday_num, period_number)
             
             current_app.logger.debug(f"=== MERGED PERIODS DEBUG === P{period_number} weekday {weekday_num}: Schedule found: {schedule is not None}")
             if schedule:
@@ -464,11 +477,7 @@ def get_current_or_next_lesson(user):
                 # Utiliser la logique des Schedule pour les périodes fusionnées
                 current_period = period_number + 1
                 while current_period <= len(periods):
-                    next_schedule = Schedule.query.filter_by(
-                        user_id=user.id,
-                        weekday=weekday_num,
-                        period_number=current_period
-                    ).first()
+                    next_schedule = _schedule_at(weekday_num, current_period)
                     
                     if (next_schedule and 
                         hasattr(next_schedule, 'merged_with_previous') and 
@@ -488,11 +497,7 @@ def get_current_or_next_lesson(user):
                 # Si pas de fusion dans Schedule, chercher les planifications consécutives identiques
                 current_period = period_number + 1
                 while current_period <= len(periods):
-                    next_planning = Planning.query.filter_by(
-                        user_id=user.id,
-                        date=date,
-                        period_number=current_period
-                    ).first()
+                    next_planning = _planning_at(date, current_period)
                     
                     # Vérifier si la planification suivante est identique (même classe/groupe mixte)
                     if (next_planning and 
@@ -525,11 +530,7 @@ def get_current_or_next_lesson(user):
             return lesson
         
         # 2. Si pas de Planning, chercher dans Schedule (fallback comme le calendrier)
-        schedule = Schedule.query.filter_by(
-            user_id=user.id,
-            weekday=weekday_num,
-            period_number=period_number
-        ).first()
+        schedule = _schedule_at(weekday_num, period_number)
         
         current_app.logger.debug(f"=== LESSON DEBUG === P{period_number} on {date}: Schedule found: {schedule is not None}, classroom_id: {getattr(schedule, 'classroom_id', None)}, mixed_group_id: {getattr(schedule, 'mixed_group_id', None)}")
         
@@ -546,11 +547,7 @@ def get_current_or_next_lesson(user):
             if hasattr(schedule, 'has_merged_next') and schedule.has_merged_next:
                 current_period = period_number + 1
                 while current_period <= len(periods):
-                    next_schedule = Schedule.query.filter_by(
-                        user_id=user.id,
-                        weekday=weekday_num,
-                        period_number=current_period
-                    ).first()
+                    next_schedule = _schedule_at(weekday_num, current_period)
                     
                     if (next_schedule and 
                         hasattr(next_schedule, 'merged_with_previous') and 
@@ -616,7 +613,7 @@ def get_current_or_next_lesson(user):
         
         # Vérifier aussi les vacances personnalisées de l'utilisateur
         user_holiday = None
-        for h in user.holidays.all():
+        for h in _user_holidays:
             if h.start_date <= search_date <= h.end_date:
                 user_holiday = h.name
                 break
@@ -1138,7 +1135,8 @@ def calendar_view():
         return jsonify({
             'success': True,
             'week': current_week.isoformat(),
-            'title': f"Semaine du {format_date_full(week_dates[0])} au {format_date(week_dates[4])}",
+            'title': _gettext('Semaine du %(start)s au %(end)s', start=format_date_full(week_dates[0]),
+                              end=format_date(week_dates[4])),
             'week_number': _school_week_number(current_user, week_dates[0]),
             'grid_html': grid_html,
         })
@@ -1493,30 +1491,36 @@ def check_day_planning(date, classroom_id):
             'message': str(e)
         })
 
-def get_decoupage_for_week(classroom_id, week_number):
+def _load_decoupage(classroom_id):
+    """(assignation, périodes) du découpage d'une classe, ou (None, []) : 2 requêtes."""
+    from models.decoupage import DecoupageAssignment, DecoupagePeriod
+    assignment = DecoupageAssignment.query.filter_by(classroom_id=classroom_id).first()
+    if not assignment:
+        return None, []
+    periods = DecoupagePeriod.query.filter_by(
+        decoupage_id=assignment.decoupage.id
+    ).order_by(DecoupagePeriod.order).all()
+    return assignment, periods
+
+
+def get_decoupage_for_week(classroom_id, week_number, preloaded=None):
     """
     Récupère les informations de découpage pour une semaine donnée d'une classe.
     Gère les demi-semaines: retourne un dict avec first_half et second_half.
     Chaque moitié peut avoir un thème différent ou être None.
+    `preloaded` = résultat de _load_decoupage(classroom_id), pour ne pas
+    refaire les requêtes à chaque semaine du calendrier annuel.
     """
-    from models.decoupage import DecoupageAssignment, DecoupagePeriod
-
     if not classroom_id or not week_number:
         return None
 
-    # Trouver l'assignation de découpage pour cette classe
-    assignment = DecoupageAssignment.query.filter_by(classroom_id=classroom_id).first()
+    assignment, periods = preloaded if preloaded is not None else _load_decoupage(classroom_id)
 
     if not assignment:
         return None
 
     decoupage = assignment.decoupage
     start_week = assignment.start_week
-
-    # Calculer quelle période correspond à cette semaine
-    periods = DecoupagePeriod.query.filter_by(
-        decoupage_id=decoupage.id
-    ).order_by(DecoupagePeriod.order).all()
 
     if not periods:
         return None
@@ -1601,7 +1605,6 @@ def get_decoupage_for_week(classroom_id, week_number):
 
 def generate_annual_calendar(item, item_type='classroom'):
     """Génère les données du calendrier annuel pour une classe ou un groupe mixte"""
-    print(f"🗓️ generate_annual_calendar called for {item_type}: {item.name} (ID: {item.id})")
 
     # Calculer toutes les semaines de l'année scolaire
     start_date = current_user.school_year_start
@@ -1609,6 +1612,7 @@ def generate_annual_calendar(item, item_type='classroom'):
 
     # Récupérer toutes les vacances
     holidays = current_user.holidays.all()
+    _decoupage_loaded = None  # découpage de la classe, chargé à la première semaine qui en a besoin
 
     # Récupérer tous les plannings pour cette classe ou ce groupe mixte
     if item_type == 'mixed_group':
@@ -1616,13 +1620,11 @@ def generate_annual_calendar(item, item_type='classroom'):
             user_id=current_user.id,
             mixed_group_id=item.id
         ).all()
-        print(f"👥 Found {len(all_plannings)} plannings for mixed group {item.id}")
     else:
         all_plannings = Planning.query.filter_by(
             user_id=current_user.id,
             classroom_id=item.id
         ).all()
-        print(f"📚 Found {len(all_plannings)} plannings for classroom {item.id}")
     
     # Debug: afficher les plannings trouvés
     # Jours (0=lundi … 4=vendredi) où cette classe / ce groupe mixte a cours
@@ -1635,9 +1637,6 @@ def generate_annual_calendar(item, item_type='classroom'):
             user_id=current_user.id, classroom_id=item.id).all()
     _weekdays_with_class = {s.weekday for s in _sched_rows}
 
-    for planning in all_plannings:
-        print(f"  📝 Planning: {planning.date} P{planning.period_number} - {planning.title}")
-    
     # Organiser les plannings par date
     plannings_by_date = {}
     for planning in all_plannings:
@@ -1649,7 +1648,6 @@ def generate_annual_calendar(item, item_type='classroom'):
             'period': planning.period_number
         })
     
-    print(f"📅 Plannings by date: {plannings_by_date}")
 
     weeks = []
     current_date = start_date
@@ -1685,7 +1683,9 @@ def generate_annual_calendar(item, item_type='classroom'):
         # Récupérer le ruban de découpage pour cette semaine (uniquement pour les classrooms)
         decoupage_ribbon = None
         if item_type == 'classroom' and week_number and not week_holiday:
-            decoupage_ribbon = get_decoupage_for_week(item.id, week_number)
+            if _decoupage_loaded is None:
+                _decoupage_loaded = _load_decoupage(item.id)
+            decoupage_ribbon = get_decoupage_for_week(item.id, week_number, preloaded=_decoupage_loaded)
 
         week_info = {
             'start_date': week_dates[0],
@@ -1707,7 +1707,8 @@ def generate_annual_calendar(item, item_type='classroom'):
             date_str = date_to_check.strftime('%Y-%m-%d')
 
             # Vérifier si c'est un jour de vacances
-            holiday_name = is_holiday(date_to_check, current_user)
+            # Même règle que is_holiday(), sur la liste déjà chargée (évite une requête par jour)
+            holiday_name = next((h.name for h in holidays if h.start_date <= date_to_check <= h.end_date), None)
             if holiday_name:
                 week_info['holidays_by_day'][i] = holiday_name
 
@@ -1728,7 +1729,6 @@ def generate_annual_calendar(item, item_type='classroom'):
             # Un jour a des cours s'il y a soit un horaire type, soit une planification spécifique
             week_info['has_class'][i] = has_schedule or has_planning
             
-            print(f"    📅 {date_str} (day {i}): has_schedule={has_schedule}, has_planning={has_planning}, final={has_schedule or has_planning}")
 
             # Ajouter les plannings pour ce jour
             if has_planning:

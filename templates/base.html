@@ -325,13 +325,13 @@
                 <span style="display:flex; align-items:center; gap:0.5rem;">
                     {% if expired %}
                         <i class="fas fa-lock"></i>
-                        <span>{{ _('Ton essai Premium est terminé. Réactive pour retrouver la gestion de classe, les notes, les présences et les exercices.') }}</span>
+                        <span>{{ _('Votre essai Premium est terminé. Réactivez-le pour retrouver la gestion de classe, les notes, les présences et les exercices.') }}</span>
                     {% elif urgent %}
                         <i class="fas fa-hourglass-half"></i>
-                        <span><strong>{{ ngettext('Ton essai Premium se termine dans %(num)d jour.', 'Ton essai Premium se termine dans %(num)d jours.', trial.days_remaining) }}</strong> {{ _('Ne perds pas la gestion de classe, les notes et les présences.') }}</span>
+                        <span><strong>{{ ngettext('Votre essai Premium se termine dans %(num)d jour.', 'Votre essai Premium se termine dans %(num)d jours.', trial.days_remaining) }}</strong> {{ _('Ne perdez pas la gestion de classe, les notes et les présences.') }}</span>
                     {% else %}
                         <i class="fas fa-crown" style="color:#6366F1;"></i>
-                        <span>{{ _('Tu profites de') }} <strong>{{ _('Premium gratuit') }}</strong> · {{ ngettext('%(num)d jour restant', '%(num)d jours restants', trial.days_remaining) }}. {{ _('Profites-en pour tout explorer !') }}</span>
+                        <span>{{ _('Vous profitez de') }} <strong>{{ _('Premium gratuit') }}</strong> · {{ ngettext('%(num)d jour restant', '%(num)d jours restants', trial.days_remaining) }}. {{ _('Profitez-en pour tout explorer !') }}</span>
                     {% endif %}
                 </span>
                 <a href="{{ url_for('subscription.pricing') }}"
@@ -368,7 +368,7 @@
     {% if is_demo_session %}
     <!-- Mode démonstration : bandeau permanent + message quand une action est bloquée -->
     <div class="demo-bar" role="status">
-        <span class="demo-bar-text"><i class="fas fa-eye"></i> <strong>{{ _('Compte de démonstration') }}</strong> — {{ _("explore librement : rien n'est enregistré.") }}</span>
+        <span class="demo-bar-text"><i class="fas fa-eye"></i> <strong>{{ _('Compte de démonstration') }}</strong> — {{ _("explorez librement : rien n'est enregistré.") }}</span>
         <span class="demo-bar-actions">
             {% if demo_has_account %}
             <a href="{{ url_for('demo.exit_demo') }}" class="demo-bar-cta">{{ _('Revenir à mon compte') }}</a>
@@ -397,7 +397,7 @@
         window.pcDemoNotice = function (msg) {
             if (!toast) return;
             toast.innerHTML = '';
-            toast.appendChild(document.createTextNode(msg || {{ _("Mode démonstration : rien n'est enregistré. Crée ton compte pour utiliser ProfCalendar avec tes classes.")|tojson }}));
+            toast.appendChild(document.createTextNode(msg || {{ _("Mode démonstration : rien n'est enregistré. Créez votre compte pour utiliser ProfCalendar avec vos classes.")|tojson }}));
             var a = document.createElement('a');
             {% if demo_has_account %}a.href = {{ url_for('demo.exit_demo')|tojson }}; a.textContent = {{ _('Revenir à mon compte')|tojson }};
             {% else %}a.href = {{ url_for('demo.exit_demo', to='register')|tojson }}; a.textContent = {{ _('Créer mon compte')|tojson }};{% endif %}

@@ -86,7 +86,7 @@ def _wrap(title, accent, body_html, cta_label):
             </p>
         </div>
         <p style="color:#A0AEC0; font-size:0.72rem; text-align:center; margin-top:1.5rem;">
-            Tu reçois cet email parce que tu as un compte ProfCalendar.
+            Vous recevez cet e-mail parce que vous avez un compte ProfCalendar.
         </p>
     </div>
     """
@@ -99,34 +99,34 @@ def _content_for_stage(new_stage, days_remaining):
         subject = f"Plus que {d} jours de Premium sur ProfCalendar"
         body = (
             f'<p style="color:#374151; line-height:1.55;">Bonjour,</p>'
-            f'<p style="color:#374151; line-height:1.55;">Il te reste '
+            f'<p style="color:#374151; line-height:1.55;">Il vous reste '
             f'<strong>{d} jours</strong> d\'essai Premium. C\'est le moment '
-            f'idéal pour profiter à fond de tout ce que ProfCalendar t\'offre '
+            f'idéal pour profiter pleinement de tout ce que ProfCalendar vous offre '
             f'avant la fin de la période d\'essai&nbsp;:</p>'
         )
-        return subject, _wrap("Ton essai Premium continue 🎁", "#6366F1",
+        return subject, _wrap("Votre essai Premium continue 🎁", "#6366F1",
                               body, "Continuer en Premium")
 
     if new_stage == 2:
-        subject = "Dernier jour de ton essai Premium ⏳"
+        subject = "Dernier jour de votre essai Premium ⏳"
         body = (
             '<p style="color:#374151; line-height:1.55;">Bonjour,</p>'
-            '<p style="color:#374151; line-height:1.55;">Ton essai Premium se '
-            'termine <strong>demain</strong>. Sans abonnement, tu vas perdre '
+            '<p style="color:#374151; line-height:1.55;">Votre essai Premium se '
+            'termine <strong>demain</strong>. Sans abonnement, vous perdrez '
             'l\'accès à&nbsp;:</p>'
         )
-        return subject, _wrap("Ton essai se termine demain", "#D97706",
+        return subject, _wrap("Votre essai se termine demain", "#D97706",
                               body, "Garder Premium")
 
     # new_stage == 3
-    subject = "Ton essai Premium est terminé — réactive en 1 clic"
+    subject = "Votre essai Premium est terminé : réactivez-le en 1 clic"
     body = (
         '<p style="color:#374151; line-height:1.55;">Bonjour,</p>'
-        '<p style="color:#374151; line-height:1.55;">Ton essai Premium est '
-        'terminé. Tu gardes l\'accès à la planification de tes cours, mais les '
+        '<p style="color:#374151; line-height:1.55;">Votre essai Premium est '
+        'terminé. Vous gardez l\'accès à la planification de vos cours, mais les '
         'fonctionnalités suivantes sont désormais verrouillées&nbsp;:</p>'
     )
-    return subject, _wrap("Réactive ton accès Premium", "#DC2626",
+    return subject, _wrap("Réactivez votre accès Premium", "#DC2626",
                           body, "Passer à Premium")
 
 

@@ -2,6 +2,19 @@ from datetime import datetime
 import locale
 import re
 
+def _babel_date(date_obj, fmt):
+    """Date dans la langue de la page (en, de, it, es) via Babel ; None pour le
+    français (format historique conservé) ou hors requête."""
+    try:
+        from flask_babel import get_locale, format_date as babel_format_date
+        loc = str(get_locale() or 'fr')
+        if loc.startswith('fr'):
+            return None
+        return babel_format_date(date_obj, format=fmt)
+    except Exception:
+        return None
+
+
 def format_date_full(date_obj):
     """Formate une date en français complet (ex: lundi 23 août 2025)"""
     if not date_obj:
@@ -20,6 +33,10 @@ def format_date_full(date_obj):
         except:
             return date_obj
     
+    localized = _babel_date(date_obj, 'full')
+    if localized:
+        return localized
+
     # Obtenir le jour de la semaine (0=lundi)
     jour_semaine = jours[date_obj.weekday()]
     
@@ -43,6 +60,10 @@ def format_date(date_obj):
         except:
             return date_obj
     
+    localized = _babel_date(date_obj, 'long')
+    if localized:
+        return localized
+
     # Obtenir le mois
     nom_mois = mois[date_obj.month - 1]
     

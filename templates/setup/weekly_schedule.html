@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Horaire type - ProfCalendar{% endblock %}
+{% block title %}{{ _('Horaire type') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/calendar.css') }}">
@@ -357,14 +357,14 @@
     <div class="schedule-header">
         <div class="schedule-title">
             <i class="fas fa-calendar-week"></i>
-            <h1>Créez votre horaire type</h1>
+            <h1>{{ _('Créez votre horaire type') }}</h1>
         </div>
-        <p>Cliquez sur les cases pour assigner vos classes à chaque période. Cet horaire sera utilisé comme modèle pour toute l'année.</p>
+        <p>{{ _("Cliquez sur les cases pour assigner vos classes à chaque période. Cet horaire sera utilisé comme modèle pour toute l'année.") }}</p>
 
         {% if not current_user.schedule_completed %}
         <div class="info-box" style="margin-top: 1rem; background-color: #FEF3C7; border-color: #FDE68A;">
             <i class="fas fa-info-circle" style="color: #D97706;"></i>
-            <p style="color: #92400E;">Dernière étape ! Une fois votre horaire type créé, cliquez sur "Valider l'horaire" pour accéder à votre calendrier complet.</p>
+            <p style="color: #92400E;">{{ _("Dernière étape ! Une fois votre horaire type créé, cliquez sur « Valider l'horaire » pour accéder à votre calendrier complet.") }}</p>
         </div>
         {% endif %}
 
@@ -386,7 +386,7 @@
                 <div class="legend-color" style="background-color: #6B7280;"></div>
                 <span>
                     <i class="fas fa-tasks" style="margin-right: 0.25rem;"></i>
-                    Tâches personnalisées
+                    {{ _('Tâches personnalisées') }}
                 </span>
             </div>
         </div>
@@ -396,39 +396,39 @@
     <div class="times-card{% if not has_schedule_entries %} times-card-first{% endif %}" id="timesCard">
         <div class="times-head">
             <div class="times-head-text">
-                <strong><i class="fas fa-clock"></i> Heures de ton école</strong>
+                <strong><i class="fas fa-clock"></i> {{ _('Heures de votre école') }}</strong>
                 <span class="times-summary" id="timesSummary">
-                    {{ periods|length }} périodes{% if periods %}, de {{ periods[0].start.strftime('%H:%M') }} à {{ periods[-1].end.strftime('%H:%M') }}{% endif %}
-                    · {{ time_settings.period_duration }} min · {{ time_settings.break_duration }} min entre deux périodes
+                    {% if periods %}{{ _('%(n)s périodes, de %(start)s à %(end)s', n=periods|length, start=periods[0].start.strftime('%H:%M'), end=periods[-1].end.strftime('%H:%M')) }}{% else %}{{ _('%(n)s périodes', n=0) }}{% endif %}
+                    · {{ _('%(n)s min', n=time_settings.period_duration) }} · {{ _('%(n)s min entre deux périodes', n=time_settings.break_duration) }}
                     {% for b in time_settings.breaks %}· {{ b.name }} {{ b.start }}–{{ b.end }} {% endfor %}
                 </span>
             </div>
             <button type="button" class="times-toggle" id="timesToggle" onclick="toggleTimesForm()">
-                <i class="fas fa-pen"></i> Modifier les heures
+                <i class="fas fa-pen"></i> {{ _('Modifier les heures') }}
             </button>
         </div>
         {% if not has_schedule_entries %}
         <p class="times-hint">
             <i class="fas fa-lightbulb"></i>
-            Ces heures sont proposées par défaut. Vérifie qu'elles correspondent à ton école avant de placer tes classes.
+            {{ _("Ces heures sont proposées par défaut. Vérifiez qu'elles correspondent à votre école avant de placer vos classes.") }}
         </p>
         {% endif %}
         <div class="times-form" id="timesForm" hidden>
             <div class="times-grid">
-                <label>Début des cours<input type="time" id="tDayStart" value="{{ time_settings.day_start }}"></label>
-                <label>Fin de la journée<input type="time" id="tDayEnd" value="{{ time_settings.day_end }}"></label>
-                <label>Durée d'une période<span class="times-unit"><input type="number" id="tPeriod" min="20" max="120" step="5" value="{{ time_settings.period_duration }}"> min</span></label>
-                <label>Entre deux périodes<span class="times-unit"><input type="number" id="tGap" min="0" max="30" step="1" value="{{ time_settings.break_duration }}"> min</span></label>
+                <label>{{ _('Début des cours') }}<input type="time" id="tDayStart" value="{{ time_settings.day_start }}"></label>
+                <label>{{ _('Fin de la journée') }}<input type="time" id="tDayEnd" value="{{ time_settings.day_end }}"></label>
+                <label>{{ _("Durée d'une période") }}<span class="times-unit"><input type="number" id="tPeriod" min="20" max="120" step="5" value="{{ time_settings.period_duration }}"> {{ _('min') }}</span></label>
+                <label>{{ _('Entre deux périodes') }}<span class="times-unit"><input type="number" id="tGap" min="0" max="30" step="1" value="{{ time_settings.break_duration }}"> {{ _('min') }}</span></label>
             </div>
-            <div class="times-breaks-title">Pauses (récréation, midi…)</div>
+            <div class="times-breaks-title">{{ _('Pauses (récréation, midi…)') }}</div>
             <div id="tBreaks"></div>
-            <button type="button" class="times-add" onclick="addBreakRow()"><i class="fas fa-plus"></i> Ajouter une pause</button>
-            <div class="times-preview-title">Aperçu de tes périodes</div>
+            <button type="button" class="times-add" onclick="addBreakRow()"><i class="fas fa-plus"></i> {{ _('Ajouter une pause') }}</button>
+            <div class="times-preview-title">{{ _('Aperçu de vos périodes') }}</div>
             <div class="times-preview" id="tPreview"></div>
             <p class="times-error" id="tError" hidden></p>
             <div class="times-actions">
-                <button type="button" class="btn btn-outline" onclick="toggleTimesForm(false)">Annuler</button>
-                <button type="button" class="btn btn-primary" id="tSave" onclick="saveTimes()"><i class="fas fa-check"></i> Enregistrer les heures</button>
+                <button type="button" class="btn btn-outline" onclick="toggleTimesForm(false)">{{ _('Annuler') }}</button>
+                <button type="button" class="btn btn-primary" id="tSave" onclick="saveTimes()"><i class="fas fa-check"></i> {{ _('Enregistrer les heures') }}</button>
             </div>
         </div>
     </div>
@@ -438,9 +438,9 @@
         <table class="schedule-table">
             <thead>
                 <tr>
-                    <th>Période</th>
+                    <th>{{ _('Période') }}</th>
                     {% for day in days %}
-                    <th>{{ day }}</th>
+                    <th>{{ _(day) }}</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -448,7 +448,7 @@
                 {% for period in periods %}
                 <tr>
                     <td class="time-slot">
-                        <strong>Période {{ period.number }}</strong><br>
+                        <strong>{{ _('Période %(n)s', n=period.number) }}</strong><br>
                         {{ period.start.strftime('%H:%M') }} - {{ period.end.strftime('%H:%M') }}
                     </td>
                     {% for day_index in range(5) %}
@@ -477,7 +477,7 @@
                             {% elif schedule.custom_task_title %}
                                 <div class="class-block" style="background-color: #6B7280;">
                                     <div class="class-name"><i class="fas fa-tasks"></i> {{ schedule.custom_task_title }}</div>
-                                    <div class="class-subject">Autre</div>
+                                    <div class="class-subject">{{ _('Autre') }}</div>
                                     {% if schedule.room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule.room }}</div>{% endif %}
                                 </div>
                             {% endif %}
@@ -493,12 +493,12 @@
     <!-- Boutons d'action -->
     <div class="action-buttons">
         <a href="{{ url_for('planning.dashboard') }}" class="btn btn-outline">
-            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+            <i class="fas fa-arrow-left"></i> {{ _('Retour au tableau de bord') }}
         </a>
 
         <form method="POST" action="{{ url_for('schedule.validate_schedule') }}" style="margin: 0;">
             <button type="submit" class="btn btn-success">
-                <i class="fas fa-check"></i> Valider l'horaire
+                <i class="fas fa-check"></i> {{ _("Valider l'horaire") }}
             </button>
         </form>
     </div>
@@ -511,8 +511,8 @@
 <!-- Sélecteur de classe -->
 <div class="class-selector" id="classSelector">
     <div class="class-selector-header">
-        <h3>Sélectionner une classe</h3>
-        <button type="button" class="close-selector" id="closeSelectorBtn" onclick="closeClassSelector()" title="Fermer">
+        <h3>{{ _('Sélectionner une classe') }}</h3>
+        <button type="button" class="close-selector" id="closeSelectorBtn" onclick="closeClassSelector()" title="{{ _('Fermer') }}">
             <i class="fas fa-times"></i>
         </button>
     </div>
@@ -523,51 +523,51 @@
     <div id="roomConfirmStep" style="display:none; padding: 0.75rem;" onclick="event.stopPropagation()">
         <div id="roomConfirmClassName" style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;"></div>
         <label style="display:block; font-size: 0.75rem; font-weight: 600; color: #6B7280; margin-bottom: 0.25rem;">
-            <i class="fas fa-door-open"></i> Salle (optionnel)
+            <i class="fas fa-door-open"></i> {{ _('Salle (optionnel)') }}
         </label>
-        <input type="text" id="scheduleRoomInput" maxlength="50" placeholder="Ex : B204"
+        <input type="text" id="scheduleRoomInput" maxlength="50" placeholder="{{ _('Ex : B204') }}"
                style="width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem; font-size: 0.85rem;"
                onkeydown="if (event.key === 'Enter') { event.preventDefault(); confirmClassSelection(); }">
         <div style="display:flex; gap: 0.5rem; margin-top: 0.6rem;">
             <button type="button" onclick="confirmClassSelection()"
                     style="flex:1; background:#4F46E5; color:white; border:none; padding:0.45rem 0.6rem; border-radius:0.3rem; font-weight:600; cursor:pointer;">
-                <i class="fas fa-check"></i> Valider
+                <i class="fas fa-check"></i> {{ _('Valider') }}
             </button>
             <button type="button" onclick="backToClassList()"
                     style="background:#F3F4F6; color:#374151; border:1px solid #D1D5DB; padding:0.45rem 0.6rem; border-radius:0.3rem; cursor:pointer;">
-                Retour
+                {{ _('Retour') }}
             </button>
         </div>
     </div>
     <div class="remove-option" onclick="removeClass()">
-        <i class="fas fa-times"></i> Retirer la classe
+        <i class="fas fa-times"></i> {{ _('Retirer la classe') }}
     </div>
 </div>
 
 <!-- Modal pour tâche personnalisée -->
 <div id="customTaskModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 2000;">
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 0.5rem; min-width: 400px;">
-        <h3 style="margin-bottom: 1rem;">Ajouter une tâche personnalisée</h3>
+        <h3 style="margin-bottom: 1rem;">{{ _('Ajouter une tâche personnalisée') }}</h3>
         <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Titre de la tâche :</label>
-            <input type="text" id="customTaskTitle" placeholder="Ex: Surveillance, Réunion, etc." style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{{ _('Titre de la tâche :') }}</label>
+            <input type="text" id="customTaskTitle" placeholder="{{ _('Ex: Surveillance, Réunion, etc.') }}" style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
         </div>
         <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Salle (optionnel) :</label>
-            <input type="text" id="customTaskRoom" maxlength="50" placeholder="Ex : B204" style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{{ _('Salle (optionnel) :') }}</label>
+            <input type="text" id="customTaskRoom" maxlength="50" placeholder="{{ _('Ex : B204') }}" style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
         </div>
         <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Horaire exact (optionnel) :</label>
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{{ _('Horaire exact (optionnel) :') }}</label>
             <div style="display: flex; gap: 0.75rem; align-items: center;">
                 <input type="time" id="customTaskStart" style="padding: 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
                 <span style="color: #6B7280;">→</span>
                 <input type="time" id="customTaskEnd" style="padding: 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
             </div>
-            <p style="font-size: 0.78rem; color: #6B7280; margin-top: 0.35rem;">Sans horaire, la tâche occupe toute la période. Avec, elle s'affichera chaque semaine à ces heures précises dans le calendrier.</p>
+            <p style="font-size: 0.78rem; color: #6B7280; margin-top: 0.35rem;">{{ _("Sans horaire, la tâche occupe toute la période. Avec, elle s'affichera chaque semaine à ces heures précises dans le calendrier.") }}</p>
         </div>
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-            <button onclick="closeCustomTaskModal()" style="padding: 0.75rem 1.5rem; border: 1px solid #D1D5DB; background: white; border-radius: 0.25rem; cursor: pointer;">Annuler</button>
-            <button onclick="saveCustomTask()" style="padding: 0.75rem 1.5rem; background: #3B82F6; color: white; border: none; border-radius: 0.25rem; cursor: pointer;">Ajouter</button>
+            <button onclick="closeCustomTaskModal()" style="padding: 0.75rem 1.5rem; border: 1px solid #D1D5DB; background: white; border-radius: 0.25rem; cursor: pointer;">{{ _('Annuler') }}</button>
+            <button onclick="saveCustomTask()" style="padding: 0.75rem 1.5rem; background: #3B82F6; color: white; border: none; border-radius: 0.25rem; cursor: pointer;">{{ _('Ajouter') }}</button>
         </div>
     </div>
 </div>
@@ -577,6 +577,37 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
 <script>
+// Chaînes traduites pour le JS (échappées via |tojson). Les jetons {n}, {used},
+// {error}… sont remplacés en JS via .replace() (pas de % : pas de printf côté JS).
+const SCHEDULE_I18N = {
+    otherTask: {{ _('Autre tâche')|tojson }},
+    customTask: {{ _('Tâche personnalisée')|tojson }},
+    other: {{ _('Autre')|tojson }},
+    slotUnknown: {{ _('Erreur : impossible de déterminer le créneau sélectionné')|tojson }},
+    titleRequired: {{ _('Veuillez saisir un titre pour la tâche')|tojson }},
+    slotMissing: {{ _('Erreur : informations de créneau manquantes')|tojson }},
+    cellMissing: {{ _('Erreur : impossible de trouver la cellule cible')|tojson }},
+    saveError: {{ _('Erreur lors de la sauvegarde : {error}')|tojson }},
+    unknownError: {{ _('Erreur inconnue')|tojson }},
+    unmergeHint: {{ _('Cliquez pour séparer ces périodes')|tojson }},
+    mergeHint: {{ _('Cliquez pour lier ces périodes')|tojson }},
+    errorWithMsg: {{ _('Erreur : {error}')|tojson }},
+    mergeFailed: {{ _('impossible de modifier la liaison')|tojson }},
+    connectionError: {{ _('Erreur de connexion')|tojson }},
+    // Panneau « Heures de votre école »
+    breakName: {{ _('Nom de la pause')|tojson }},
+    breakPlaceholder: {{ _('Récréation')|tojson }},
+    breakFrom: {{ _('De')|tojson }},
+    breakTo: {{ _('À')|tojson }},
+    deleteBreak: {{ _('Supprimer cette pause')|tojson }},
+    breakDefault: {{ _('Pause')|tojson }},
+    periodShort: {{ _('P{n}')|tojson }},
+    checkDay: {{ _('Vérifiez le début et la fin de la journée.')|tojson }},
+    noPeriods: {{ _('Ces réglages ne donnent aucune période.')|tojson }},
+    confirmFewerPeriods: {{ _("Votre horaire contient des cours en période {used}, mais ces réglages n'en donnent que {n}. Ces cours ne seront plus affichés. Continuer ?")|tojson }},
+    saveImpossible: {{ _('Enregistrement impossible.')|tojson }}
+};
+const schedEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const classrooms = {{ classrooms_json | tojson }};
 let currentCell = null;
 let pendingItem = null;   // classe cliquée, en attente de validation (étape 2)
@@ -631,8 +662,8 @@ function openClassSelector(cell, event) {
     customOption.innerHTML = `
         <div class="class-color-dot" style="background-color: #6B7280;"></div>
         <div class="class-option-info">
-            <div class="class-option-name"><i class="fas fa-tasks" style="margin-right: 0.25rem;"></i>Autre tâche</div>
-            <div class="class-option-subject">Tâche personnalisée</div>
+            <div class="class-option-name"><i class="fas fa-tasks" style="margin-right: 0.25rem;"></i>${SCHEDULE_I18N.otherTask}</div>
+            <div class="class-option-subject">${SCHEDULE_I18N.customTask}</div>
         </div>
     `;
     optionsContainer.appendChild(customOption);
@@ -801,7 +832,7 @@ function showCustomTaskModal() {
     
     if (!currentCell) {
         console.error('currentCell est null dans showCustomTaskModal');
-        alert('Erreur: impossible de déterminer le créneau sélectionné');
+        alert(SCHEDULE_I18N.slotUnknown);
         return;
     }
     
@@ -832,7 +863,7 @@ function saveCustomTask() {
     console.log('Titre saisi:', title);
     
     if (!title) {
-        alert('Veuillez saisir un titre pour la tâche');
+        alert(SCHEDULE_I18N.titleRequired);
         return;
     }
     
@@ -845,7 +876,7 @@ function saveCustomTask() {
     
     if (!weekday || !period) {
         console.error('Informations de créneau manquantes dans le modal');
-        alert('Erreur: informations de créneau manquantes');
+        alert(SCHEDULE_I18N.slotMissing);
         return;
     }
     
@@ -855,7 +886,7 @@ function saveCustomTask() {
     
     if (!targetCell) {
         console.error('Impossible de trouver la cellule cible');
-        alert('Erreur: impossible de trouver la cellule cible');
+        alert(SCHEDULE_I18N.cellMissing);
         return;
     }
     
@@ -875,7 +906,7 @@ function saveCustomTask() {
             targetCell.innerHTML = `
                 <div class="class-block" style="background-color: #6B7280;">
                     <div class="class-name"><i class="fas fa-tasks"></i> ${title}</div>
-                    <div class="class-subject">Autre</div>
+                    <div class="class-subject">${SCHEDULE_I18N.other}</div>
                     ${timeHtmlCT}
                     ${roomHtmlCT}
                 </div>
@@ -886,11 +917,11 @@ function saveCustomTask() {
             closeCustomTaskModal();
         } else {
             console.error('Erreur lors de la sauvegarde:', result.message);
-            alert('Erreur lors de la sauvegarde: ' + (result.message || 'Erreur inconnue'));
+            alert(SCHEDULE_I18N.saveError.replace('{error}', result.message || SCHEDULE_I18N.unknownError));
         }
     }).catch(error => {
         console.error('Erreur dans saveCustomTask:', error);
-        alert('Erreur lors de la sauvegarde: ' + error.message);
+        alert(SCHEDULE_I18N.saveError.replace('{error}', error.message));
     });
 }
 
@@ -950,7 +981,7 @@ function refreshMergeConnectors() {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'merge-connector' + (merged ? ' merged' : '');
-            btn.title = merged ? 'Cliquez pour séparer ces périodes' : 'Cliquez pour lier ces périodes';
+            btn.title = merged ? SCHEDULE_I18N.unmergeHint : SCHEDULE_I18N.mergeHint;
             btn.innerHTML = '<i class="fas ' + (merged ? 'fa-unlink' : 'fa-link') + '"></i>';
             btn.onclick = function (e) {
                 e.stopPropagation();
@@ -979,10 +1010,10 @@ async function toggleMergePair(weekday, periodStart, periodEnd) {
             mergedState[key] = !merged;
             refreshMergeConnectors();
         } else {
-            alert('Erreur : ' + (r.message || 'impossible de modifier la liaison'));
+            alert(SCHEDULE_I18N.errorWithMsg.replace('{error}', r.message || SCHEDULE_I18N.mergeFailed));
         }
     } catch (e) {
-        alert('Erreur de connexion');
+        alert(SCHEDULE_I18N.connectionError);
     }
 }
 </script>
@@ -1026,9 +1057,9 @@ function addBreakRow(b) {
     b = b || { id: '', name: '', start: '', end: '' };
     const row = document.createElement('div');
     row.className = 'times-break-row'; row.dataset.id = b.id || '';
-    row.innerHTML = `<label class="tb-name">Nom<input type="text" maxlength="100" placeholder="Récréation" class="tb-n"></label>
-        <label>De<input type="time" class="tb-s"></label><label>À<input type="time" class="tb-e"></label>
-        <button type="button" title="Supprimer cette pause"><i class="fas fa-trash"></i></button>`;
+    row.innerHTML = `<label class="tb-name">${schedEsc(SCHEDULE_I18N.breakName)}<input type="text" maxlength="100" placeholder="${schedEsc(SCHEDULE_I18N.breakPlaceholder)}" class="tb-n"></label>
+        <label>${schedEsc(SCHEDULE_I18N.breakFrom)}<input type="time" class="tb-s"></label><label>${schedEsc(SCHEDULE_I18N.breakTo)}<input type="time" class="tb-e"></label>
+        <button type="button" title="${schedEsc(SCHEDULE_I18N.deleteBreak)}"><i class="fas fa-trash"></i></button>`;
     row.querySelector('.tb-n').value = b.name || ''; row.querySelector('.tb-s').value = b.start || ''; row.querySelector('.tb-e').value = b.end || '';
     row.querySelector('button').onclick = () => { row.remove(); renderTimesPreview(); };
     row.querySelectorAll('input').forEach(i => i.addEventListener('input', renderTimesPreview));
@@ -1062,11 +1093,11 @@ function renderTimesPreview() {
     const breaks = cfg.breaks.filter(b => toMin(b.start) < toMin(b.end));
     box.innerHTML = '';
     list.forEach(([a, b], i) => {
-        const chip = document.createElement('span'); chip.className = 'times-chip'; chip.textContent = `P${i + 1} ${toHHMM(a)}–${toHHMM(b)}`; box.appendChild(chip);
+        const chip = document.createElement('span'); chip.className = 'times-chip'; chip.textContent = `${SCHEDULE_I18N.periodShort.replace('{n}', i + 1)} ${toHHMM(a)}–${toHHMM(b)}`; box.appendChild(chip);
         const br = breaks.find(x => toMin(x.start) === b);
-        if (br) { const c = document.createElement('span'); c.className = 'times-chip break'; c.textContent = `${br.name || 'Pause'} ${br.start}–${br.end}`; box.appendChild(c); }
+        if (br) { const c = document.createElement('span'); c.className = 'times-chip break'; c.textContent = `${br.name || SCHEDULE_I18N.breakDefault} ${br.start}–${br.end}`; box.appendChild(c); }
     });
-    if (!list.length) box.innerHTML = '<span class="times-summary">Vérifie le début et la fin de la journée.</span>';
+    if (!list.length) { const s = document.createElement('span'); s.className = 'times-summary'; s.textContent = SCHEDULE_I18N.checkDay; box.appendChild(s); }
     return list;
 }
 function toggleTimesForm(force) {
@@ -1088,15 +1119,15 @@ async function saveTimes() {
     const err = document.getElementById('tError'), btn = document.getElementById('tSave');
     const cfg = readTimesForm(), list = renderTimesPreview();
     err.hidden = true;
-    if (!list.length) { err.textContent = 'Ces réglages ne donnent aucune période.'; err.hidden = false; return; }
+    if (!list.length) { err.textContent = SCHEDULE_I18N.noPeriods; err.hidden = false; return; }
     // Cours déjà placés au-delà de la dernière période : on prévient avant d'enregistrer
     const usedMax = Math.max(0, ...[...document.querySelectorAll('.schedule-cell')].filter(c => c.dataset.item).map(c => parseInt(c.dataset.period, 10) || 0));
-    if (usedMax > list.length && !confirm(`Ton horaire contient des cours en période ${usedMax}, mais ces réglages n'en donnent que ${list.length}. Ces cours ne seront plus affichés. Continuer ?`)) return;
+    if (usedMax > list.length && !confirm(SCHEDULE_I18N.confirmFewerPeriods.replace('{used}', usedMax).replace('{n}', list.length))) return;
     btn.disabled = true;
     try {
         const r = await fetch('{{ url_for("schedule.update_times") }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(cfg) });
         const d = await r.json().catch(() => ({}));
-        if (!r.ok || !d.success) throw new Error(d.message || 'Enregistrement impossible.');
+        if (!r.ok || !d.success) throw new Error(d.message || SCHEDULE_I18N.saveImpossible);
         window.location.reload();
     } catch (e) {
         err.textContent = e.message; err.hidden = false; btn.disabled = false;

@@ -24,11 +24,11 @@ def _welcome_html(name):
             <h1 style="color:#2d3748; font-size:1.5rem; margin:0;">ProfCalendar</h1>
         </div>
         <div style="background:#ffffff; border:1px solid #E5E7EB; border-radius:12px; padding:1.75rem;">
-            <h2 style="color:#4F46E5; font-size:1.3rem; margin:0 0 1rem;">Bienvenue {name} 🎉</h2>
+            <h2 style="color:#4F46E5; font-size:1.3rem; margin:0 0 1rem;">Bienvenue{(" " + name) if name else ""} 🎉</h2>
             <p style="color:#374151; line-height:1.55;">
-                Ton compte ProfCalendar est créé. Démarre ton <strong>essai gratuit de 14 jours</strong>&nbsp;:
+                Votre compte ProfCalendar est créé. Démarrez votre <strong>essai gratuit de 14 jours</strong>&nbsp;:
                 tout est débloqué (gestion de classe, notes, présences, fichiers annotés au stylet),
-                rien n'est débité pendant l'essai et tu peux arrêter à tout moment avant la fin.
+                rien n'est débité pendant l'essai et vous pouvez arrêter à tout moment avant la fin.
             </p>
             <p style="color:#374151; line-height:1.55;">
                 Pour voir l'outil en 2 minutes&nbsp;: <a href="https://youtu.be/nclRivko3j4">la vidéo de présentation</a>
@@ -36,9 +36,9 @@ def _welcome_html(name):
             </p>
             <p style="color:#374151; line-height:1.55; margin-top:1rem;"><strong>Pour bien démarrer&nbsp;:</strong></p>
             <ol style="color:#4B5563; font-size:0.95rem; line-height:1.5; padding-left:1.2rem; margin:0.5rem 0 1.5rem;">
-                <li style="margin-bottom:0.4rem;">Crée tes <strong>classes</strong>, ton <strong>horaire</strong> et importe tes <strong>vacances</strong> — trois étapes guidées sur le tableau de bord.</li>
-                <li style="margin-bottom:0.4rem;">Planifie tes cours dans le <strong>calendrier</strong>.</li>
-                <li style="margin-bottom:0.4rem;">Sur iPad, annote tes <strong>PDF au stylet</strong> (Apple Pencil).</li>
+                <li style="margin-bottom:0.4rem;">Créez vos <strong>classes</strong>, votre <strong>horaire</strong> et importez vos <strong>vacances</strong> — trois étapes guidées sur le tableau de bord.</li>
+                <li style="margin-bottom:0.4rem;">Planifiez vos cours dans le <strong>calendrier</strong>.</li>
+                <li style="margin-bottom:0.4rem;">Sur iPad, annotez vos <strong>PDF au stylet</strong> (Apple Pencil).</li>
             </ol>
             <div style="text-align:center;">
                 <a href="{DASHBOARD_URL}"
@@ -48,11 +48,11 @@ def _welcome_html(name):
                 </a>
             </div>
             <p style="color:#6B7280; font-size:0.9rem; line-height:1.5; margin-top:1.5rem;">
-                Une question ou une idée&nbsp;? Réponds simplement à cet email&nbsp;: je lis tout. 🙂
+                Une question ou une idée&nbsp;? Répondez simplement à cet e-mail&nbsp;: je lis tout. 🙂
             </p>
         </div>
         <p style="color:#A0AEC0; font-size:0.72rem; text-align:center; margin-top:1.5rem;">
-            Tu reçois cet email parce que tu viens de créer un compte ProfCalendar.
+            Vous recevez cet e-mail parce que vous venez de créer un compte ProfCalendar.
         </p>
     </div>
     """
@@ -62,7 +62,7 @@ def send_welcome_email(email, username=None):
     """Envoie l'email de bienvenue. Retourne True/False, ne lève jamais."""
     if not email:
         return False
-    name = (username or '').strip() or 'à toi'
+    name = (username or '').strip()
     try:
         return send_email(
             email,

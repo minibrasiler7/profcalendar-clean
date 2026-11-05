@@ -17,46 +17,46 @@
      onclick="if (event.target === this) closeDevoirModal()">
     <div class="devoir-modal">
         <div class="devoir-modal-head">
-            <strong id="devoirModalTitle"><i class="fas fa-book"></i> Nouveau devoir</strong>
-            <button type="button" class="devoir-modal-close" onclick="closeDevoirModal()" aria-label="Fermer">&times;</button>
+            <strong id="devoirModalTitle"><i class="fas fa-book"></i> {{ _('Nouveau devoir') }}</strong>
+            <button type="button" class="devoir-modal-close" onclick="closeDevoirModal()" aria-label="{{ _('Fermer') }}">&times;</button>
         </div>
         <label class="devoir-field">
-            <span>Titre</span>
-            <input type="text" id="devoirTitle" placeholder="Ex : Exercices p. 42 n° 1 à 5">
+            <span>{{ _('Titre') }}</span>
+            <input type="text" id="devoirTitle" placeholder="{{ _('Ex : Exercices p. 42 n° 1 à 5') }}">
         </label>
         <div class="devoir-field" id="devoirTypeField">
-            <span>Type de devoir</span>
+            <span>{{ _('Type de devoir') }}</span>
             <div class="devoir-types">
-                <label><input type="radio" name="devoirType" value="classic" checked onchange="onDevoirTypeChange()"> Devoir classique (à faire pour la date)</label>
+                <label><input type="radio" name="devoirType" value="classic" checked onchange="onDevoirTypeChange()"> {{ _('Devoir classique (à faire pour la date)') }}</label>
                 {% if students_space %}
-                <label id="devoirTypeSubmissionLabel"><input type="radio" name="devoirType" value="submission" onchange="onDevoirTypeChange()"> À rendre (l'élève envoie une photo)</label>
+                <label id="devoirTypeSubmissionLabel"><input type="radio" name="devoirType" value="submission" onchange="onDevoirTypeChange()"> {{ _("À rendre (l'élève envoie une photo)") }}</label>
                 {% if FEATURE_EXERCISES %}
-                <label id="devoirTypeExerciseLabel"><input type="radio" name="devoirType" value="exercise" onchange="onDevoirTypeChange()"> Exercice interactif</label>
+                <label id="devoirTypeExerciseLabel"><input type="radio" name="devoirType" value="exercise" onchange="onDevoirTypeChange()"> {{ _('Exercice interactif') }}</label>
                 {% endif %}
                 {% endif %}
             </div>
         </div>
         <label class="devoir-field" id="devoirExerciseField" style="display: none;">
-            <span>Exercice interactif</span>
+            <span>{{ _('Exercice interactif') }}</span>
             <select id="devoirExercise"></select>
         </label>
         <label class="devoir-field">
-            <span>Date de rendu (prochains cours de la classe)</span>
+            <span>{{ _('Date de rendu (prochains cours de la classe)') }}</span>
             <select id="devoirDueDate"></select>
         </label>
         <label class="devoir-field">
-            <span>Consignes (facultatif)</span>
-            <textarea id="devoirInstructions" rows="2" placeholder="Précisions pour les élèves…"></textarea>
+            <span>{{ _('Consignes (facultatif)') }}</span>
+            <textarea id="devoirInstructions" rows="2" placeholder="{{ _('Précisions pour les élèves…') }}"></textarea>
         </label>
         <label class="devoir-field" id="devoirDocumentField">
-            <span>Document pour les élèves (facultatif)</span>
+            <span>{{ _('Document pour les élèves (facultatif)') }}</span>
             <input type="file" id="devoirDocument"
                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.ppt,.pptx,.xls,.xlsx">
             <small id="devoirDocHint" style="display:none; font-size:0.72rem; color:#6B7280; font-weight:normal;"></small>
         </label>
         <div class="devoir-modal-actions">
-            <button type="button" class="btn-devoir-outline" onclick="closeDevoirModal()">Annuler</button>
-            <button type="button" class="btn-devoir-create" id="devoirSaveBtn" onclick="submitDevoir()"><i class="fas fa-check"></i> Créer</button>
+            <button type="button" class="btn-devoir-outline" onclick="closeDevoirModal()">{{ _('Annuler') }}</button>
+            <button type="button" class="btn-devoir-create" id="devoirSaveBtn" onclick="submitDevoir()"><i class="fas fa-check"></i> {{ _('Créer') }}</button>
         </div>
     </div>
 </div>
@@ -80,9 +80,39 @@
 </style>
 
 <script>
+// Textes de la modale traduits côté serveur. Ce fichier peut être inclus
+// plusieurs fois : on ne redéfinit pas l'objet s'il existe déjà.
+window.DEVOIR_I18N = window.DEVOIR_I18N || {
+    months: ['', {{ _('janv.')|tojson }}, {{ _('févr.')|tojson }}, {{ _('mars')|tojson }}, {{ _('avr.')|tojson }}, {{ _('mai')|tojson }}, {{ _('juin')|tojson }}, {{ _('juil.')|tojson }}, {{ _('août')|tojson }}, {{ _('sept.')|tojson }}, {{ _('oct.')|tojson }}, {{ _('nov.')|tojson }}, {{ _('déc.')|tojson }}],
+    newDevoir: {{ _('Nouveau devoir')|tojson }},
+    editDevoir: {{ _('Modifier le devoir')|tojson }},
+    create: {{ _('Créer')|tojson }},
+    save: {{ _('Enregistrer')|tojson }},
+    currentDocument: {{ _('Document actuel : {name} — en choisir un nouveau le remplacera.')|tojson }},
+    fileFallback: {{ _('fichier')|tojson }},
+    loading: {{ _('Chargement...')|tojson }},
+    currentDate: {{ _('{date} (date actuelle)')|tojson }},
+    noUpcomingDate: {{ _('Aucune date de cours à venir')|tojson }},
+    loadError: {{ _('Erreur de chargement')|tojson }},
+    draft: {{ _('{title} (brouillon)')|tojson }},
+    noExercise: {{ _("Aucun exercice — créez-en un d'abord")|tojson }},
+    noClassroom: {{ _('Aucune classe pour ce cours.')|tojson }},
+    titleRequired: {{ _('Donnez un titre au devoir.')|tojson }},
+    dueDateRequired: {{ _('Choisissez une date de rendu.')|tojson }},
+    exerciseRequired: {{ _('Choisissez un exercice interactif.')|tojson }},
+    error: {{ _('Erreur')|tojson }},
+    savedDocFailed: {{ _('Enregistré, mais document non joint : {error}')|tojson }},
+    savedDocNetwork: {{ _('Enregistré, mais document non joint (réseau)')|tojson }},
+    devoirUpdated: {{ _('Devoir modifié')|tojson }},
+    devoirCreated: {{ _('Devoir créé')|tojson }},
+    networkError: {{ _('Erreur réseau')|tojson }}
+};
 (function () {
+    const T = window.DEVOIR_I18N;
+    // Remplace les jetons {nom} d'un texte traduit par leurs valeurs.
+    function fmt(s, vars) { return String(s).replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars) ? String(vars[k]) : m); }
     function esc(s) { return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-    const MONTHS = ['', 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    const MONTHS = T.months;
     function fmtDate(iso) { if (!iso) return ''; const p = iso.split('-').map(Number); return `${p[2]} ${MONTHS[p[1]]}`; }
     function notify(type, msg) {
         if (typeof showNotification === 'function') showNotification(type, msg);
@@ -98,8 +128,7 @@
         const h = el('devoirDocHint');
         if (!h) return;
         if (d && d.has_document) {
-            h.textContent = 'Document actuel : ' + (d.document_name || 'fichier')
-                + ' — en choisir un nouveau le remplacera.';
+            h.textContent = fmt(T.currentDocument, { name: d.document_name || T.fileFallback });
             h.style.display = 'block';
         } else {
             h.textContent = '';
@@ -150,7 +179,7 @@
 
     async function loadDates(selectedDate) {
         const dd = el('devoirDueDate');
-        dd.innerHTML = '<option value="">Chargement…</option>';
+        dd.innerHTML = '<option value="">' + esc(T.loading) + '</option>';
         try {
             const j = await (await fetch('/api/devoirs/suggest-dates?classroom_id=' + state.classroomId)).json();
             if (j.success) applyAccounts(j.student_accounts || 0);
@@ -158,13 +187,13 @@
             // En édition, la date actuelle peut être passée donc absente des
             // prochains cours : on la réinjecte pour ne pas la perdre.
             if (selectedDate && !dates.some(x => x.date === selectedDate)) {
-                dates.unshift({ date: selectedDate, label: fmtDate(selectedDate) + ' (date actuelle)' });
+                dates.unshift({ date: selectedDate, label: esc(fmt(T.currentDate, { date: fmtDate(selectedDate) })) });
             }
             dd.innerHTML = dates.length
                 ? dates.map(x => `<option value="${x.date}"${x.date === selectedDate ? ' selected' : ''}>${x.label}</option>`).join('')
-                : '<option value="">Aucune date de cours à venir</option>';
+                : '<option value="">' + esc(T.noUpcomingDate) + '</option>';
         } catch (e) {
-            dd.innerHTML = '<option value="">Erreur de chargement</option>';
+            dd.innerHTML = '<option value="">' + esc(T.loadError) + '</option>';
         }
     }
 
@@ -173,18 +202,18 @@
             const j = await (await fetch('/api/devoirs/exercises')).json();
             const ex = el('devoirExercise');
             ex.innerHTML = (j.success && j.exercises.length)
-                ? j.exercises.map(e => `<option value="${e.id}">${esc(e.title)}${e.published ? '' : ' (brouillon)'}</option>`).join('')
-                : '<option value="">Aucun exercice — crées-en un d\'abord</option>';
+                ? j.exercises.map(e => `<option value="${e.id}">${esc(e.published ? e.title : fmt(T.draft, { title: e.title }))}</option>`).join('')
+                : '<option value="">' + esc(T.noExercise) + '</option>';
         } catch (e) {}
     }
 
     async function open(opts) {
         opts = opts || {};
-        if (!opts.classroomId) { notify('error', 'Aucune classe pour ce cours.'); return; }
+        if (!opts.classroomId) { notify('error', T.noClassroom); return; }
         state = { classroomId: opts.classroomId, editingId: null, onSaved: opts.onSaved || null, accounts: 0 };
         reparent();
-        el('devoirModalTitle').innerHTML = '<i class="fas fa-book"></i> Nouveau devoir';
-        el('devoirSaveBtn').innerHTML = '<i class="fas fa-check"></i> Créer';
+        el('devoirModalTitle').innerHTML = '<i class="fas fa-book"></i> ' + esc(T.newDevoir);
+        el('devoirSaveBtn').innerHTML = '<i class="fas fa-check"></i> ' + esc(T.create);
         el('devoirTitle').value = '';
         el('devoirInstructions').value = '';
         const df = el('devoirDocument'); if (df) df.value = '';
@@ -206,11 +235,11 @@
     async function openForEdit(d, opts) {
         opts = opts || {};
         if (!d) return;
-        if (!opts.classroomId) { notify('error', 'Aucune classe pour ce cours.'); return; }
+        if (!opts.classroomId) { notify('error', T.noClassroom); return; }
         state = { classroomId: opts.classroomId, editingId: d.id, onSaved: opts.onSaved || null, accounts: 0 };
         reparent();
-        el('devoirModalTitle').innerHTML = '<i class="fas fa-pen"></i> Modifier le devoir';
-        el('devoirSaveBtn').innerHTML = '<i class="fas fa-check"></i> Enregistrer';
+        el('devoirModalTitle').innerHTML = '<i class="fas fa-pen"></i> ' + esc(T.editDevoir);
+        el('devoirSaveBtn').innerHTML = '<i class="fas fa-check"></i> ' + esc(T.save);
         el('devoirTypeField').style.display = 'none';
         el('devoirExerciseField').style.display = 'none';
         el('devoirTitle').value = d.title || '';
@@ -231,8 +260,8 @@
         const title = el('devoirTitle').value.trim();
         const due = el('devoirDueDate').value;
         const instructions = el('devoirInstructions').value.trim();
-        if (!title) { notify('error', 'Donne un titre au devoir.'); return; }
-        if (!due) { notify('error', 'Choisis une date de rendu.'); return; }
+        if (!title) { notify('error', T.titleRequired); return; }
+        if (!due) { notify('error', T.dueDateRequired); return; }
 
         const btn = el('devoirSaveBtn'); btn.disabled = true;
         try {
@@ -242,7 +271,7 @@
                     method: 'PUT', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ title, due_date: due, instructions })
                 })).json();
-                if (!j.success) { notify('error', j.error || 'Erreur'); return; }
+                if (!j.success) { notify('error', j.error || T.error); return; }
                 devoirId = state.editingId;
             } else {
                 const checked = document.querySelector('input[name="devoirType"]:checked');
@@ -250,14 +279,14 @@
                 const body = { classroom_id: state.classroomId, type: type, title: title, due_date: due, instructions: instructions };
                 if (type === 'exercise') {
                     const ev = el('devoirExercise').value;
-                    if (!ev) { notify('error', 'Choisis un exercice interactif.'); return; }
+                    if (!ev) { notify('error', T.exerciseRequired); return; }
                     body.exercise_id = ev;
                 }
                 const j = await (await fetch('/api/devoirs/create', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 })).json();
-                if (!j.success) { notify('error', j.error || 'Erreur'); return; }
+                if (!j.success) { notify('error', j.error || T.error); return; }
                 devoirId = j.devoir.id;
             }
 
@@ -271,14 +300,14 @@
                     fd.append('document', df.files[0]);
                     const uj = await (await fetch('/api/devoirs/' + devoirId + '/document',
                         { method: 'POST', body: fd })).json();
-                    if (!uj.success) notify('error', 'Enregistré, mais document non joint : ' + (uj.error || ''));
-                } catch (e2) { notify('error', 'Enregistré, mais document non joint (réseau)'); }
+                    if (!uj.success) notify('error', fmt(T.savedDocFailed, { error: uj.error || '' }));
+                } catch (e2) { notify('error', T.savedDocNetwork); }
             }
-            notify('success', state.editingId ? 'Devoir modifié' : 'Devoir créé');
+            notify('success', state.editingId ? T.devoirUpdated : T.devoirCreated);
             const cb = state.onSaved;
             closeDevoirModal();
             if (typeof cb === 'function') cb();
-        } catch (e) { notify('error', 'Erreur réseau'); }
+        } catch (e) { notify('error', T.networkError); }
         finally { btn.disabled = false; }
     };
 

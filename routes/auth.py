@@ -261,7 +261,7 @@ def verify_email():
             if user.has_premium_access():
                 flash(_('Bienvenue sur ProfCalendar ! 🎉'), 'success')
                 return redirect(url_for('planning.dashboard'))
-            flash(_('Bienvenue sur ProfCalendar ! 🎉 Choisis ton abonnement pour commencer.'), 'success')
+            flash(_('Bienvenue sur ProfCalendar ! 🎉 Choisissez votre abonnement pour commencer.'), 'success')
             return redirect(url_for('subscription.pricing'))
         else:
             flash(_('Code invalide ou expiré.'), 'error')

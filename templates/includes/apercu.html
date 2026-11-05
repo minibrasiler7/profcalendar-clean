@@ -3,19 +3,19 @@
    de l'app iOS. Les vidéos ne citent ni prix ni garantie (autorisées dans l'app).
    Variables facultatives : apercu_compact (bool) masque la seconde vidéo. #}
 {% set apercu_slides = [
-    ('calendrier', _('Le calendrier de la semaine'), _('Chaque période aux couleurs de tes classes, les vacances du canton déjà placées.')),
+    ('calendrier', _('Le calendrier de la semaine'), _('Chaque période aux couleurs de vos classes, les vacances du canton déjà placées.')),
     ('planification', _("La planification d'un cours"), _('Un titre, le déroulement avec des cases à cocher et les documents joints.')),
-    ('cours', _('La page du cours'), _('Ta planification, les documents épinglés et les présences sur un seul écran.')),
-    ('pdf', _('Le lecteur PDF'), _('Annote tes documents : stylo, surligneur, règle et compas en vrais centimètres.')),
+    ('cours', _('La page du cours'), _('Votre planification, les documents épinglés et les présences sur un seul écran.')),
+    ('pdf', _('Le lecteur PDF'), _('Annotez vos documents : stylo, surligneur, règle et compas en vrais centimètres.')),
     ('notes', _('Les notes'), _('Les moyennes se calculent seules et s’exportent en PDF ou en tableur.')),
-    ('plan', _('Le plan de classe'), _('Glisse les élèves sur les tables et retrouve qui est où, d’un coup d’œil.')),
+    ('plan', _('Le plan de classe'), _('Glissez les élèves sur les tables et retrouvez qui est où, d’un coup d’œil.')),
 ] %}
 {# Vidéos dans la langue de la page (fichiers *_en, *_de, *_it, *_es ; français par défaut) #}
 {% set vlang = current_locale if current_locale in ['en', 'de', 'it', 'es'] else 'fr' %}
 {% set vsfx = '' if vlang == 'fr' else '_' ~ vlang %}
 <section class="apercu" id="apercu">
     <div class="apercu-inner">
-        <h2 class="apercu-title">{{ _('Découvre ProfCalendar avant de t’abonner') }}</h2>
+        <h2 class="apercu-title">{{ _('Découvrez ProfCalendar avant de vous abonner') }}</h2>
         <p class="apercu-sub">{{ _('Une vidéo, six écrans réels et un compte d’exemple à explorer librement.') }}</p>
 
         <div class="apercu-videos{% if apercu_compact %} apercu-videos-one{% endif %}">
@@ -57,7 +57,7 @@
 
         <div class="apercu-demo">
             <a href="{{ url_for('demo.start') }}" rel="nofollow" class="apercu-demo-btn"><i class="fas fa-eye"></i> {{ _('Explorer un compte d’exemple') }}</a>
-            <span class="apercu-demo-note">{{ _('Sans inscription : navigue partout, rien n’est enregistré.') }}</span>
+            <span class="apercu-demo-note">{{ _('Sans inscription : naviguez partout, rien n’est enregistré.') }}</span>
         </div>
     </div>
 </section>

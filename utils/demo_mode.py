@@ -29,7 +29,7 @@ def is_demo_session():
 
 
 def _readonly_message():
-    return gettext("Mode démonstration : rien n'est enregistré. Crée ton compte pour utiliser ProfCalendar avec tes classes.")
+    return gettext("Mode démonstration : rien n'est enregistré. Créez votre compte pour utiliser ProfCalendar avec vos classes.")
 
 
 @demo_bp.route('', strict_slashes=False)

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Calendrier - ProfCalendar{% endblock %}
+{% block title %}{{ _('Calendrier') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <!-- Cache busting pour forcer le rechargement -->
@@ -18,6 +18,125 @@
      WKWebView de l'app ne resserve jamais un ancien CSS en cache. -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}?v=1&cache_bust={{ range(1000000, 9999999) | random }}">
 <script>
+// ============================================================
+// Chaînes traduites pour le JS de la page (échappées via |tojson).
+// Les jetons {n}/{name}/{date}/{error}/… sont remplacés en JS par calFmt()
+// (pas de formatage gettext côté JS : accolades, pas de %).
+// ============================================================
+const CAL_I18N = {
+    // Locale des dates formatées par toLocaleDateString()
+    locale: {{ {'fr': 'fr-FR', 'en': 'en-GB', 'de': 'de-CH', 'it': 'it-CH', 'es': 'es-ES'}.get(current_locale or 'fr', 'fr-FR')|tojson }},
+    // Mois abrégés (date d'échéance des devoirs)
+    monthsShort: [
+        {{ _('janv.')|tojson }}, {{ _('févr.')|tojson }}, {{ _('mars')|tojson }}, {{ _('avr.')|tojson }}, {{ _('mai')|tojson }}, {{ _('juin')|tojson }},
+        {{ _('juil.')|tojson }}, {{ _('août')|tojson }}, {{ _('sept.')|tojson }}, {{ _('oct.')|tojson }}, {{ _('nov.')|tojson }}, {{ _('déc.')|tojson }}
+    ],
+    // En-tête, navigation, vues
+    weekShort: {{ _('S{n}')|tojson }},
+    weekOf: {{ _('Semaine du {label}')|tojson }},
+    yearNotConfigured: {{ _('Année scolaire non configurée')|tojson }},
+    viewNormal: {{ _('Vue normale')|tojson }},
+    viewExtended: {{ _('Vue étendue')|tojson }},
+    // Génériques
+    cancel: {{ _('Annuler')|tojson }},
+    save: {{ _('Enregistrer')|tojson }},
+    del: {{ _('Supprimer')|tojson }},
+    open: {{ _('Ouvrir')|tojson }},
+    view: {{ _('Voir')|tojson }},
+    loading: {{ _('Chargement...')|tojson }},
+    unknownError: {{ _('Erreur inconnue')|tojson }},
+    errorWithMsg: {{ _('Erreur : {error}')|tojson }},
+    connectionError: {{ _('Erreur de connexion')|tojson }},
+    serverConnectionError: {{ _('Erreur de connexion au serveur')|tojson }},
+    loadError: {{ _('Erreur lors du chargement')|tojson }},
+    loadErrorHttp: {{ _('Erreur lors du chargement (HTTP {status})')|tojson }},
+    deleteError: {{ _('Erreur lors de la suppression')|tojson }},
+    deleteErrorWithMsg: {{ _('Erreur lors de la suppression : {error}')|tojson }},
+    saveErrorWithMsg: {{ _('Erreur lors de la sauvegarde : {error}')|tojson }},
+    addError: {{ _("Erreur lors de l'ajout")|tojson }},
+    notDefined: {{ _('Non défini')|tojson }},
+    // Fichiers de la classe (panneau latéral)
+    selectClass: {{ _('Veuillez sélectionner une classe')|tojson }},
+    noFilesInClass: {{ _('Aucun fichier dans cette classe')|tojson }},
+    root: {{ _('Racine')|tojson }},
+    pin: {{ _('Épingler')|tojson }},
+    unpin: {{ _('Désépingler')|tojson }},
+    attachToPeriod: {{ _('Joindre à cette période')|tojson }},
+    removeFromClass: {{ _('Supprimer de la classe')|tojson }},
+    pinErrorWithMsg: {{ _("Erreur lors de l'épinglage : {error}")|tojson }},
+    pinError: {{ _("Erreur lors de l'épinglage du fichier")|tojson }},
+    confirmDeleteClassFile: {{ _("Supprimer « {name} » de cette classe ? (le fichier reste dans votre gestionnaire personnel s'il en vient)")|tojson }},
+    file: {{ _('Fichier')|tojson }},
+    ephemeral: {{ _('éphémère')|tojson }},
+    ephemeralTip: {{ _('Supprimé automatiquement le lendemain du cours')|tojson }},
+    removeFromPeriod: {{ _('Retirer de cette période')|tojson }},
+    saveFirstAttach: {{ _("Enregistrez d'abord la planification, puis joignez le fichier.")|tojson }},
+    saveFirstAdd: {{ _("Enregistrez d'abord la planification, puis ajoutez le fichier.")|tojson }},
+    // PDF, annotations et feuilles blanches
+    pdfLoadError: {{ _('Erreur lors du chargement du PDF')|tojson }},
+    pdfLoadErrorWithMsg: {{ _('Erreur lors du chargement du PDF : {error}')|tojson }},
+    pageN: {{ _('Page {n}')|tojson }},
+    saved: {{ _('Sauvegardé')|tojson }},
+    saveError: {{ _('Erreur de sauvegarde')|tojson }},
+    savedOnClose: {{ _('Sauvegarde à la fermeture')|tojson }},
+    confirmClearAnnotations: {{ _('Voulez-vous vraiment effacer toutes les annotations ?')|tojson }},
+    selectDatePeriodFirst: {{ _("Veuillez d'abord sélectionner une date et une période")|tojson }},
+    selectClassFirst: {{ _("Veuillez d'abord sélectionner une classe")|tojson }},
+    unsupportedClassType: {{ _('Type de classe non supporté')|tojson }},
+    blankSheetsLoadError: {{ _('Erreur lors du chargement des feuilles blanches')|tojson }},
+    lessonBlankSheets: {{ _('Feuilles blanches de la leçon')|tojson }},
+    newSheet: {{ _('Nouvelle feuille')|tojson }},
+    sheetLoadErrorWithMsg: {{ _('Erreur lors du chargement de la feuille : {error}')|tojson }},
+    blankSheetLoadError: {{ _('Erreur lors du chargement de la feuille blanche')|tojson }},
+    periodContextUnavailable: {{ _('Contexte de période non disponible')|tojson }},
+    confirmDeleteBlankSheet: {{ _('Êtes-vous sûr de vouloir supprimer cette feuille blanche ? Cette action est irréversible.')|tojson }},
+    blankSheetDeleteError: {{ _('Erreur lors de la suppression de la feuille blanche')|tojson }},
+    // Planification (modales)
+    dayPlanningTitle: {{ _('Planification - {date}')|tojson }},
+    selectClassForSlots: {{ _('Veuillez sélectionner une classe pour voir les créneaux')|tojson }},
+    slotsLoadError: {{ _('Erreur lors du chargement des créneaux')|tojson }},
+    noSlotsToday: {{ _('Aucun créneau configuré pour cette journée')|tojson }},
+    unknownClass: {{ _('Classe inconnue')|tojson }},
+    periodN: {{ _('Période {n}')|tojson }},
+    editSlot: {{ _('Modifier ce créneau')|tojson }},
+    untitled: {{ _('Sans titre')|tojson }},
+    clickToPlan: {{ _('Cliquez pour planifier ce créneau')|tojson }},
+    freeSlot: {{ _('Créneau libre - Cliquez pour ajouter une planification')|tojson }},
+    planSlotPeriod: {{ _('Planifier le créneau - Période {n}')|tojson }},
+    group: {{ _('Groupe')|tojson }},
+    wholeClass: {{ _('Classe entière')|tojson }},
+    groupHelp: {{ _('Sélectionnez un groupe ou laissez "Classe entière" pour tous les élèves')|tojson }},
+    autoApply: {{ _('Application automatique :')|tojson }},
+    repeatSameGroup: {{ _("Répéter le même groupe chaque semaine jusqu'à la fin de l'année")|tojson }},
+    alternateGroups: {{ _('Alterner entre tous les groupes de la classe chaque semaine')|tojson }},
+    applyThisDateOnly: {{ _('Appliquer seulement pour cette date')|tojson }},
+    titleLabel: {{ _('Titre')|tojson }},
+    courseTitle: {{ _('Titre du cours')|tojson }},
+    courseTitlePlaceholder: {{ _('Ex: Introduction aux fractions')|tojson }},
+    description: {{ _('Description')|tojson }},
+    descriptionPlaceholder: {{ _('Détails du cours, exercices prévus...')|tojson }},
+    memosForSlot: {{ _('Mémos pour ce créneau')|tojson }},
+    customTask: {{ _('Tâche personnalisée')|tojson }},
+    other: {{ _('Autre')|tojson }},
+    confirmClearPlanning: {{ _('Effacer la planification de cette période ?')|tojson }},
+    // Présences et devoirs
+    attendanceLoadError: {{ _('Erreur lors du chargement des présences')|tojson }},
+    lateMinutes: {{ _('{n} min')|tojson }},
+    late: {{ _('En retard')|tojson }},
+    noDevoirGivenToday: {{ _('Aucun devoir donné ce jour.')|tojson }},
+    givenTodayDue: {{ _('Donné ce jour · à rendre le {date}')|tojson }},
+    dueToday: {{ _('À rendre ce jour')|tojson }},
+    viewSubmissions: {{ _('Voir les devoirs reçus')|tojson }},
+    viewResults: {{ _('Voir les résultats')|tojson }},
+    chooseClassForSlot: {{ _("Choisissez d'abord une classe pour ce créneau.")|tojson }},
+    noClassForPeriod: {{ _('Aucune classe pour cette période.')|tojson }}
+};
+// Remplace les jetons {cle} d'une chaîne traduite (sans interpréter les $ du remplacement).
+function calFmt(s, params) {
+    return String(s).replace(/\{(\w+)\}/g, function (m, k) {
+        return (params && Object.prototype.hasOwnProperty.call(params, k)) ? String(params[k]) : m;
+    });
+}
 // Configuration du worker PDF.js
 if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1398,7 +1517,7 @@ html.fm-modal-lock #annualCalendarContainer {
 }
 
 .day-schedule-slot.merged-slot::after {
-    content: 'Fusionné';
+    content: "{{ _('Fusionné') }}";
     position: absolute;
     top: 8px;
     right: 8px;
@@ -1804,8 +1923,8 @@ html.fm-modal-lock #annualCalendarContainer {
 <div id="devoirCalModal" class="devoir-cal-overlay" style="display:none;" onclick="if(event.target===this)closeDevoirCalModal()">
     <div class="devoir-cal-box">
         <div class="devoir-cal-head">
-            <strong><i class="fas fa-book"></i> Devoir(s) à rendre</strong>
-            <button type="button" class="devoir-cal-close" onclick="closeDevoirCalModal()" aria-label="Fermer">&times;</button>
+            <strong><i class="fas fa-book"></i> {{ _('Devoir(s) à rendre') }}</strong>
+            <button type="button" class="devoir-cal-close" onclick="closeDevoirCalModal()" aria-label="{{ _('Fermer') }}">&times;</button>
         </div>
         <div id="devoirCalBody"></div>
     </div>
@@ -1817,15 +1936,15 @@ html.fm-modal-lock #annualCalendarContainer {
         const esc = s => (s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
         document.getElementById('devoirCalBody').innerHTML = items.map(function (d) {
             var whenLine = d.when === 'given'
-                ? '<div class="devoir-cal-note" style="margin-bottom:0.45rem;"><i class="fas fa-share"></i> Donné ce jour · à rendre le ' + esc(d.due || '') + '</div>'
-                : '<div class="devoir-cal-note" style="margin-bottom:0.45rem;"><i class="fas fa-flag-checkered"></i> À rendre ce jour</div>';
+                ? '<div class="devoir-cal-note" style="margin-bottom:0.45rem;"><i class="fas fa-share"></i> ' + esc(calFmt(CAL_I18N.givenTodayDue, { date: d.due || '' })) + '</div>'
+                : '<div class="devoir-cal-note" style="margin-bottom:0.45rem;"><i class="fas fa-flag-checkered"></i> ' + esc(CAL_I18N.dueToday) + '</div>';
             return '<div class="devoir-cal-item">' +
                 '<div class="devoir-cal-title"><i class="fas ' + (d.type === 'exercise' ? 'fa-gamepad' : (d.type === 'classic' ? 'fa-list-check' : 'fa-camera')) + '"></i> ' + esc(d.title) + '</div>' +
                 whenLine +
                 (d.type === 'submission'
-                    ? '<a class="devoir-cal-btn" href="/planning/devoir/' + d.id + '/submissions"><i class="fas fa-inbox"></i> Voir les devoirs reçus</a>'
+                    ? '<a class="devoir-cal-btn" href="/planning/devoir/' + d.id + '/submissions"><i class="fas fa-inbox"></i> ' + esc(CAL_I18N.viewSubmissions) + '</a>'
                     : (d.type === 'exercise'
-                        ? '<a class="devoir-cal-btn" href="/planning/devoir/' + d.id + '/resultats"><i class="fas fa-chart-simple"></i> Voir les résultats</a>'
+                        ? '<a class="devoir-cal-btn" href="/planning/devoir/' + d.id + '/resultats"><i class="fas fa-chart-simple"></i> ' + esc(CAL_I18N.viewResults) + '</a>'
                         : '')) +
                 '</div>';
         }).join('');
@@ -1857,7 +1976,7 @@ html.fm-modal-lock #annualCalendarContainer {
 
     window.openDevoirFromPlanningModal = function () {
         const cid = planningModalClassroomId();
-        if (!cid) { showNotification('error', 'Choisis d\'abord une classe pour ce créneau.'); return; }
+        if (!cid) { showNotification('error', CAL_I18N.chooseClassForSlot); return; }
         DevoirModal.open({ classroomId: cid });
     };
 </script>
@@ -1875,8 +1994,8 @@ html.fm-modal-lock #annualCalendarContainer {
             <div class="calendar-page-loader-spinner">
                 <i class="fas fa-calendar-alt"></i>
             </div>
-            <div class="calendar-page-loader-title">Chargement du calendrier…</div>
-            <div class="calendar-page-loader-subtitle">Les données de l'année se mettent en place.</div>
+            <div class="calendar-page-loader-title">{{ _('Chargement du calendrier…') }}</div>
+            <div class="calendar-page-loader-subtitle">{{ _("Les données de l'année se mettent en place.") }}</div>
             <div class="calendar-page-loader-progress">
                 <div class="calendar-page-loader-progress-fill" id="calendarPageLoaderFill"></div>
             </div>
@@ -2030,27 +2149,26 @@ html.fm-modal-lock #annualCalendarContainer {
         <div style="display:flex; align-items:center; gap:0.6rem; min-width:240px; flex:1;">
             <i class="fas fa-sliders-h" style="color:#6366F1;"></i>
             <span style="color:#3730A3; font-size:0.92rem; line-height:1.4;">
-                Ton calendrier utilise des <strong>réglages par défaut</strong>.
-                Personnalise tes données pour qu'il colle à ton établissement&nbsp;:
+                {{ _("Votre calendrier utilise des <strong>réglages par défaut</strong>. Personnalisez vos données pour qu'il colle à votre établissement :") }}
             </span>
         </div>
         <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
             <a href="{{ url_for('schedule.weekly_schedule') }}"
                style="background:#6366F1; color:#fff; text-decoration:none; font-weight:600;
                       padding:0.45rem 0.9rem; border-radius:0.4rem; font-size:0.85rem; white-space:nowrap;">
-                <i class="fas fa-calendar-week"></i> Mon horaire
+                <i class="fas fa-calendar-week"></i> {{ _('Mon horaire') }}
             </a>
             <a href="{{ url_for('setup.manage_breaks') }}"
                style="background:#fff; color:#3730A3; border:1px solid #C7D2FE; text-decoration:none; font-weight:600;
                       padding:0.45rem 0.9rem; border-radius:0.4rem; font-size:0.85rem; white-space:nowrap;">
-                <i class="fas fa-coffee"></i> Mes pauses
+                <i class="fas fa-coffee"></i> {{ _('Mes pauses') }}
             </a>
             <a href="{{ url_for('setup.manage_holidays') }}"
                style="background:#fff; color:#3730A3; border:1px solid #C7D2FE; text-decoration:none; font-weight:600;
                       padding:0.45rem 0.9rem; border-radius:0.4rem; font-size:0.85rem; white-space:nowrap;">
-                <i class="fas fa-umbrella-beach"></i> Mes vacances
+                <i class="fas fa-umbrella-beach"></i> {{ _('Mes vacances') }}
             </a>
-            <button type="button" aria-label="Fermer" onclick="dismissPersoBanner()"
+            <button type="button" aria-label="{{ _('Fermer') }}" onclick="dismissPersoBanner()"
                     style="background:transparent; border:none; cursor:pointer; color:#6366F1; opacity:0.6; font-size:1rem;">
                 <i class="fas fa-times"></i>
             </button>
@@ -2078,24 +2196,24 @@ html.fm-modal-lock #annualCalendarContainer {
             </button>
 
             <h2 class="current-week-title">
-                <span id="weekTitleText">Semaine du {{ week_dates[0] | format_date_full }} au {{ week_dates[4] | format_date }}</span>
+                <span id="weekTitleText">{{ _('Semaine du %(start)s au %(end)s', start=week_dates[0]|format_date_full, end=week_dates[4]|format_date) }}</span>
                 <span class="week-badge-wrap" id="weekBadgeWrap">
                 {% if school_week_number is not none %}
-                <button type="button" class="week-number-badge" id="weekNumberBadge" onclick="toggleWeekPicker(event)" title="Choisir une semaine ou une date">S{{ school_week_number }} <i class="fas fa-caret-down" style="font-size:0.75em;"></i></button>
+                <button type="button" class="week-number-badge" id="weekNumberBadge" onclick="toggleWeekPicker(event)" title="{{ _('Choisir une semaine ou une date') }}">{{ _('S%(n)s', n=school_week_number) }} <i class="fas fa-caret-down" style="font-size:0.75em;"></i></button>
                 {% else %}
-                <button type="button" class="week-number-badge" id="weekNumberBadge" onclick="toggleWeekPicker(event)" title="Choisir une semaine ou une date"><i class="fas fa-calendar-alt"></i> <i class="fas fa-caret-down" style="font-size:0.75em;"></i></button>
+                <button type="button" class="week-number-badge" id="weekNumberBadge" onclick="toggleWeekPicker(event)" title="{{ _('Choisir une semaine ou une date') }}"><i class="fas fa-calendar-alt"></i> <i class="fas fa-caret-down" style="font-size:0.75em;"></i></button>
                 {% endif %}
                 <!-- Sélecteur de semaine (S1, S2, …) + saut à une date -->
                 <div class="week-picker" id="weekPicker" style="display:none;" onclick="event.stopPropagation()">
                     <div class="week-picker-section">
-                        <label class="week-picker-label" for="weekPickerDate"><i class="fas fa-calendar-day"></i> Aller à une date</label>
+                        <label class="week-picker-label" for="weekPickerDate"><i class="fas fa-calendar-day"></i> {{ _('Aller à une date') }}</label>
                         <div class="week-picker-date-row">
                             <input type="date" id="weekPickerDate" class="week-picker-date" onchange="jumpToDate(this.value)" onkeydown="if(event.key==='Enter'){jumpToDate(this.value);}">
                             <button type="button" class="week-picker-go" onclick="jumpToDate(document.getElementById('weekPickerDate').value)"><i class="fas fa-arrow-right"></i></button>
                         </div>
                     </div>
                     <div class="week-picker-section">
-                        <div class="week-picker-label"><i class="fas fa-th"></i> Semaines de l'année</div>
+                        <div class="week-picker-label"><i class="fas fa-th"></i> {{ _("Semaines de l'année") }}</div>
                         <div class="week-picker-grid" id="weekPickerGrid"></div>
                     </div>
                 </div>
@@ -2107,12 +2225,12 @@ html.fm-modal-lock #annualCalendarContainer {
             </button>
 
             <button class="btn btn-primary btn-today" onclick="navigateToToday()">
-                <i class="fas fa-calendar-day"></i> Aujourd'hui
+                <i class="fas fa-calendar-day"></i> {{ _("Aujourd'hui") }}
             </button>
 
-            <button class="btn btn-outline btn-toggle-view" onclick="toggleViewMode()" title="Basculer la vue">
+            <button class="btn btn-outline btn-toggle-view" onclick="toggleViewMode()" title="{{ _('Basculer la vue') }}">
                 <i class="fas fa-expand-alt" id="toggleIcon"></i>
-                <span id="toggleText">Vue étendue</span>
+                <span id="toggleText">{{ _('Vue étendue') }}</span>
             </button>
         </div>
     </div>
@@ -2125,7 +2243,7 @@ html.fm-modal-lock #annualCalendarContainer {
                 <i class="fas fa-spinner fa-spin fa-2x"></i>
             </div>
             <h3 class="section-title">
-                <i class="fas fa-calendar-week"></i> Vue hebdomadaire
+                <i class="fas fa-calendar-week"></i> {{ _('Vue hebdomadaire') }}
             </h3>
 
             <div class="weekly-schedule" id="weeklyScheduleContainer">
@@ -2136,7 +2254,7 @@ html.fm-modal-lock #annualCalendarContainer {
         <!-- Vue annuelle par classe -->
         <div class="annual-view">
             <h3 class="section-title">
-                <i class="fas fa-calendar-alt"></i> Vue annuelle
+                <i class="fas fa-calendar-alt"></i> {{ _('Vue annuelle') }}
             </h3>
 
             <!-- Onglets des classes et groupes mixtes -->
@@ -2167,27 +2285,27 @@ html.fm-modal-lock #annualCalendarContainer {
             <div class="annual-legend">
                 <div class="legend-item">
                     <div class="legend-box has-class"></div>
-                    <span>Jour avec cours</span>
+                    <span>{{ _('Jour avec cours') }}</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-box"></div>
-                    <span>Jour sans cours</span>
+                    <span>{{ _('Jour sans cours') }}</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-box today"></div>
-                    <span>Aujourd'hui</span>
+                    <span>{{ _("Aujourd'hui") }}</span>
                 </div>
                 <div class="legend-item">
                     <i class="fas fa-check-circle" style="color: #10B981;"></i>
-                    <span>Tâches complétées</span>
+                    <span>{{ _('Tâches complétées') }}</span>
                 </div>
                 <div class="legend-item">
                     <i class="fas fa-tasks" style="color: #F59E0B;"></i>
-                    <span>Tâches en cours</span>
+                    <span>{{ _('Tâches en cours') }}</span>
                 </div>
                 <div class="legend-item">
                     <i class="fas fa-times-circle" style="color: #EF4444;"></i>
-                    <span>Tâches non commencées</span>
+                    <span>{{ _('Tâches non commencées') }}</span>
                 </div>
             </div>
         </div>
@@ -2202,11 +2320,11 @@ html.fm-modal-lock #annualCalendarContainer {
     <div class="modal-content" id="planningModalContent">
         <div class="modal-header planning-modal-header">
             <div>
-                <div class="pm-kicker"><i class="fas fa-calendar-day"></i> Planification</div>
-                <h3 id="modalTitle">Planifier le cours</h3>
+                <div class="pm-kicker"><i class="fas fa-calendar-day"></i> {{ _('Planification') }}</div>
+                <h3 id="modalTitle">{{ _('Planifier le cours') }}</h3>
             </div>
             <div class="modal-header-actions">
-                <button class="btn-icon" onclick="toggleSplitView()" title="Afficher/Masquer les fichiers">
+                <button class="btn-icon" onclick="toggleSplitView()" title="{{ _('Afficher/Masquer les fichiers') }}">
                     <i class="fas fa-folder-open"></i>
                 </button>
                 <button class="modal-close" onclick="closePlanningModal()">
@@ -2221,10 +2339,10 @@ html.fm-modal-lock #annualCalendarContainer {
                 <h4 style="color: #f59e0b; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
                     <span>
                         <i class="fas fa-file" style="margin-right: 0.5rem;"></i>
-                        Feuilles blanches (<span id="modalBlankSheetsCount">0</span>)
+                        {{ _('Feuilles blanches') }} (<span id="modalBlankSheetsCount">0</span>)
                     </span>
                     <button type="button" class="btn btn-sm btn-primary" onclick="createNewBlankSheetFromPlanningModal()" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
-                        <i class="fas fa-plus"></i> Nouvelle
+                        <i class="fas fa-plus"></i> {{ _('Nouvelle') }}
                     </button>
                 </h4>
                 <div id="modalBlankSheetsList" style="display: grid; gap: 0.5rem;">
@@ -2237,12 +2355,12 @@ html.fm-modal-lock #annualCalendarContainer {
                 <h4 style="color: #6366F1; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
                     <span>
                         <i class="fas fa-paperclip" style="margin-right: 0.5rem;"></i>
-                        Fichiers joints (<span id="modalAttachedCount">0</span>)
+                        {{ _('Fichiers joints') }} (<span id="modalAttachedCount">0</span>)
                     </span>
                     <button type="button" class="btn btn-sm" onclick="document.getElementById('ephemeralFileInput').click()"
-                            title="Ajouter un fichier depuis votre ordinateur, supprimé automatiquement le lendemain du cours"
+                            title="{{ _('Ajouter un fichier depuis votre ordinateur, supprimé automatiquement le lendemain du cours') }}"
                             style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; border-radius: 0.375rem; cursor: pointer;">
-                        <i class="fas fa-hourglass-half"></i> Fichier éphémère
+                        <i class="fas fa-hourglass-half"></i> {{ _('Fichier éphémère') }}
                     </button>
                 </h4>
                 <input type="file" id="ephemeralFileInput" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" style="display: none;" onchange="uploadEphemeralFromModal(event)">
@@ -2252,18 +2370,18 @@ html.fm-modal-lock #annualCalendarContainer {
             <div class="form-group">
                 <div class="ptype-toggle">
                     <button type="button" class="ptype-btn active" id="ptypeCoursBtn" onclick="setPlanningType('cours')">
-                        <i class="fas fa-book-open"></i> Cours
+                        <i class="fas fa-book-open"></i> {{ _('Cours') }}
                     </button>
                     <button type="button" class="ptype-btn" id="ptypeTacheBtn" onclick="setPlanningType('tache')">
-                        <i class="far fa-calendar-check"></i> Tâche perso
+                        <i class="far fa-calendar-check"></i> {{ _('Tâche perso') }}
                     </button>
                 </div>
             </div>
 
             <div class="form-group" id="classSelectGroup">
-                <label class="form-label">Classe</label>
+                <label class="form-label">{{ _('Classe') }}</label>
                 <select id="modalClassroom" class="form-control" onchange="loadGroupsForClass(this.value); syncPlanningDevoirBtn()">
-                    <option value="">-- Sélectionner une classe --</option>
+                    <option value="">{{ _('-- Sélectionner une classe --') }}</option>
                     {% for item in classrooms_json %}
                     <option value="{{ item.type }}_{{ item.id }}" data-color="{{ item.color }}" data-type="{{ item.type }}">
                         {% if item.type == 'mixed_group' %}👥 {% endif %}{{ item.name }} - {{ item.subject }}
@@ -2277,65 +2395,65 @@ html.fm-modal-lock #annualCalendarContainer {
                        vraiment la sélection. La valeur reste réglable en JS
                        (setPlanningType). #}
                     <option value="custom_task" data-color="#6B7280" data-type="custom" disabled hidden>
-                        📝 Autre
+                        📝 {{ _('Autre') }}
                     </option>
                 </select>
             </div>
 
             <div class="form-group" id="groupSelectionDiv" style="display: none;">
-                <label class="form-label">Groupe</label>
+                <label class="form-label">{{ _('Groupe') }}</label>
                 <select id="modalGroup" class="form-control" onchange="toggleGroupRepeatOptions()">
-                    <option value="">Classe entière</option>
+                    <option value="">{{ _('Classe entière') }}</option>
                 </select>
-                <small class="form-text text-muted">Sélectionnez un groupe ou laissez "Classe entière" pour tous les élèves</small>
+                <small class="form-text text-muted">{{ _('Sélectionnez un groupe ou laissez "Classe entière" pour tous les élèves') }}</small>
                 
                 <!-- Options de répétition des groupes -->
                 <div id="groupRepeatOptions" style="display: none; margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 4px;">
-                    <label class="form-label" style="font-weight: 600; margin-bottom: 8px; display: block;">Application automatique :</label>
+                    <label class="form-label" style="font-weight: 600; margin-bottom: 8px; display: block;">{{ _('Application automatique :') }}</label>
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         <label style="display: flex; align-items: center; cursor: pointer;">
                             <input type="radio" name="groupRepeat" value="same" style="margin-right: 8px;">
-                            <span>Répéter le même groupe chaque semaine jusqu'à la fin de l'année</span>
+                            <span>{{ _("Répéter le même groupe chaque semaine jusqu'à la fin de l'année") }}</span>
                         </label>
                         <label style="display: flex; align-items: center; cursor: pointer;">
                             <input type="radio" name="groupRepeat" value="alternate" style="margin-right: 8px;">
-                            <span>Alterner entre tous les groupes de la classe chaque semaine</span>
+                            <span>{{ _('Alterner entre tous les groupes de la classe chaque semaine') }}</span>
                         </label>
                         <label style="display: flex; align-items: center; cursor: pointer;">
                             <input type="radio" name="groupRepeat" value="none" checked style="margin-right: 8px;">
-                            <span>Appliquer seulement pour cette date</span>
+                            <span>{{ _('Appliquer seulement pour cette date') }}</span>
                         </label>
                     </div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">Titre du cours</label>
+                <label class="form-label">{{ _('Titre du cours') }}</label>
                 <input type="text" id="modalPlanningTitle" class="form-control"
-                       placeholder="Ex: Introduction aux fractions">
+                       placeholder="{{ _('Ex: Introduction aux fractions') }}">
             </div>
 
             <div class="form-group" id="taskTimeFields" style="display: none;">
-                <label class="form-label">Horaire (facultatif)</label>
+                <label class="form-label">{{ _('Horaire (facultatif)') }}</label>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <input type="time" id="taskStartTime" class="form-control" style="max-width: 150px;">
                     <span style="color: var(--gray-color);">–</span>
                     <input type="time" id="taskEndTime" class="form-control" style="max-width: 150px;">
                 </div>
-                <small class="form-text text-muted">Ex : une réunion de 14h00 à 15h30 — affiché sur le calendrier.</small>
+                <small class="form-text text-muted">{{ _('Ex : une réunion de 14h00 à 15h30 — affiché sur le calendrier.') }}</small>
             </div>
 
             <div class="form-group" id="modalDescriptionContainer">
-                <label class="form-label">Description</label>
+                <label class="form-label">{{ _('Description') }}</label>
                 <textarea id="modalDescription" class="form-control" rows="3"
-                          placeholder="Détails du cours, exercices prévus..."></textarea>
-                <small class="form-text text-muted"><i class="far fa-lightbulb"></i> Astuce : commencez une ligne par « - [ ] » pour créer une case à cocher.</small>
+                          placeholder="{{ _('Détails du cours, exercices prévus...') }}"></textarea>
+                <small class="form-text text-muted"><i class="far fa-lightbulb"></i> {{ _('Astuce : commencez une ligne par « - [ ] » pour créer une case à cocher.') }}</small>
             </div>
 
             <!-- Section mémos -->
             <div class="form-group" id="modalMemosSection" style="display: none; margin-top: 20px; padding: 15px; background-color: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
                 <label class="form-label" style="color: #92400E; font-weight: 600;">
-                    <i class="fas fa-sticky-note"></i> Mémos pour ce créneau
+                    <i class="fas fa-sticky-note"></i> {{ _('Mémos pour ce créneau') }}
                 </label>
                 <div id="modalMemosList" style="margin-top: 10px;">
                     <!-- Les mémos seront insérés ici par JavaScript -->
@@ -2348,17 +2466,17 @@ html.fm-modal-lock #annualCalendarContainer {
                de cette période. Masqué tant qu'aucune classe n'est choisie. #}
             <button type="button" class="btn-devoir-create" id="planningDevoirBtn"
                     style="margin-right: auto; display: none;" onclick="openDevoirFromPlanningModal()">
-                <i class="fas fa-plus"></i> Créer un devoir
+                <i class="fas fa-plus"></i> {{ _('Créer un devoir') }}
             </button>
-            <button class="btn btn-outline" onclick="closePlanningModal()">Annuler</button>
+            <button class="btn btn-outline" onclick="closePlanningModal()">{{ _('Annuler') }}</button>
             {# Bouton "Effacer" : visible seulement quand une planification existe
                déjà sur la période (classe ou titre rempli). Activé/désactivé
                dynamiquement par openPlanningModal en fonction du contenu. #}
             <button class="btn btn-danger" id="planningClearBtn" onclick="clearPlanningFromModal()" style="display: none;">
-                <i class="fas fa-trash-alt"></i> Effacer
+                <i class="fas fa-trash-alt"></i> {{ _('Effacer') }}
             </button>
             <button class="btn btn-primary" onclick="savePlanning()">
-                <i class="fas fa-save"></i> Enregistrer
+                <i class="fas fa-save"></i> {{ _('Enregistrer') }}
             </button>
         </div>
     </div>
@@ -2366,12 +2484,12 @@ html.fm-modal-lock #annualCalendarContainer {
     <!-- Panneau gestionnaire de fichiers (caché par défaut) -->
     <div class="file-manager-panel" id="fileManagerPanel" style="display: none;">
         <div class="file-manager-header">
-            <h3><i class="fas fa-folder-open"></i> Fichiers de la classe</h3>
+            <h3><i class="fas fa-folder-open"></i> {{ _('Fichiers de la classe') }}</h3>
             <div style="display: flex; gap: 0.5rem;">
-                <button class="btn-icon" onclick="openBlankPagesCalendar()" title="Créer des feuilles blanches">
+                <button class="btn-icon" onclick="openBlankPagesCalendar()" title="{{ _('Créer des feuilles blanches') }}">
                     <i class="fas fa-file-medical"></i>
                 </button>
-                <button class="btn-icon" onclick="toggleSplitView()" title="Fermer">
+                <button class="btn-icon" onclick="toggleSplitView()" title="{{ _('Fermer') }}">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -2380,14 +2498,14 @@ html.fm-modal-lock #annualCalendarContainer {
             <!-- Chargement initial -->
             <div class="file-loading" id="fileLoading">
                 <i class="fas fa-spinner fa-spin"></i>
-                <p>Chargement des fichiers...</p>
+                <p>{{ _('Chargement des fichiers...') }}</p>
             </div>
 
             <!-- Fichiers épinglés -->
             <div class="pinned-resources" id="pinnedResources" style="display: none;">
                 <div class="pinned-header">
                     <i class="fas fa-thumbtack"></i>
-                    <span>Fichiers épinglés</span>
+                    <span>{{ _('Fichiers épinglés') }}</span>
                 </div>
                 <div class="pinned-list" id="pinnedList">
                     <!-- Les fichiers épinglés seront chargés ici -->
@@ -2398,7 +2516,7 @@ html.fm-modal-lock #annualCalendarContainer {
             <div class="file-navigation" id="fileNavigation" style="display: none;">
                 <div class="breadcrumb" id="fileBreadcrumb">
                     <span class="breadcrumb-item active" data-path="" onclick="navigateToFileFolder('')">
-                        <i class="fas fa-home"></i> Racine
+                        <i class="fas fa-home"></i> {{ _('Racine') }}
                     </span>
                 </div>
             </div>
@@ -2411,7 +2529,7 @@ html.fm-modal-lock #annualCalendarContainer {
             <!-- État vide -->
             <div class="no-files" id="noFiles" style="display: none;">
                 <i class="fas fa-folder-open"></i>
-                <p>Aucun fichier dans cette classe</p>
+                <p>{{ _('Aucun fichier dans cette classe') }}</p>
             </div>
         </div>
     </div>
@@ -2429,9 +2547,9 @@ html.fm-modal-lock #annualCalendarContainer {
 <div class="planning-modal" id="dayPlanningModal">
     <div class="modal-content" id="dayModalContent">
         <div class="modal-header">
-            <h3 id="dayModalTitle">Planification de la journée</h3>
+            <h3 id="dayModalTitle">{{ _('Planification de la journée') }}</h3>
             <div class="modal-header-actions">
-                <button class="btn-icon" onclick="toggleDaySplitView()" title="Afficher/Masquer les fichiers">
+                <button class="btn-icon" onclick="toggleDaySplitView()" title="{{ _('Afficher/Masquer les fichiers') }}">
                     <i class="fas fa-folder-open"></i>
                 </button>
                 <button class="modal-close" onclick="closeDayPlanningModal()">
@@ -2442,9 +2560,9 @@ html.fm-modal-lock #annualCalendarContainer {
 
         <div class="modal-body">
             <div class="form-group">
-                <label class="form-label">Classe sélectionnée</label>
+                <label class="form-label">{{ _('Classe sélectionnée') }}</label>
                 <select id="dayModalClassroom" class="form-control" disabled>
-                    <option value="">-- Classe prédéfinie --</option>
+                    <option value="">{{ _('-- Classe prédéfinie --') }}</option>
                     {% for item in classrooms_json %}
                     <option value="{{ item.type }}_{{ item.id }}" data-color="{{ item.color }}" data-type="{{ item.type }}">
                         {% if item.type == 'mixed_group' %}👥 {% endif %}{{ item.name }} - {{ item.subject }}
@@ -2459,15 +2577,15 @@ html.fm-modal-lock #annualCalendarContainer {
         </div>
 
         <div class="modal-footer">
-            <button class="btn btn-outline" onclick="closeDayPlanningModal()">Fermer</button>
+            <button class="btn btn-outline" onclick="closeDayPlanningModal()">{{ _('Fermer') }}</button>
         </div>
     </div>
 
     <!-- Panneau gestionnaire de fichiers pour la vue journalière -->
     <div class="file-manager-panel" id="dayFileManagerPanel" style="display: none;">
         <div class="file-manager-header">
-            <h3><i class="fas fa-folder-open"></i> Fichiers de la classe</h3>
-            <button class="btn-icon" onclick="toggleDaySplitView()" title="Fermer">
+            <h3><i class="fas fa-folder-open"></i> {{ _('Fichiers de la classe') }}</h3>
+            <button class="btn-icon" onclick="toggleDaySplitView()" title="{{ _('Fermer') }}">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -2475,14 +2593,14 @@ html.fm-modal-lock #annualCalendarContainer {
             <!-- Chargement initial -->
             <div class="file-loading" id="dayFileLoading">
                 <i class="fas fa-spinner fa-spin"></i>
-                <p>Chargement des fichiers...</p>
+                <p>{{ _('Chargement des fichiers...') }}</p>
             </div>
 
             <!-- Fichiers épinglés -->
             <div class="pinned-resources" id="dayPinnedResources" style="display: none;">
                 <div class="pinned-header">
                     <i class="fas fa-thumbtack"></i>
-                    <span>Fichiers épinglés</span>
+                    <span>{{ _('Fichiers épinglés') }}</span>
                 </div>
                 <div class="pinned-list" id="dayPinnedList">
                     <!-- Les fichiers épinglés seront chargés ici -->
@@ -2493,7 +2611,7 @@ html.fm-modal-lock #annualCalendarContainer {
             <div class="file-navigation" id="dayFileNavigation" style="display: none;">
                 <div class="breadcrumb" id="dayFileBreadcrumb">
                     <span class="breadcrumb-item active" data-path="" onclick="navigateToDayFileFolder('')">
-                        <i class="fas fa-home"></i> Racine
+                        <i class="fas fa-home"></i> {{ _('Racine') }}
                     </span>
                 </div>
             </div>
@@ -2506,7 +2624,7 @@ html.fm-modal-lock #annualCalendarContainer {
             <!-- État vide -->
             <div class="no-files" id="dayNoFiles" style="display: none;">
                 <i class="fas fa-folder-open"></i>
-                <p>Aucun fichier dans cette classe</p>
+                <p>{{ _('Aucun fichier dans cette classe') }}</p>
             </div>
         </div>
     </div>
@@ -2518,7 +2636,7 @@ html.fm-modal-lock #annualCalendarContainer {
 <div class="planning-modal" id="attendanceModal" style="display: none;">
     <div class="modal-content" id="attendanceModalContent">
         <div class="modal-header">
-            <h3 id="attendanceModalTitle">Présences de la période</h3>
+            <h3 id="attendanceModalTitle">{{ _('Présences de la période') }}</h3>
             <div class="modal-header-actions">
                 <button class="modal-close" onclick="closeAttendanceModal()">
                     <i class="fas fa-times"></i>
@@ -2529,7 +2647,7 @@ html.fm-modal-lock #annualCalendarContainer {
         <div class="modal-body">
             <div id="attendanceLoadingState" style="text-align: center; padding: 2rem;">
                 <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i>
-                <p style="margin-top: 1rem; color: var(--text-muted);">Chargement des présences...</p>
+                <p style="margin-top: 1rem; color: var(--text-muted);">{{ _('Chargement des présences...') }}</p>
             </div>
 
             <div id="attendanceContent" style="display: none;">
@@ -2538,10 +2656,10 @@ html.fm-modal-lock #annualCalendarContainer {
                     <h4 style="color: #f59e0b; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
                         <span>
                             <i class="fas fa-file" style="margin-right: 0.5rem;"></i>
-                            Feuilles blanches (<span id="blankSheetsCount">0</span>)
+                            {{ _('Feuilles blanches') }} (<span id="blankSheetsCount">0</span>)
                         </span>
                         <button class="btn btn-sm btn-primary" onclick="createNewBlankSheetFromModal()" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
-                            <i class="fas fa-plus"></i> Nouvelle
+                            <i class="fas fa-plus"></i> {{ _('Nouvelle') }}
                         </button>
                     </h4>
                     <div id="blankSheetsList" style="display: grid; gap: 0.5rem;">
@@ -2549,7 +2667,7 @@ html.fm-modal-lock #annualCalendarContainer {
                     </div>
                     <div id="noBlankSheetsMessage" style="display: none; text-align: center; padding: 1rem; background: #fef3c7; border-radius: 0.5rem; color: #92400e;">
                         <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
-                        Aucune feuille blanche pour cette période
+                        {{ _('Aucune feuille blanche pour cette période') }}
                     </div>
                 </div>
 
@@ -2557,7 +2675,7 @@ html.fm-modal-lock #annualCalendarContainer {
                 <div id="planningSection" style="display: none; margin-bottom: 1.5rem;">
                     <h4 style="color: var(--primary-color); margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
                         <i class="fas fa-clipboard-list" style="margin-right: 0.5rem;"></i>
-                        Planification
+                        {{ _('Planification') }}
                     </h4>
                     <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; border-left: 4px solid var(--primary-color);">
                         <div id="planningTitle" style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);"></div>
@@ -2568,9 +2686,9 @@ html.fm-modal-lock #annualCalendarContainer {
                 <!-- Devoirs : donnés ce jour (annotation) + bouton créer -->
                 <div id="periodDevoirsSection" style="margin-bottom: 1.5rem;">
                     <h4 style="color: #6366F1; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
-                        <span><i class="fas fa-book" style="margin-right: 0.5rem;"></i> Devoirs</span>
+                        <span><i class="fas fa-book" style="margin-right: 0.5rem;"></i> {{ _('Devoirs') }}</span>
                         <button type="button" class="btn btn-sm btn-primary" onclick="openCalDevoirModal()" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
-                            <i class="fas fa-plus"></i> Créer un devoir
+                            <i class="fas fa-plus"></i> {{ _('Créer un devoir') }}
                         </button>
                     </h4>
                     <div id="periodDevoirsGiven" style="display: grid; gap: 0.5rem;">
@@ -2582,7 +2700,7 @@ html.fm-modal-lock #annualCalendarContainer {
                 <div id="completedTasksSection" style="display: none; margin-bottom: 1.5rem;">
                     <h4 style="color: #16a34a; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
                         <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>
-                        Tâches réalisées (<span id="completedCount">0</span>)
+                        {{ _('Tâches réalisées') }} (<span id="completedCount">0</span>)
                     </h4>
                     <div id="completedTasksList" style="display: grid; gap: 0.5rem;">
                         <!-- Les tâches complétées seront ajoutées ici -->
@@ -2593,7 +2711,7 @@ html.fm-modal-lock #annualCalendarContainer {
                 <div id="incompleteTasksSection" style="display: none; margin-bottom: 1.5rem;">
                     <h4 style="color: #dc2626; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
                         <i class="fas fa-times-circle" style="margin-right: 0.5rem;"></i>
-                        Tâches non réalisées (<span id="incompleteCount">0</span>)
+                        {{ _('Tâches non réalisées') }} (<span id="incompleteCount">0</span>)
                     </h4>
                     <div id="incompleteTasksList" style="display: grid; gap: 0.5rem;">
                         <!-- Les tâches non complétées seront ajoutées ici -->
@@ -2604,7 +2722,7 @@ html.fm-modal-lock #annualCalendarContainer {
                 <div id="absentStudentsSection" style="display: none; margin-bottom: 1.5rem;">
                     <h4 style="color: #dc2626; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
                         <i class="fas fa-user-times" style="margin-right: 0.5rem;"></i>
-                        Élèves absents (<span id="absentCount">0</span>)
+                        {{ _('Élèves absents') }} (<span id="absentCount">0</span>)
                     </h4>
                     <div id="absentStudentsList" style="display: grid; gap: 0.5rem;">
                         <!-- Les élèves absents seront ajoutés ici -->
@@ -2615,7 +2733,7 @@ html.fm-modal-lock #annualCalendarContainer {
                 <div id="lateStudentsSection" style="display: none; margin-bottom: 1.5rem;">
                     <h4 style="color: #ea580c; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
                         <i class="fas fa-clock" style="margin-right: 0.5rem;"></i>
-                        Élèves en retard (<span id="lateCount">0</span>)
+                        {{ _('Élèves en retard') }} (<span id="lateCount">0</span>)
                     </h4>
                     <div id="lateStudentsList" style="display: grid; gap: 0.5rem;">
                         <!-- Les élèves en retard seront ajoutés ici -->
@@ -2625,7 +2743,7 @@ html.fm-modal-lock #annualCalendarContainer {
                 <!-- Message si tous présents -->
                 <div id="allPresentMessage" style="display: none; text-align: center; padding: 2rem;">
                     <i class="fas fa-check-circle" style="font-size: 3rem; color: #16a34a; margin-bottom: 1rem;"></i>
-                    <p style="color: var(--text-secondary); font-size: 1.1rem;">Tous les élèves étaient présents</p>
+                    <p style="color: var(--text-secondary); font-size: 1.1rem;">{{ _('Tous les élèves étaient présents') }}</p>
                 </div>
 
                 <!-- Message d'erreur -->
@@ -2637,7 +2755,7 @@ html.fm-modal-lock #annualCalendarContainer {
         </div>
 
         <div class="modal-footer">
-            <button class="btn btn-outline" onclick="closeAttendanceModal()">Fermer</button>
+            <button class="btn btn-outline" onclick="closeAttendanceModal()">{{ _('Fermer') }}</button>
         </div>
     </div>
 </div>
@@ -2799,7 +2917,7 @@ async function fetchWeekFragment(weekStartDate, opts = {}) {
         const weekBadge = document.getElementById('weekNumberBadge');
         if (weekBadge) {
             if (data.week_number !== null && data.week_number !== undefined) {
-                weekBadge.textContent = 'S' + data.week_number;
+                weekBadge.textContent = calFmt(CAL_I18N.weekShort, { n: data.week_number });
                 weekBadge.style.display = '';
             } else {
                 weekBadge.style.display = 'none';
@@ -2877,16 +2995,16 @@ function buildWeekPickerGrid() {
     if (!grid) return;
     grid.innerHTML = '';
     if (!schoolWeeks.length) {
-        grid.innerHTML = '<div style="grid-column:1/-1;color:#9CA3AF;font-size:0.8rem;">Année scolaire non configurée</div>';
+        grid.innerHTML = '<div style="grid-column:1/-1;color:#9CA3AF;font-size:0.8rem;">' + CAL_I18N.yearNotConfigured + '</div>';
         return;
     }
     schoolWeeks.forEach(w => {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'week-picker-item' + (w.monday === currentDisplayedWeek ? ' current' : '');
-        b.innerHTML = 'S' + w.number + '<small></small>';
+        b.innerHTML = calFmt(CAL_I18N.weekShort, { n: w.number }) + '<small></small>';
         b.querySelector('small').textContent = w.label;
-        b.title = 'Semaine du ' + w.label;
+        b.title = calFmt(CAL_I18N.weekOf, { label: w.label });
         b.onclick = () => { closeWeekPicker(); fetchWeekFragment(w.monday); };
         grid.appendChild(b);
     });
@@ -2984,11 +3102,11 @@ function toggleViewMode() {
     if (isExtendedView) {
         calendarMain.classList.add('extended-view');
         toggleIcon.className = 'fas fa-compress-alt';
-        toggleText.textContent = 'Vue normale';
+        toggleText.textContent = CAL_I18N.viewNormal;
     } else {
         calendarMain.classList.remove('extended-view');
         toggleIcon.className = 'fas fa-expand-alt';
-        toggleText.textContent = 'Vue étendue';
+        toggleText.textContent = CAL_I18N.viewExtended;
     }
 
     // Sauvegarder la préférence
@@ -3401,7 +3519,7 @@ function toggleSplitView() {
             document.getElementById('noFiles').style.display = 'block';
             document.getElementById('noFiles').innerHTML = `
                 <i class="fas fa-exclamation-circle"></i>
-                <p>Veuillez sélectionner une classe</p>
+                <p>${CAL_I18N.selectClass}</p>
             `;
         }
     } else {
@@ -3510,12 +3628,12 @@ function renderPinnedFiles(pinnedFiles) {
                 <div class="file-actions">
                     <button class="file-action-btn pinned"
                             onclick="togglePinFile(${file.id})"
-                            title="Désépingler">
+                            title="${CAL_I18N.unpin}">
                         <i class="fas fa-thumbtack"></i>
                     </button>
                     <button class="file-action-btn"
                             onclick="openPdfInViewer(${file.id}, '${file.original_filename}')"
-                            title="Ouvrir">
+                            title="${CAL_I18N.open}">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
@@ -3552,11 +3670,11 @@ async function togglePinFile(fileId) {
             }
         } else {
             console.error('❌ Erreur:', result.message);
-            alert('Erreur lors de l\'épinglage: ' + result.message);
+            alert(calFmt(CAL_I18N.pinErrorWithMsg, { error: result.message }));
         }
     } catch (error) {
         console.error('❌ Erreur lors de l\'épinglage:', error);
-        alert('Erreur lors de l\'épinglage du fichier');
+        alert(CAL_I18N.pinError);
     }
 }
 
@@ -3682,17 +3800,17 @@ function renderFileTree(files, currentPath = '') {
             <div class="file-actions">
                 <button class="file-action-btn"
                         onclick="event.stopPropagation(); attachFileToSlot(${file.id}, '${(file.original_filename || '').replace(/'/g, "\\'")}', '${file.file_type}')"
-                        title="Joindre à cette période">
+                        title="${CAL_I18N.attachToPeriod}">
                     <i class="fas fa-paperclip"></i>
                 </button>
                 <button class="file-action-btn"
                         onclick="event.stopPropagation(); deleteClassPanelFile(${file.id}, '${file.source || ''}', '${(file.original_filename || '').replace(/'/g, "\\'")}')"
-                        title="Supprimer de la classe" style="color: #DC2626;">
+                        title="${CAL_I18N.removeFromClass}" style="color: #DC2626;">
                     <i class="fas fa-trash"></i>
                 </button>
                 <button class="file-action-btn ${file.is_pinned ? 'pinned' : ''}"
                         onclick="event.stopPropagation(); togglePinFile(${file.id})"
-                        title="${file.is_pinned ? 'Désépingler' : 'Épingler'}">
+                        title="${file.is_pinned ? CAL_I18N.unpin : CAL_I18N.pin}">
                     <i class="fas fa-thumbtack"></i>
                 </button>
             </div>
@@ -3747,7 +3865,7 @@ function updateBreadcrumb(path) {
     // Racine
     const rootItem = document.createElement('span');
     rootItem.className = 'breadcrumb-item';
-    rootItem.innerHTML = '<i class="fas fa-home"></i> Racine';
+    rootItem.innerHTML = '<i class="fas fa-home"></i> ' + CAL_I18N.root;
     rootItem.onclick = () => navigateToFolder('');
     breadcrumb.appendChild(rootItem);
     
@@ -3856,7 +3974,7 @@ async function openPdfInViewer(fileId, fileName, pdfUrlOverride) {
         console.log('✅ CleanPDFViewer créé avec succès');
     } catch (error) {
         console.error('❌ Erreur lors du chargement du PDF:', error);
-        alert('Erreur lors du chargement du PDF: ' + error.message);
+        alert(calFmt(CAL_I18N.pdfLoadErrorWithMsg, { error: error.message }));
     }
 }
 
@@ -3869,14 +3987,14 @@ async function openBlankPagesCalendar() {
 
     // Vérifier qu'on a les informations nécessaires
     if (!currentModalDate || !currentModalPeriod) {
-        alert('Veuillez d\'abord sélectionner une date et une période');
+        alert(CAL_I18N.selectDatePeriodFirst);
         return;
     }
 
     // Récupérer l'ID de la classe sélectionnée dans le modal
     const modalClassroom = document.getElementById('modalClassroom');
     if (!modalClassroom || !modalClassroom.value) {
-        alert('Veuillez d\'abord sélectionner une classe');
+        alert(CAL_I18N.selectClassFirst);
         return;
     }
 
@@ -3888,7 +4006,7 @@ async function openBlankPagesCalendar() {
     } else if (classroomValue.startsWith('mixed_group_')) {
         classroomId = classroomValue.replace('mixed_group_', '');
     } else {
-        alert('Type de classe non supporté');
+        alert(CAL_I18N.unsupportedClassType);
         return;
     }
 
@@ -3906,7 +4024,7 @@ async function openBlankPagesCalendar() {
         }
     } catch (error) {
         console.error('Erreur lors du chargement des feuilles blanches:', error);
-        alert('Erreur lors du chargement des feuilles blanches');
+        alert(CAL_I18N.blankSheetsLoadError);
     }
 }
 
@@ -3919,7 +4037,7 @@ function displayBlankSheetsMenuCalendar(sheets, lessonDate, periodNumber, classr
     menu.className = 'blank-sheets-menu';
     menu.innerHTML = `
         <div class="menu-header">
-            <h4>Feuilles blanches de la leçon</h4>
+            <h4>${CAL_I18N.lessonBlankSheets}</h4>
             <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6B7280;">×</button>
         </div>
         <div class="menu-list" style="max-height: 300px; overflow-y: auto; margin: 1rem 0;">
@@ -3932,7 +4050,7 @@ function displayBlankSheetsMenuCalendar(sheets, lessonDate, periodNumber, classr
             `).join('')}
         </div>
         <button class="btn-primary" onclick="openNewBlankSheetCalendar('${lessonDate}', ${periodNumber}, ${classroomId}); this.parentElement.remove();" style="width: 100%; margin-top: 1rem;">
-            <i class="fas fa-plus"></i> Nouvelle feuille
+            <i class="fas fa-plus"></i> ${CAL_I18N.newSheet}
         </button>
     `;
 
@@ -4021,7 +4139,7 @@ async function openExistingBlankSheetCalendar(sheetId) {
         const data = await response.json();
 
         if (!data.success) {
-            alert('Erreur lors du chargement de la feuille: ' + (data.message || 'Erreur inconnue'));
+            alert(calFmt(CAL_I18N.sheetLoadErrorWithMsg, { error: data.message || CAL_I18N.unknownError }));
             return;
         }
 
@@ -4092,7 +4210,7 @@ async function openExistingBlankSheetCalendar(sheetId) {
         console.log('✅ Feuille blanche chargée');
     } catch (error) {
         console.error('Erreur lors du chargement de la feuille blanche:', error);
-        alert('Erreur lors du chargement de la feuille blanche');
+        alert(CAL_I18N.blankSheetLoadError);
     }
 }
 
@@ -4159,7 +4277,7 @@ async function loadPDF(fileId) {
         
     } catch (error) {
         console.error('❌ Erreur lors du chargement du PDF:', error);
-        showError('Erreur lors du chargement du PDF');
+        showError(CAL_I18N.pdfLoadError);
     }
 }
 
@@ -4191,7 +4309,7 @@ async function createPDFPageWithCanvas(pageNum) {
         // Numéro de page
         const pageNumber = document.createElement('div');
         pageNumber.className = 'pdf-page-number';
-        pageNumber.textContent = `Page ${pageNum}`;
+        pageNumber.textContent = calFmt(CAL_I18N.pageN, { n: pageNum });
         
         // Assembler la page
         pageWrapper.appendChild(pdfCanvas);
@@ -4600,13 +4718,13 @@ async function saveAnnotations() {
 
         if (response.ok) {
             console.log('💾 Annotations sauvegardées avec succès');
-            updateSaveStatus('Sauvegardé', 'success');
+            updateSaveStatus(CAL_I18N.saved, 'success');
         } else {
             throw new Error('Erreur de sauvegarde');
         }
     } catch (error) {
         console.error('❌ Erreur lors de la sauvegarde:', error);
-        updateSaveStatus('Erreur de sauvegarde', 'error');
+        updateSaveStatus(CAL_I18N.saveError, 'error');
     }
 }
 
@@ -4684,7 +4802,7 @@ function undoLastAnnotation() {
 
 // Effacer toutes les annotations
 function clearAllAnnotations() {
-    if (confirm('Voulez-vous vraiment effacer toutes les annotations ?')) {
+    if (confirm(CAL_I18N.confirmClearAnnotations)) {
         annotations = [];
         redrawAllAnnotations();
         console.log('🗑️ Toutes les annotations effacées');
@@ -4750,7 +4868,7 @@ function updateSaveStatus(message, type = 'info') {
         
         if (type === 'success') {
             setTimeout(() => {
-                saveStatus.innerHTML = '<i class="fas fa-info-circle"></i> Sauvegarde à la fermeture';
+                saveStatus.innerHTML = '<i class="fas fa-info-circle"></i> ' + CAL_I18N.savedOnClose;
             }, 3000);
         }
     }
@@ -4797,7 +4915,7 @@ window.closePlanningModal = function() {
     // Réinitialiser le contenu du gestionnaire de fichiers
     document.getElementById('noFiles').innerHTML = `
         <i class="fas fa-folder-open"></i>
-        <p>Aucun fichier dans cette classe</p>
+        <p>${CAL_I18N.noFilesInClass}</p>
     `;
     
     // Fermer le lecteur PDF s'il est ouvert
@@ -5082,13 +5200,13 @@ function renderAttachedResources(resources) {
         left.style.cssText = 'display: flex; align-items: center; gap: 0.6rem; flex: 1; cursor: pointer; min-width: 0;';
         left.innerHTML = '<i class="fas fa-' + (r.display_icon || 'file') + '" style="color:#6366F1;"></i>';
         const nameSpan = document.createElement('span');
-        nameSpan.textContent = r.display_name || 'Fichier';
+        nameSpan.textContent = r.display_name || CAL_I18N.file;
         nameSpan.style.cssText = 'font-weight:500; color:#312E81; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
         left.appendChild(nameSpan);
         if (r.resource_type === 'ephemeral') {
             const badge = document.createElement('span');
-            badge.textContent = 'éphémère';
-            badge.title = 'Supprimé automatiquement le lendemain du cours';
+            badge.textContent = CAL_I18N.ephemeral;
+            badge.title = CAL_I18N.ephemeralTip;
             badge.style.cssText = 'background:#FEF3C7; color:#92400E; font-size:0.68rem; font-weight:700; padding:0.1rem 0.45rem; border-radius:999px; flex:none;';
             left.appendChild(badge);
             row.style.background = '#FFFBEB';
@@ -5110,7 +5228,7 @@ function renderAttachedResources(resources) {
         };
         const del = document.createElement('button');
         del.innerHTML = '<i class="fas fa-times"></i>';
-        del.title = 'Retirer de cette période';
+        del.title = CAL_I18N.removeFromPeriod;
         del.style.cssText = 'border:none; background:#312E81; color:white; width:24px; height:24px; border-radius:50%; cursor:pointer; flex:none;';
         del.onclick = async function (e) {
             e.stopPropagation();
@@ -5127,9 +5245,9 @@ function renderAttachedResources(resources) {
                     count.textContent = remaining;
                     if (!remaining) section.style.display = 'none';
                 } else {
-                    alert(d.error || 'Erreur lors de la suppression');
+                    alert(d.error || CAL_I18N.deleteError);
                 }
-            } catch (err) { alert('Erreur de connexion'); }
+            } catch (err) { alert(CAL_I18N.connectionError); }
         };
         row.appendChild(left);
         row.appendChild(del);
@@ -5154,7 +5272,7 @@ async function attachFileToSlot(fileId, displayName, fileType) {
         if (v && v.indexOf('classroom_') === 0) payload.classroom_id = v;
         else if (v && v.indexOf('mixed_group_') === 0) payload.mixed_group_id = v;
         if (!payload.date || !payload.period_number) {
-            alert("Enregistrez d'abord la planification, puis joignez le fichier.");
+            alert(CAL_I18N.saveFirstAttach);
             return;
         }
     }
@@ -5165,10 +5283,10 @@ async function attachFileToSlot(fileId, displayName, fileType) {
             body: JSON.stringify(payload)
         });
         const d = await res.json();
-        if (!d.success) { alert(d.error || 'Erreur lors de l\'ajout'); return; }
+        if (!d.success) { alert(d.error || CAL_I18N.addError); return; }
         if (d.planning_id) window.currentSlotPlanningId = d.planning_id;
         refreshAttachedFromSlot();
-    } catch (e) { alert('Erreur de connexion'); }
+    } catch (e) { alert(CAL_I18N.connectionError); }
 }
 
 // Upload d'un fichier éphémère depuis le modal (créneau courant)
@@ -5189,17 +5307,17 @@ async function uploadEphemeralFromModal(ev) {
         if (v && v.indexOf('classroom_') === 0) fd.append('classroom_id', v);
         else if (v && v.indexOf('mixed_group_') === 0) fd.append('mixed_group_id', v);
         if (!currentModalDate || !currentModalPeriod) {
-            alert("Enregistrez d'abord la planification, puis ajoutez le fichier.");
+            alert(CAL_I18N.saveFirstAdd);
             return;
         }
     }
     try {
         const res = await fetch('/planning/ephemeral/upload', { method: 'POST', body: fd });
         const d = await res.json();
-        if (!d.success) { alert(d.error || "Erreur lors de l'ajout"); return; }
+        if (!d.success) { alert(d.error || CAL_I18N.addError); return; }
         if (d.planning_id) window.currentSlotPlanningId = d.planning_id;
         refreshAttachedFromSlot();
-    } catch (e) { alert('Erreur de connexion'); }
+    } catch (e) { alert(CAL_I18N.connectionError); }
 }
 
 // Recharge la liste des fichiers joints depuis l'API slot
@@ -5231,11 +5349,11 @@ function calConfirm(message, onOk) {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;justify-content:flex-end;gap:.6rem;';
     const cancel = document.createElement('button');
-    cancel.innerHTML = '<i class="fas fa-times"></i> Annuler';
+    cancel.innerHTML = '<i class="fas fa-times"></i> ' + CAL_I18N.cancel;
     cancel.style.cssText = 'padding:.5rem 1rem;border:1px solid #D1D5DB;background:#fff;border-radius:.4rem;cursor:pointer;';
     cancel.onclick = () => overlay.remove();
     const ok = document.createElement('button');
-    ok.innerHTML = '<i class="fas fa-trash"></i> Supprimer';
+    ok.innerHTML = '<i class="fas fa-trash"></i> ' + CAL_I18N.del;
     ok.style.cssText = 'padding:.5rem 1rem;border:none;background:#DC2626;color:#fff;border-radius:.4rem;cursor:pointer;';
     ok.onclick = () => { overlay.remove(); onOk(); };
     row.appendChild(cancel); row.appendChild(ok);
@@ -5246,17 +5364,17 @@ function calConfirm(message, onOk) {
 }
 
 function deleteClassPanelFile(fileId, source, name) {
-    calConfirm(`Supprimer « ${name} » de cette classe ? (le fichier reste dans votre gestionnaire personnel s'il en vient)`, async () => {
+    calConfirm(calFmt(CAL_I18N.confirmDeleteClassFile, { name: name }), async () => {
         try {
             const res = await fetch(`/api/class-files/delete/${fileId}` + (source ? `?source=${source}` : ''), { method: 'DELETE' });
             const d = await res.json();
             if (d.success) {
                 if (window.currentPanelClassId) loadClassFiles(window.currentPanelClassId);
             } else {
-                alert(d.message || 'Erreur lors de la suppression');
+                alert(d.message || CAL_I18N.deleteError);
             }
         } catch (e) {
-            alert('Erreur de connexion');
+            alert(CAL_I18N.connectionError);
         }
     });
 }
@@ -5307,13 +5425,13 @@ function openDayPlanningModal(dateStr, classroomId) {
     
     // Mettre à jour le titre
     const dateObj = new Date(dateStr);
-    const dateStrFormatted = dateObj.toLocaleDateString('fr-FR', {
+    const dateStrFormatted = dateObj.toLocaleDateString(CAL_I18N.locale, {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
         year: 'numeric'
     });
-    document.getElementById('dayModalTitle').textContent = `Planification - ${dateStrFormatted}`;
+    document.getElementById('dayModalTitle').textContent = calFmt(CAL_I18N.dayPlanningTitle, { date: dateStrFormatted });
     
     // Sélectionner la classe dans le dropdown
     const classroomSelect = document.getElementById('dayModalClassroom');
@@ -5331,7 +5449,7 @@ function openDayPlanningModal(dateStr, classroomId) {
 // Charger les créneaux de la journée avec planifications existantes
 async function loadDayPlannings(dateStr, classroomId) {
     const container = document.getElementById('dayPlanningsContainer');
-    container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
+    container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> ' + CAL_I18N.loading + '</div>';
     
     try {
         // Charger les planifications existantes
@@ -5341,7 +5459,7 @@ async function loadDayPlannings(dateStr, classroomId) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ Erreur HTTP:', response.status, errorText);
-            container.innerHTML = '<div class="text-center text-danger">Erreur lors du chargement (HTTP ' + response.status + ')</div>';
+            container.innerHTML = '<div class="text-center text-danger">' + calFmt(CAL_I18N.loadErrorHttp, { status: response.status }) + '</div>';
             return;
         }
         
@@ -5361,7 +5479,7 @@ async function loadDayPlannings(dateStr, classroomId) {
         
     } catch (error) {
         console.error('Erreur lors du chargement des planifications:', error);
-        container.innerHTML = '<div class="text-center text-danger">Erreur lors du chargement</div>';
+        container.innerHTML = '<div class="text-center text-danger">' + CAL_I18N.loadError + '</div>';
     }
 }
 
@@ -5370,7 +5488,7 @@ async function loadDayScheduleSlots(dateStr, classroomId, existingPlannings) {
     const container = document.getElementById('dayPlanningsContainer');
     
     if (!classroomId) {
-        container.innerHTML = '<div class="text-center text-muted">Veuillez sélectionner une classe pour voir les créneaux</div>';
+        container.innerHTML = '<div class="text-center text-muted">' + CAL_I18N.selectClassForSlots + '</div>';
         return;
     }
     
@@ -5466,7 +5584,7 @@ async function loadDayScheduleSlots(dateStr, classroomId, existingPlannings) {
         
     } catch (error) {
         console.error('Erreur lors du chargement des créneaux:', error);
-        container.innerHTML = '<div class="text-center text-danger">Erreur lors du chargement des créneaux</div>';
+        container.innerHTML = '<div class="text-center text-danger">' + CAL_I18N.slotsLoadError + '</div>';
     }
 }
 
@@ -5475,7 +5593,7 @@ function renderDayScheduleSlots(scheduleSlots, dateStr, classroomId) {
     const container = document.getElementById('dayPlanningsContainer');
     
     if (scheduleSlots.length === 0) {
-        container.innerHTML = '<div class="text-center text-muted">Aucun créneau configuré pour cette journée</div>';
+        container.innerHTML = '<div class="text-center text-muted">' + CAL_I18N.noSlotsToday + '</div>';
         return;
     }
     
@@ -5503,7 +5621,7 @@ function renderDayScheduleSlots(scheduleSlots, dateStr, classroomId) {
     }
     
     const classroomColor = selectedItem ? selectedItem.color : '#4F46E5';
-    const classroomName = selectedItem ? selectedItem.name : 'Classe inconnue';
+    const classroomName = selectedItem ? selectedItem.name : CAL_I18N.unknownClass;
     const classroomSubject = selectedItem ? selectedItem.subject : '';
     
     let html = '<div class="day-schedules-list">';
@@ -5516,19 +5634,19 @@ function renderDayScheduleSlots(scheduleSlots, dateStr, classroomId) {
         html += `
             <div class="day-schedule-slot ${slot.is_merged ? 'merged-slot' : ''}" style="border-left: 4px solid ${classroomColor}" onclick="editDaySlot('${slot.period_number}', '${dateStr}', '${classroomId}')">
                 <div class="slot-header">
-                    <div class="slot-period">Période ${slot.period_number}</div>
+                    <div class="slot-period">${calFmt(CAL_I18N.periodN, { n: slot.period_number })}</div>
                     <div class="slot-time">${slot.period_start} - ${slot.period_end}</div>
-                    ${!isPastDate ? `<button class="btn-edit-slot" onclick="event.stopPropagation(); editDaySlot('${slot.period_number}', '${dateStr}', '${classroomId}')" title="Modifier ce créneau">
+                    ${!isPastDate ? `<button class="btn-edit-slot" onclick="event.stopPropagation(); editDaySlot('${slot.period_number}', '${dateStr}', '${classroomId}')" title="${CAL_I18N.editSlot}">
                         <i class="fas fa-edit"></i>
                     </button>` : ''}
                 </div>
                 <div class="slot-content">
                     <div class="slot-class">${classroomName}${classroomSubject ? ' - ' + classroomSubject : ''}</div>
                     <div class="slot-title ${!hasPlanning ? 'placeholder' : ''}">
-                        ${hasPlanning ? (planning.title || 'Sans titre') : 'Cliquez pour planifier ce créneau'}
+                        ${hasPlanning ? (planning.title || CAL_I18N.untitled) : CAL_I18N.clickToPlan}
                     </div>
                     ${hasPlanning && planning.description ? `<div class="slot-description">${planning.description}</div>` : ''}
-                    ${!hasPlanning && !isPastDate ? '<div class="slot-empty">Créneau libre - Cliquez pour ajouter une planification</div>' : ''}
+                    ${!hasPlanning && !isPastDate ? '<div class="slot-empty">' + CAL_I18N.freeSlot + '</div>' : ''}
                 </div>
             </div>
         `;
@@ -5601,53 +5719,53 @@ function showDaySlotEditModal(title, description, groupId = null) {
         <div class="day-edit-modal" id="dayEditModal">
             <div class="day-edit-content">
                 <div class="day-edit-header">
-                    <h4>Planifier le créneau - Période ${currentEditingSlot.period}</h4>
+                    <h4>${calFmt(CAL_I18N.planSlotPeriod, { n: currentEditingSlot.period })}</h4>
                     <button class="day-edit-close" onclick="closeDayEditModal()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="day-edit-body">
                     <div class="form-group" id="dayGroupSelectionDiv" style="display: none;">
-                        <label class="form-label">Groupe</label>
+                        <label class="form-label">${CAL_I18N.group}</label>
                         <select id="dayModalGroup" class="form-control" onchange="toggleDayGroupRepeatOptions()">
-                            <option value="">Classe entière</option>
+                            <option value="">${CAL_I18N.wholeClass}</option>
                         </select>
-                        <small class="form-text text-muted">Sélectionnez un groupe ou laissez "Classe entière" pour tous les élèves</small>
+                        <small class="form-text text-muted">${CAL_I18N.groupHelp}</small>
                         
                         <!-- Options de répétition des groupes pour le modal jour -->
                         <div id="dayGroupRepeatOptions" style="display: none; margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 4px;">
-                            <label class="form-label" style="font-weight: 600; margin-bottom: 8px; display: block;">Application automatique :</label>
+                            <label class="form-label" style="font-weight: 600; margin-bottom: 8px; display: block;">${CAL_I18N.autoApply}</label>
                             <div style="display: flex; flex-direction: column; gap: 8px;">
                                 <label style="display: flex; align-items: center; cursor: pointer;">
                                     <input type="radio" name="dayGroupRepeat" value="same" style="margin-right: 8px;">
-                                    <span>Répéter le même groupe chaque semaine jusqu'à la fin de l'année</span>
+                                    <span>${CAL_I18N.repeatSameGroup}</span>
                                 </label>
                                 <label style="display: flex; align-items: center; cursor: pointer;">
                                     <input type="radio" name="dayGroupRepeat" value="alternate" style="margin-right: 8px;">
-                                    <span>Alterner entre tous les groupes de la classe chaque semaine</span>
+                                    <span>${CAL_I18N.alternateGroups}</span>
                                 </label>
                                 <label style="display: flex; align-items: center; cursor: pointer;">
                                     <input type="radio" name="dayGroupRepeat" value="none" checked style="margin-right: 8px;">
-                                    <span>Appliquer seulement pour cette date</span>
+                                    <span>${CAL_I18N.applyThisDateOnly}</span>
                                 </label>
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Titre du cours</label>
+                        <label class="form-label">${CAL_I18N.courseTitle}</label>
                         <input type="text" id="daySlotTitle" class="form-control" 
-                               value="${title}" placeholder="Ex: Introduction aux fractions">
+                               value="${title}" placeholder="${CAL_I18N.courseTitlePlaceholder}">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Description</label>
+                        <label class="form-label">${CAL_I18N.description}</label>
                         <textarea id="daySlotDescription" class="form-control" rows="4"
-                                  placeholder="Détails du cours, exercices prévus...">${description}</textarea>
+                                  placeholder="${CAL_I18N.descriptionPlaceholder}">${description}</textarea>
                     </div>
 
                     <!-- Section mémos pour modal annuel -->
                     <div class="form-group" id="dayModalMemosSection" style="display: none; margin-top: 20px; padding: 15px; background-color: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
                         <label class="form-label" style="color: #92400E; font-weight: 600;">
-                            <i class="fas fa-sticky-note"></i> Mémos pour ce créneau
+                            <i class="fas fa-sticky-note"></i> ${CAL_I18N.memosForSlot}
                         </label>
                         <div id="dayModalMemosList" style="margin-top: 10px;">
                             <!-- Les mémos seront insérés ici par JavaScript -->
@@ -5655,9 +5773,9 @@ function showDaySlotEditModal(title, description, groupId = null) {
                     </div>
                 </div>
                 <div class="day-edit-footer">
-                    <button class="btn btn-outline" onclick="closeDayEditModal()">Annuler</button>
+                    <button class="btn btn-outline" onclick="closeDayEditModal()">${CAL_I18N.cancel}</button>
                     <button class="btn btn-primary" onclick="saveDaySlot()">
-                        <i class="fas fa-save"></i> Enregistrer
+                        <i class="fas fa-save"></i> ${CAL_I18N.save}
                     </button>
                 </div>
             </div>
@@ -5805,11 +5923,11 @@ async function saveDaySlot() {
             }
         } else {
             console.error('❌ Erreur lors de la sauvegarde:', result.message || 'Erreur inconnue');
-            alert('Erreur lors de la sauvegarde: ' + (result.message || 'Erreur inconnue'));
+            alert(calFmt(CAL_I18N.saveErrorWithMsg, { error: result.message || CAL_I18N.unknownError }));
         }
     } catch (error) {
         console.error('Erreur lors de la sauvegarde:', error);
-        alert('Erreur lors de la sauvegarde: ' + error.message);
+        alert(calFmt(CAL_I18N.saveErrorWithMsg, { error: error.message }));
     }
 }
 
@@ -5843,12 +5961,12 @@ async function loadGroupsForClass(classroomId) {
                 if (parentGroup) {
                     const label = parentGroup.querySelector('label');
                     if (label) {
-                        label.textContent = 'Titre';
+                        label.textContent = CAL_I18N.titleLabel;
                     }
                 }
             }
         } else {
-            titleLabel.textContent = 'Titre';
+            titleLabel.textContent = CAL_I18N.titleLabel;
         }
         
         return;
@@ -5867,7 +5985,7 @@ async function loadGroupsForClass(classroomId) {
         if (parentGroup) {
             const label = parentGroup.querySelector('label');
             if (label) {
-                label.textContent = 'Titre du cours';
+                label.textContent = CAL_I18N.courseTitle;
             }
         }
     }
@@ -5880,7 +5998,7 @@ async function loadGroupsForClass(classroomId) {
         
         if (data.success && data.groups.length > 0) {
             // Réinitialiser les options
-            groupSelect.innerHTML = '<option value="">Classe entière</option>';
+            groupSelect.innerHTML = '<option value="">' + CAL_I18N.wholeClass + '</option>';
             
             // Ajouter les groupes
             data.groups.forEach(group => {
@@ -5919,7 +6037,7 @@ async function loadGroupsForDayModal(classroomId) {
 
         if (data.success && data.groups.length > 0) {
             // Réinitialiser les options
-            groupSelect.innerHTML = '<option value="">Classe entière</option>';
+            groupSelect.innerHTML = '<option value="">' + CAL_I18N.wholeClass + '</option>';
 
             // Ajouter les groupes
             data.groups.forEach(group => {
@@ -5990,7 +6108,7 @@ function toggleDaySplitView() {
             document.getElementById('dayNoFiles').style.display = 'block';
             document.getElementById('dayNoFiles').innerHTML = `
                 <i class="fas fa-exclamation-circle"></i>
-                <p>Veuillez sélectionner une classe</p>
+                <p>${CAL_I18N.selectClass}</p>
             `;
         }
     } else {
@@ -6082,12 +6200,12 @@ function renderDayPinnedFiles(pinnedFiles) {
                 <div class="file-actions">
                     <button class="file-action-btn pinned"
                             onclick="toggleDayPinFile(${file.id})"
-                            title="Désépingler">
+                            title="${CAL_I18N.unpin}">
                         <i class="fas fa-thumbtack"></i>
                     </button>
                     <button class="file-action-btn"
                             onclick="openDayPdfInViewer(${file.id}, '${file.original_filename}')"
-                            title="Ouvrir">
+                            title="${CAL_I18N.open}">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
@@ -6124,11 +6242,11 @@ async function toggleDayPinFile(fileId) {
             }
         } else {
             console.error('❌ Erreur:', result.message);
-            alert('Erreur lors de l\'épinglage: ' + result.message);
+            alert(calFmt(CAL_I18N.pinErrorWithMsg, { error: result.message }));
         }
     } catch (error) {
         console.error('❌ Erreur lors de l\'épinglage:', error);
-        alert('Erreur lors de l\'épinglage du fichier');
+        alert(CAL_I18N.pinError);
     }
 }
 
@@ -6237,7 +6355,7 @@ function renderDayFileTree(files, currentPath = '') {
             <div class="file-actions">
                 <button class="file-action-btn ${file.is_pinned ? 'pinned' : ''}"
                         onclick="event.stopPropagation(); toggleDayPinFile(${file.id})"
-                        title="${file.is_pinned ? 'Désépingler' : 'Épingler'}">
+                        title="${file.is_pinned ? CAL_I18N.unpin : CAL_I18N.pin}">
                     <i class="fas fa-thumbtack"></i>
                 </button>
             </div>
@@ -6275,7 +6393,7 @@ function updateDayBreadcrumb(path) {
     // Racine
     const rootItem = document.createElement('span');
     rootItem.className = 'breadcrumb-item';
-    rootItem.innerHTML = '<i class="fas fa-home"></i> Racine';
+    rootItem.innerHTML = '<i class="fas fa-home"></i> ' + CAL_I18N.root;
     rootItem.onclick = () => navigateToDayFileFolder('');
     breadcrumb.appendChild(rootItem);
     
@@ -6393,7 +6511,7 @@ async function openDayPdfInViewer(fileId, fileName) {
         console.log('✅ CleanPDFViewer journalier créé avec succès');
     } catch (error) {
         console.error('❌ Erreur lors du chargement du PDF journalier:', error);
-        alert('Erreur lors du chargement du PDF: ' + error.message);
+        alert(calFmt(CAL_I18N.pdfLoadErrorWithMsg, { error: error.message }));
     }
 }
 
@@ -6434,7 +6552,7 @@ async function loadDayPDF(fileId) {
         
     } catch (error) {
         console.error('❌ Erreur lors du chargement du PDF:', error);
-        showDayError('Erreur lors du chargement du PDF');
+        showDayError(CAL_I18N.pdfLoadError);
     }
 }
 
@@ -6466,7 +6584,7 @@ async function createDayPDFPageWithCanvas(pageNum) {
         // Numéro de page
         const pageNumber = document.createElement('div');
         pageNumber.className = 'pdf-page-number';
-        pageNumber.textContent = `Page ${pageNum}`;
+        pageNumber.textContent = calFmt(CAL_I18N.pageN, { n: pageNum });
         
         // Assembler la page
         pageWrapper.appendChild(pdfCanvas);
@@ -6842,7 +6960,7 @@ function undoDayLastAnnotation() {
 
 // Effacer toutes les annotations journalières
 function clearDayAllAnnotations() {
-    if (confirm('Voulez-vous vraiment effacer toutes les annotations ?')) {
+    if (confirm(CAL_I18N.confirmClearAnnotations)) {
         dayAnnotations = [];
         redrawDayAllAnnotations();
         console.log('🗑️ Toutes les annotations journalières effacées');
@@ -6911,13 +7029,13 @@ async function saveDayAnnotations() {
 
         if (response.ok) {
             console.log('💾 Annotations journalières sauvegardées avec succès');
-            updateDaySaveStatus('Sauvegardé', 'success');
+            updateDaySaveStatus(CAL_I18N.saved, 'success');
         } else {
             throw new Error('Erreur de sauvegarde');
         }
     } catch (error) {
         console.error('❌ Erreur lors de la sauvegarde journalière:', error);
-        updateDaySaveStatus('Erreur de sauvegarde', 'error');
+        updateDaySaveStatus(CAL_I18N.saveError, 'error');
     }
 }
 
@@ -6930,7 +7048,7 @@ function updateDaySaveStatus(message, type = 'info') {
         
         if (type === 'success') {
             setTimeout(() => {
-                saveStatus.innerHTML = '<i class="fas fa-info-circle"></i> Sauvegarde à la fermeture';
+                saveStatus.innerHTML = '<i class="fas fa-info-circle"></i> ' + CAL_I18N.savedOnClose;
             }, 3000);
         }
     }
@@ -7216,7 +7334,7 @@ async function loadMemosForModal(date, period, targetContainerId, targetSectionI
             console.log('✅ Found', data.memos.length, 'memos');
             let html = '';
             data.memos.forEach(memo => {
-                const dateStr = memo.target_date ? new Date(memo.target_date).toLocaleDateString('fr-FR') : 'Non défini';
+                const dateStr = memo.target_date ? new Date(memo.target_date).toLocaleDateString(CAL_I18N.locale) : CAL_I18N.notDefined;
                 html += `
                     <div style="background-color: white; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #F59E0B;">
                         <div style="font-size: 0.75rem; color: #92400E; font-weight: 600; margin-bottom: 4px;">
@@ -7250,7 +7368,7 @@ function formatDateTime(isoString) {
     if (!isoString) return '';
     const date = new Date(isoString);
     const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return date.toLocaleDateString('fr-FR', options);
+    return date.toLocaleDateString(CAL_I18N.locale, options);
 }
 
 // ============ GESTION DES PRÉSENCES POUR PÉRIODES PASSÉES ============
@@ -7294,10 +7412,10 @@ async function loadBlankSheetsForPeriod(date, periodNumber, classroomId) {
                         </div>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-sm" onclick="event.stopPropagation(); openBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="Ouvrir">
+                        <button class="btn btn-sm" onclick="event.stopPropagation(); openBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="${CAL_I18N.open}">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn-sm" onclick="event.stopPropagation(); deleteBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #dc2626; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="Supprimer">
+                        <button class="btn btn-sm" onclick="event.stopPropagation(); deleteBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #dc2626; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="${CAL_I18N.del}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -7326,7 +7444,7 @@ async function loadBlankSheetsForPeriod(date, periodNumber, classroomId) {
  */
 function createNewBlankSheetFromModal() {
     if (!window.currentAttendanceContext) {
-        alert('Contexte de période non disponible');
+        alert(CAL_I18N.periodContextUnavailable);
         return;
     }
 
@@ -7359,7 +7477,7 @@ async function deleteBlankSheetFromModal(sheetId) {
     console.log('🗑️ Suppression feuille blanche:', sheetId);
 
     // Confirmer la suppression
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette feuille blanche ? Cette action est irréversible.')) {
+    if (!confirm(CAL_I18N.confirmDeleteBlankSheet)) {
         return;
     }
 
@@ -7384,11 +7502,11 @@ async function deleteBlankSheetFromModal(sheetId) {
                 await loadBlankSheetsForPeriod(date, periodNumber, classroomId);
             }
         } else {
-            alert('Erreur lors de la suppression: ' + (data.message || 'Erreur inconnue'));
+            alert(calFmt(CAL_I18N.deleteErrorWithMsg, { error: data.message || CAL_I18N.unknownError }));
         }
     } catch (error) {
         console.error('Erreur lors de la suppression de la feuille blanche:', error);
-        alert('Erreur lors de la suppression de la feuille blanche');
+        alert(CAL_I18N.blankSheetDeleteError);
     }
 }
 
@@ -7433,7 +7551,7 @@ async function loadBlankSheetsForPlanningModal(date, periodNumber, classroomId) 
                             <div style="font-size: 0.875rem; color: #92400e;">${formatDateTime(sheet.created_at)}</div>
                         </div>
                     </div>
-                    <button class="btn btn-sm" onclick="event.stopPropagation(); deleteBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #ef4444; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="Supprimer">
+                    <button class="btn btn-sm" onclick="event.stopPropagation(); deleteBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #ef4444; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="${CAL_I18N.del}">
                         <i class="fas fa-trash"></i>
                     </button>
                 `;
@@ -7457,7 +7575,7 @@ async function loadBlankSheetsForPlanningModal(date, periodNumber, classroomId) 
  */
 function createNewBlankSheetFromPlanningModal() {
     if (!window.currentPlanningContext) {
-        alert('Contexte de période non disponible');
+        alert(CAL_I18N.periodContextUnavailable);
         return;
     }
 
@@ -7477,13 +7595,13 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
 
     // Mettre à jour le titre
     const dateObj = new Date(date);
-    const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+    const formattedDate = dateObj.toLocaleDateString(CAL_I18N.locale, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric'
     });
-    modalTitleElem.textContent = `${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
+    modalTitleElem.textContent = `${periodTitle || calFmt(CAL_I18N.periodN, { n: periodNumber })} - ${formattedDate}`;
 
     // Réinitialiser le mode + les heures (le slot chargé ci-dessous ajustera)
     if (typeof setPlanningType === 'function') setPlanningType('cours');
@@ -7660,8 +7778,8 @@ function _findCellByDateAndPeriod(dateStr, periodNumber) {
 function _buildPlannedClassBlockHTML(planning, isMerged) {
     const mergedClass = isMerged ? ' merged-block' : '';
     let bgColor = '#6B7280';
-    let nameHtml = '<i class="fas fa-tasks"></i> Tâche personnalisée';
-    let subject = 'Autre';
+    let nameHtml = '<i class="fas fa-tasks"></i> ' + _calendarEscapeHtml(CAL_I18N.customTask);
+    let subject = CAL_I18N.other;
 
     if (planning.classroom) {
         bgColor = planning.classroom.color || '#6B7280';
@@ -7866,11 +7984,11 @@ async function savePlanning() {
                     updateCellAfterSave(date, finalPeriodNumber, data.planning);
                 }
             } else {
-                alert('Erreur lors de la sauvegarde: ' + (data.error || 'Erreur inconnue'));
+                alert(calFmt(CAL_I18N.saveErrorWithMsg, { error: data.error || CAL_I18N.unknownError }));
             }
         } catch (error) {
             console.error('Erreur lors de la sauvegarde:', error);
-            alert('Erreur de connexion au serveur');
+            alert(CAL_I18N.serverConnectionError);
         }
         return;
     }
@@ -7946,11 +8064,11 @@ async function savePlanning() {
             // Mise à jour locale de la cellule (pas de reload)
             updateCellAfterSave(date, parseInt(basePeriod), data.planning);
         } else {
-            alert('Erreur lors de la sauvegarde: ' + (data.error || data.message || 'Erreur inconnue'));
+            alert(calFmt(CAL_I18N.saveErrorWithMsg, { error: data.error || data.message || CAL_I18N.unknownError }));
         }
     } catch (error) {
         console.error('Erreur lors de la sauvegarde:', error);
-        alert('Erreur de connexion au serveur');
+        alert(CAL_I18N.serverConnectionError);
     }
 }
 
@@ -7962,7 +8080,7 @@ async function savePlanning() {
  * net à l'utilisateur. L'horaire-type réapparaît au prochain refresh.
  */
 async function clearPlanningFromModal() {
-    if (!confirm('Effacer la planification de cette période ?')) return;
+    if (!confirm(CAL_I18N.confirmClearPlanning)) return;
 
     let date, periodNumber;
     if (window.currentPlanningContext) {
@@ -7995,11 +8113,11 @@ async function clearPlanningFromModal() {
             closePlanningModal();
             updateCellAfterSave(date, periodNumber, null, { cleared: true });
         } else {
-            alert('Erreur : ' + (data.error || data.message || 'Erreur inconnue'));
+            alert(calFmt(CAL_I18N.errorWithMsg, { error: data.error || data.message || CAL_I18N.unknownError }));
         }
     } catch (e) {
         console.error('Erreur lors de l\'effacement :', e);
-        alert('Erreur de connexion au serveur');
+        alert(CAL_I18N.serverConnectionError);
     }
 }
 
@@ -8026,13 +8144,13 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
 
     // Mettre à jour le titre
     const dateObj = new Date(date);
-    const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+    const formattedDate = dateObj.toLocaleDateString(CAL_I18N.locale, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric'
     });
-    modalTitle.textContent = `${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
+    modalTitle.textContent = `${periodTitle || calFmt(CAL_I18N.periodN, { n: periodNumber })} - ${formattedDate}`;
 
     // Stocker les informations pour les feuilles blanches ET les devoirs
     window.currentAttendanceContext = {
@@ -8078,7 +8196,7 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
         document.getElementById('attendanceErrorMessage').style.display = 'none';
 
         if (!data || !data.success) {
-            showAttendanceError(data?.error || 'Erreur lors du chargement des présences');
+            showAttendanceError(data?.error || CAL_I18N.attendanceLoadError);
             return;
         }
 
@@ -8183,7 +8301,7 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
                 lateStudents.forEach(student => {
                     const item = document.createElement('div');
                     item.className = 'student-item late';
-                    const lateText = student.late_minutes ? `${student.late_minutes} min` : 'En retard';
+                    const lateText = student.late_minutes ? calFmt(CAL_I18N.lateMinutes, { n: student.late_minutes }) : CAL_I18N.late;
                     item.innerHTML = `
                         <span class="student-name">${student.first_name} ${student.last_name}</span>
                         <span class="late-badge">${lateText}</span>
@@ -8197,7 +8315,7 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
 
     } catch (error) {
         console.error('Erreur lors du chargement des présences:', error);
-        showAttendanceError('Erreur de connexion au serveur');
+        showAttendanceError(CAL_I18N.serverConnectionError);
     }
 }
 
@@ -8261,7 +8379,7 @@ function showAttendanceError(message) {
 <script>
 (function () {
     function esc(s) { return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-    var MONTHS = ['', 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    var MONTHS = [''].concat(CAL_I18N.monthsShort);
     function fmtDate(iso) { if (!iso) return ''; var p = iso.split('-').map(Number); return p[2] + ' ' + MONTHS[p[1]]; }
     var TYPE_ICON = { submission: 'fa-camera', exercise: 'fa-gamepad', classic: 'fa-list-check' };
 
@@ -8276,7 +8394,7 @@ function showAttendanceError(message) {
             if (!j.success) return;
             var given = (j.devoirs || []).filter(function (d) { return (d.created_at || '').slice(0, 10) === date; });
             if (!given.length) {
-                box.innerHTML = '<div style="font-size:0.82rem;color:#9CA3AF;font-style:italic;">Aucun devoir donné ce jour.</div>';
+                box.innerHTML = '<div style="font-size:0.82rem;color:#9CA3AF;font-style:italic;">' + esc(CAL_I18N.noDevoirGivenToday) + '</div>';
                 return;
             }
             box.innerHTML = given.map(function (d) {
@@ -8287,8 +8405,8 @@ function showAttendanceError(message) {
                 return '<div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:8px;padding:0.5rem 0.7rem;display:flex;align-items:center;gap:0.5rem;">'
                     + '<i class="fas ' + (TYPE_ICON[d.type] || 'fa-book') + '" style="color:#6366F1;"></i>'
                     + '<div style="flex:1;min-width:0;"><div style="font-size:0.85rem;font-weight:600;color:#312E81;">' + esc(d.title) + '</div>'
-                    + '<div style="font-size:0.72rem;color:#6B7280;">Donné ce jour · à rendre le ' + fmtDate(d.due_date) + '</div></div>'
-                    + (link ? '<a href="' + link + '" style="color:#6366F1;text-decoration:none;" title="Voir"><i class="fas ' + viewIcon + '"></i></a>' : '')
+                    + '<div style="font-size:0.72rem;color:#6B7280;">' + esc(calFmt(CAL_I18N.givenTodayDue, { date: fmtDate(d.due_date) })) + '</div></div>'
+                    + (link ? '<a href="' + link + '" style="color:#6366F1;text-decoration:none;" title="' + esc(CAL_I18N.view) + '"><i class="fas ' + viewIcon + '"></i></a>' : '')
                     + '</div>';
             }).join('');
         } catch (e) {}
@@ -8299,7 +8417,7 @@ function showAttendanceError(message) {
     // les mêmes types proposés partout.
     window.openCalDevoirModal = function () {
         var ctx = window.currentAttendanceContext || {};
-        if (!ctx.classroomId) { showNotification('error', 'Aucune classe pour cette période.'); return; }
+        if (!ctx.classroomId) { showNotification('error', CAL_I18N.noClassForPeriod); return; }
         DevoirModal.open({
             classroomId: ctx.classroomId,
             onSaved: function () { if (ctx.date) loadPeriodDevoirs(ctx.date, ctx.classroomId); },

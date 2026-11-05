@@ -16,15 +16,15 @@
 <table class="schedule-table">
     <thead>
         <tr>
-            <th class="time-column">Heure</th>
+            <th class="time-column">{{ _('Heure') }}</th>
             {% for date in week_dates %}
             <th class="day-header {% if date == today %}today{% endif %}" data-date="{{ date.strftime('%Y-%m-%d') }}">
-                <div class="day-name">{{ days[loop.index0] }}</div>
+                <div class="day-name">{{ _(days[loop.index0]) }}</div>
                 <div class="day-date">{{ date.strftime('%d/%m') }}</div>
                 {% set _dvs = devoirs_unplaced.get(date.strftime('%Y-%m-%d')) if devoirs_unplaced else None %}
                 {% if _dvs %}
-                <div class="devoir-day-badge" title="{{ _dvs|length }} devoir(s) à rendre : {{ _dvs|map(attribute='title')|join(', ') }}">
-                    <i class="fas fa-book"></i> {{ _dvs|length }} devoir{{ 's' if _dvs|length > 1 else '' }}
+                <div class="devoir-day-badge" title="{{ _('%(n)s devoir(s) à rendre : %(titles)s', n=_dvs|length, titles=_dvs|map(attribute='title')|join(', ')) }}">
+                    <i class="fas fa-book"></i> {% if _dvs|length > 1 %}{{ _('%(n)s devoirs', n=_dvs|length) }}{% else %}{{ _('%(n)s devoir', n=_dvs|length) }}{% endif %}
                 </div>
                 {% endif %}
             </th>
@@ -46,7 +46,7 @@
         {% if not should_skip %}
         <tr data-row-start="{{ period.start.strftime('%H:%M') }}" data-row-end="{{ period.end.strftime('%H:%M') }}">
             <td class="time-slot">
-                <div class="period-number">P{{ period_num }}</div>
+                <div class="period-number">{{ _('P{n}')|replace('{n}', period_num|string) }}</div>
                 <div class="period-time">
                     {{ period.start.strftime('%H:%M') }}<br>
                     {{ period.end.strftime('%H:%M') }}
@@ -86,7 +86,7 @@
                 onclick="openPlanningModal(this)">
                 {% set _dvkey = date.strftime('%Y-%m-%d') ~ '_' ~ period_num %}
                 {% if devoir_cells and _dvkey in devoir_cells %}
-                <div class="devoir-cell-badge" title="Devoir(s) à rendre"
+                <div class="devoir-cell-badge" title="{{ _('Devoir(s) à rendre') }}"
                      onclick="event.stopPropagation(); openDevoirCalendarModal(this)"
                      data-devoirs='{{ devoir_cells_data[_dvkey]|tojson }}'>
                     <i class="fas fa-book"></i> {{ devoir_cells[_dvkey]|length }}
@@ -148,7 +148,7 @@
                             {% set date_str = date.strftime('%Y-%m-%d') %}
                             {% set memo_key = date_str ~ '_' ~ period.number %}
                             {% if memos_by_date_period and memo_key in memos_by_date_period %}
-                            <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                            <div class="memo-badge" title="{{ _('%(n)s mémo(s)', n=memos_by_date_period[memo_key]|length) }}">
                                 <i class="fas fa-sticky-note"></i>
                                 <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
                             </div>
@@ -165,7 +165,7 @@
                                 {% set date_str = date.strftime('%Y-%m-%d') %}
                                 {% set memo_key = date_str ~ '_' ~ period.number %}
                                 {% if memos_by_date_period and memo_key in memos_by_date_period %}
-                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                                <div class="memo-badge" title="{{ _('%(n)s mémo(s)', n=memos_by_date_period[memo_key]|length) }}">
                                     <i class="fas fa-sticky-note"></i>
                                     <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
                                 </div>
@@ -179,7 +179,7 @@
                                 {% set date_str = date.strftime('%Y-%m-%d') %}
                                 {% set memo_key = date_str ~ '_' ~ period.number %}
                                 {% if memos_by_date_period and memo_key in memos_by_date_period %}
-                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                                <div class="memo-badge" title="{{ _('%(n)s mémo(s)', n=memos_by_date_period[memo_key]|length) }}">
                                     <i class="fas fa-sticky-note"></i>
                                     <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
                                 </div>
@@ -196,7 +196,7 @@
                                 {% set date_str = date.strftime('%Y-%m-%d') %}
                                 {% set memo_key = date_str ~ '_' ~ period.number %}
                                 {% if memos_by_date_period and memo_key in memos_by_date_period %}
-                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                                <div class="memo-badge" title="{{ _('%(n)s mémo(s)', n=memos_by_date_period[memo_key]|length) }}">
                                     <i class="fas fa-sticky-note"></i>
                                     <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
                                 </div>

@@ -653,8 +653,8 @@
                 {% if onb_step1 %}<i class="fas fa-check"></i>{% else %}1{% endif %}
             </div>
             <div class="onb-body">
-                <h3 class="{{ 'is-done' if onb_step1 else '' }}">{{ _('Crée tes classes') }}</h3>
-                <p>{{ _("Un nom, une matière, une couleur. Ajoute-les toutes d'un coup.") }}</p>
+                <h3 class="{{ 'is-done' if onb_step1 else '' }}">{{ _('Créez vos classes') }}</h3>
+                <p>{{ _("Un nom, une matière, une couleur. Ajoutez-les toutes d'un coup.") }}</p>
                 {% if onb_current == 1 %}
                 <form id="onbClassesForm" class="onb-form" onsubmit="return onbCreateClasses(event)">
                     <div id="onbClassRows">
@@ -683,8 +683,8 @@
                 {% if onb_step2 %}<i class="fas fa-check"></i>{% else %}2{% endif %}
             </div>
             <div class="onb-body">
-                <h3 class="{{ 'is-done' if onb_step2 else '' }}">{{ _('Compose ton horaire') }}</h3>
-                <p>{{ _('Clique sur les périodes de ta semaine et choisis la classe. Valide : tu reviens ici.') }}</p>
+                <h3 class="{{ 'is-done' if onb_step2 else '' }}">{{ _('Composez votre horaire') }}</h3>
+                <p>{{ _('Cliquez sur les périodes de votre semaine et choisissez la classe. Validez : vous revenez ici.') }}</p>
                 {% if onb_current == 2 %}
                 <a class="onb-cta" id="onboarding-primary-cta" href="{{ url_for('schedule.weekly_schedule') }}">
                     <i class="fas fa-calendar-week"></i> {{ _("Ouvrir l'horaire") }}
@@ -698,8 +698,8 @@
                 {% if onb_step3 %}<i class="fas fa-check"></i>{% else %}3{% endif %}
             </div>
             <div class="onb-body">
-                <h3 class="{{ 'is-done' if onb_step3 else '' }}">{{ _('Importe tes vacances') }}</h3>
-                <p>{{ _('Choisis ton canton : vacances et jours fériés se placent tout seuls dans le calendrier.') }}</p>
+                <h3 class="{{ 'is-done' if onb_step3 else '' }}">{{ _('Importez vos vacances') }}</h3>
+                <p>{{ _('Choisissez votre canton : vacances et jours fériés se placent tout seuls dans le calendrier.') }}</p>
                 {% if onb_current == 3 %}
                 <form method="POST" action="{{ url_for('setup.import_holidays') }}" class="onb-form">
                     <input type="hidden" name="next" value="dashboard">
@@ -744,7 +744,7 @@
                      color: r.querySelector('[name=color]').value };
         }).filter(function (c) { return c.name && c.subject; });
         if (!classrooms.length) {
-            err.textContent = {{ _('Indique au moins un nom de classe et une matière.')|tojson }};
+            err.textContent = {{ _('Indiquez au moins un nom de classe et une matière.')|tojson }};
             err.style.display = 'block'; return false;
         }
         var btn = document.getElementById('onboarding-primary-cta');
@@ -1875,9 +1875,9 @@ renderDashboardTasks();
     if (!document.getElementById('onboarding-steps')) return;
 
     var STEPS = [
-        { sel: null, title: {{ _("Bienvenue sur ProfCalendar !")|tojson }}, text: {{ _("Faisons un tour rapide pour bien démarrer. Tu peux le passer à tout moment.")|tojson }} },
-        { sel: '#onboarding-steps', title: {{ _("Tes 3 étapes pour démarrer")|tojson }}, text: {{ _("Suis cette petite liste : crée tes classes, compose ton horaire, puis importe tes vacances.")|tojson }} },
-        { sel: '#onboarding-primary-cta', title: {{ _("Commence ici")|tojson }}, text: {{ _("Clique sur ce bouton pour créer ta première classe — ça prend 30 secondes.")|tojson }} },
+        { sel: null, title: {{ _("Bienvenue sur ProfCalendar !")|tojson }}, text: {{ _("Faisons un tour rapide pour bien démarrer. Vous pouvez le passer à tout moment.")|tojson }} },
+        { sel: '#onboarding-steps', title: {{ _("Vos 3 étapes pour démarrer")|tojson }}, text: {{ _("Suivez cette petite liste : créez vos classes, composez votre horaire, puis importez vos vacances.")|tojson }} },
+        { sel: '#onboarding-primary-cta', title: {{ _("Commencez ici")|tojson }}, text: {{ _("Cliquez sur ce bouton pour créer votre première classe : cela prend 30 secondes.")|tojson }} },
         { sel: '.help-fab', title: {{ _("Besoin d'aide ?")|tojson }}, text: {{ _("Ce bouton ouvre l'aide contextuelle sur chaque page. Il est toujours disponible.")|tojson }} }
     ].filter(function (s) { return !s.sel || document.querySelector(s.sel); });
     if (!STEPS.length) return;

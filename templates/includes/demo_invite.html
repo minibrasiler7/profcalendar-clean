@@ -23,11 +23,11 @@
     <div class="demo-invite-body">
         {% if locked_section %}
         <strong>{{ locked_titles[locked_section] }}</strong>
-        <p>{{ _('Avant de t’abonner, regarde comment ça marche sur un compte d’exemple déjà rempli : tu peux tout explorer, rien n’est enregistré.') }}</p>
+        <p>{{ _('Avant de vous abonner, regardez comment cela fonctionne sur un compte d’exemple déjà rempli : vous pouvez tout explorer, rien n’est enregistré.') }}</p>
         <a href="{{ url_for('demo.start', next=locked_next) }}" rel="nofollow" class="demo-invite-btn"><i class="fas fa-eye"></i> {{ locked_buttons[locked_section] }}</a>
         {% else %}
-        <strong>{{ _('Envie de voir l’app avant de t’abonner ?') }}</strong>
-        <p>{{ _('Explore un compte d’exemple déjà rempli : calendrier, page du cours, notes et plan de classe. Rien n’est enregistré.') }}</p>
+        <strong>{{ _('Envie de voir l’app avant de vous abonner ?') }}</strong>
+        <p>{{ _('Explorez un compte d’exemple déjà rempli : calendrier, page du cours, notes et plan de classe. Rien n’est enregistré.') }}</p>
         <a href="{{ url_for('demo.start') }}" rel="nofollow" class="demo-invite-btn"><i class="fas fa-eye"></i> {{ _('Explorer un compte d’exemple') }}</a>
         {% endif %}
     </div>

@@ -87,19 +87,19 @@ msgstr "Iniciar sesión"
 msgid "Inscription"
 msgstr "Registrarse"
 
-msgid "Ton essai Premium est terminé. Réactive pour retrouver la gestion de classe, les notes, les présences et les exercices."
+msgid "Votre essai Premium est terminé. Réactivez-le pour retrouver la gestion de classe, les notes, les présences et les exercices."
 msgstr "Tu prueba Premium ha terminado. Reactívala para recuperar la gestión de clase, las notas, las asistencias y los ejercicios."
 
-msgid "Ne perds pas la gestion de classe, les notes et les présences."
+msgid "Ne perdez pas la gestion de classe, les notes et les présences."
 msgstr "No pierdas la gestión de clase, las notas y las asistencias."
 
-msgid "Tu profites de"
+msgid "Vous profitez de"
 msgstr "Estás disfrutando de"
 
 msgid "Premium gratuit"
 msgstr "Premium gratis"
 
-msgid "Profites-en pour tout explorer !"
+msgid "Profitez-en pour tout explorer !"
 msgstr "¡Aprovecha para explorarlo todo!"
 
 msgid "Passer à Premium · dès CHF 4.90/mois"
@@ -276,7 +276,7 @@ msgstr "Se ha enviado un código de verificación a tu correo."
 msgid "Compte créé, mais impossible d'envoyer le code de vérification. Veuillez réessayer."
 msgstr "Cuenta creada, pero no se pudo enviar el código de verificación. Inténtalo de nuevo."
 
-msgid "Bienvenue sur ProfCalendar ! 🎉 Tu profites de 30 jours de Premium offerts — toutes les fonctionnalités débloquées."
+msgid "Bienvenue sur ProfCalendar ! 🎉 Vous profitez de 30 jours de Premium offerts — toutes les fonctionnalités débloquées."
 msgstr "¡Bienvenido a ProfCalendar! 🎉 Disfrutas de 30 días de Premium gratis: todas las funciones desbloqueadas."
 
 msgid "Code invalide ou expiré."
@@ -639,16 +639,16 @@ msgstr "Fecha no disponible"
 msgid "Prêt à commencer ?"
 msgstr "¿Listo para empezar?"
 
-msgid "Ton espace est déjà configuré (horaire, année scolaire…)."
+msgid "Votre espace est déjà configuré (horaire, année scolaire…)."
 msgstr "Tu espacio ya está configurado (horario, año escolar…)."
 
 msgid "Il ne reste qu'une chose à faire"
 msgstr "Solo queda una cosa por hacer"
 
-msgid "créer ta première classe"
+msgid "créer votre première classe"
 msgstr "crear tu primera clase"
 
-msgid "Ça prend 30 secondes, et tu pourras tout ajuster ensuite."
+msgid "Cela prend 30 secondes, et vous pourrez tout ajuster ensuite."
 msgstr "Tardas 30 segundos y luego podrás ajustarlo todo."
 
 msgid "Créer ma première classe"
@@ -1836,13 +1836,13 @@ msgstr "ProfCalendar es editado por Loïc Strauch, Suiza."
 msgid "Ajouter des élèves"
 msgstr "Añadir alumnos"
 
-msgid "Ajouter tes élèves"
+msgid "Ajouter vos élèves"
 msgstr "Añade a tus alumnos"
 
 msgid "Besoin d'aide ?"
 msgstr "¿Necesitas ayuda?"
 
-msgid "Calcule une moyenne pondérée en direct et trouve la note nécessaire au prochain test."
+msgid "Calculez une moyenne pondérée en direct et trouvez la note nécessaire au prochain test."
 msgstr "Calcula una media ponderada en directo y halla la nota necesaria en la próxima prueba."
 
 msgid "Calculer"
@@ -1854,16 +1854,16 @@ msgstr "Calendarios escolares de los cantones"
 msgid "Ce bouton ouvre l'aide contextuelle sur chaque page. Il est toujours disponible."
 msgstr "Este botón abre la ayuda contextual en cada página. Siempre está disponible."
 
-msgid "Clique sur ce bouton pour créer ta première classe — ça prend 30 secondes."
+msgid "Cliquez sur ce bouton pour créer votre première classe : cela prend 30 secondes."
 msgstr "Haz clic en este botón para crear tu primera clase — toma 30 segundos."
 
-msgid "Commence ici"
+msgid "Commencez ici"
 msgstr "Empieza aquí"
 
 msgid "Créer ma classe"
 msgstr "Crear mi clase"
 
-msgid "Créer ta première classe"
+msgid "Créer votre première classe"
 msgstr "Crea tu primera clase"
 
 msgid "Créer un barème"
@@ -1872,7 +1872,7 @@ msgstr "Crear un baremo"
 msgid "Des outils en libre accès pour les enseignants romands — à utiliser tout de suite."
 msgstr "Herramientas de libre acceso para docentes, listas para usar de inmediato."
 
-msgid "Donne-lui un nom et une discipline. Ça prend 30 secondes."
+msgid "Donnez-lui un nom et une discipline. Cela prend 30 secondes."
 msgstr "Ponle un nombre y una asignatura. Toma 30 segundos."
 
 msgid "Essayer"
@@ -1884,22 +1884,22 @@ msgstr "p. ej. Juan Pérez"
 msgid "Exercices illimités du Cycle 3 (9H–11H), classés par thème du PER, avec correction immédiate et figures interactives."
 msgstr "Ejercicios ilimitados del Ciclo 3 (9H–11H), clasificados por tema del PER, con corrección inmediata y figuras interactivas."
 
-msgid "Facultatif — c'est le nom affiché dans l'app. Laisse vide pour en générer un depuis ton email."
+msgid "Facultatif : c'est le nom affiché dans l'app. Laissez vide pour en générer un depuis votre e-mail."
 msgstr "Opcional — el nombre que se muestra en la app. Déjalo vacío para generarlo desde tu email."
 
-msgid "Faisons un tour rapide pour bien démarrer. Tu peux le passer à tout moment."
+msgid "Faisons un tour rapide pour bien démarrer. Vous pouvez le passer à tout moment."
 msgstr "Hagamos un recorrido rápido para empezar. Puedes saltarlo cuando quieras."
 
-msgid "Génère le barème d’un test (barème fédéral suisse) : points &rarr; note, prêt à copier-coller."
+msgid "Générez le barème d’un test (barème fédéral suisse) : points &rarr; note, prêt à copier-coller."
 msgstr "Genera el baremo de una prueba (escala federal suiza): puntos &rarr; nota, listo para copiar y pegar."
 
 msgid "Générateur d’exercices de maths"
 msgstr "Generador de ejercicios de matemáticas"
 
-msgid "Ouvre le calendrier et clique sur une période pour la préparer."
+msgid "Ouvrez le calendrier et cliquez sur une période pour la préparer."
 msgstr "Abre el calendario y haz clic en un periodo para prepararlo."
 
-msgid "Planifier ton premier cours"
+msgid "Planifier votre premier cours"
 msgstr "Planifica tu primera clase"
 
 msgid "Planifier un cours"
@@ -1908,16 +1908,16 @@ msgstr "Planificar una clase"
 msgid "Ressources gratuites, sans inscription"
 msgstr "Recursos gratuitos, sin registro"
 
-msgid "Suis cette petite liste : créer ta classe, ajouter tes élèves, puis planifier ton premier cours."
+msgid "Suivez cette petite liste : créer votre classe, ajouter vos élèves, puis planifier votre premier cours."
 msgstr "Sigue esta breve lista: crea tu clase, añade a tus alumnos y planifica tu primera clase."
 
-msgid "Tes 3 étapes pour démarrer"
+msgid "Vos 3 étapes pour démarrer"
 msgstr "Tus 3 pasos para empezar"
 
 msgid "Toutes les dates des vacances scolaires et jours fériés par canton romand, à consulter et à imprimer."
 msgstr "Todas las fechas de vacaciones escolares y días festivos por cantón, para consultar e imprimir."
 
-msgid "Un par un, ou en collant ta liste depuis Excel (import CSV)."
+msgid "Un par un, ou en collant votre liste depuis Excel (import CSV)."
 msgstr "Uno a uno, o pegando tu lista desde Excel (importación CSV)."
 
 msgid "Voir les calendriers"
@@ -2865,19 +2865,19 @@ msgstr "Aún no hay enlaces."
 msgid "Erreur lors de l'ajout"
 msgstr "Error al añadir"
 
-msgid "Choisis ton abonnement pour accéder à ProfCalendar."
+msgid "Choisissez votre abonnement pour accéder à ProfCalendar."
 msgstr "Elige tu suscripción para acceder a ProfCalendar."
 
 msgid "Bienvenue sur ProfCalendar ! 🎉"
 msgstr "¡Bienvenido a ProfCalendar! 🎉"
 
-msgid "Bienvenue sur ProfCalendar ! 🎉 Choisis ton abonnement pour commencer."
+msgid "Bienvenue sur ProfCalendar ! 🎉 Choisissez votre abonnement pour commencer."
 msgstr "¡Bienvenido a ProfCalendar! 🎉 Elige tu suscripción para empezar."
 
-msgid "Choisis ton abonnement pour commencer"
+msgid "Choisissez votre abonnement pour commencer"
 msgstr "Elige tu suscripción para empezar"
 
-msgid "ProfCalendar est un outil payant, sans engagement : choisis la formule qui te convient. Tu peux résilier à tout moment."
+msgid "ProfCalendar est un outil payant, sans engagement : choisissez la formule qui vous convient. Vous pouvez résilier à tout moment."
 msgstr "ProfCalendar es una herramienta de pago, sin permanencia: elige la fórmula que te convenga. Puedes cancelar en cualquier momento."
 
 msgid "Entrez votre code pour activer votre accès"
@@ -2898,7 +2898,7 @@ msgstr "Crea tu cuenta"
 msgid "Abonnement dès CHF 4.90 par mois, sans engagement."
 msgstr "Suscripción desde CHF 4.90 al mes, sin permanencia."
 
-msgid "Pour utiliser ProfCalendar, choisis un abonnement. Tu peux aussi restaurer un achat existant."
+msgid "Pour utiliser ProfCalendar, choisissez un abonnement. Vous pouvez aussi restaurer un achat existant."
 msgstr "Para usar ProfCalendar, elige una suscripción. También puedes restaurar una compra existente."
 
 msgid "Débloquez toutes les fonctionnalités pour gérer vos classes : notes, présences, plan de classe, fichiers annotés et bien plus."
@@ -2997,10 +2997,10 @@ msgstr "ProfCalendar ha transformado por completo mi forma de preparar las clase
 msgid "Présences, coches et plan de classe au même endroit : je gagne un temps fou pendant le cours, et tout est prêt pour les entretiens."
 msgstr "Asistencia, marcas y plano de clase en un mismo lugar: ahorro muchísimo tiempo durante la clase y todo está listo para las reuniones."
 
-msgid "Crée tes classes"
+msgid "Créez vos classes"
 msgstr "Crea tus clases"
 
-msgid "Un nom, une matière, une couleur. Ajoute-les toutes d'un coup."
+msgid "Un nom, une matière, une couleur. Ajoutez-les toutes d'un coup."
 msgstr "Un nombre, una asignatura, un color. Añádelas todas de una vez."
 
 msgid "Nom (ex. 9VP2)"
@@ -3015,25 +3015,25 @@ msgstr "Crear mis clases"
 msgid "Une autre classe"
 msgstr "Otra clase"
 
-msgid "Indique au moins un nom de classe et une matière."
+msgid "Indiquez au moins un nom de classe et une matière."
 msgstr "Indica al menos un nombre de clase y una asignatura."
 
 msgid "Erreur lors de la création des classes."
 msgstr "Error al crear las clases."
 
-msgid "Compose ton horaire"
+msgid "Composez votre horaire"
 msgstr "Crea tu horario"
 
-msgid "Clique sur les périodes de ta semaine et choisis la classe. Valide : tu reviens ici."
+msgid "Cliquez sur les périodes de votre semaine et choisissez la classe. Validez : vous revenez ici."
 msgstr "Haz clic en los periodos de tu semana y elige la clase. Confirma y vuelves aquí."
 
 msgid "Ouvrir l'horaire"
 msgstr "Abrir el horario"
 
-msgid "Importe tes vacances"
+msgid "Importez vos vacances"
 msgstr "Importa tus vacaciones"
 
-msgid "Choisis ton canton : vacances et jours fériés se placent tout seuls dans le calendrier."
+msgid "Choisissez votre canton : vacances et jours fériés se placent tout seuls dans le calendrier."
 msgstr "Elige tu cantón: las vacaciones y los festivos se colocan solos en el calendario."
 
 msgid "Canton"
@@ -3054,7 +3054,7 @@ msgstr "ProfCalendar funciona con una suscripción mensual o anual, sin permanen
 msgid "Configurer mon compte (2 minutes)"
 msgstr "Configurar mi cuenta (2 minutos)"
 
-msgid "Trois étapes guidées : tes classes, ton horaire, tes vacances."
+msgid "Trois étapes guidées : vos classes, votre horaire, vos vacances."
 msgstr "Tres pasos guiados: tus clases, tu horario, tus vacaciones."
 
 msgid "Nouvelle tâche…"
@@ -3063,7 +3063,7 @@ msgstr "Nueva tarea…"
 msgid "Aucune tâche pour le moment."
 msgstr "Ninguna tarea por ahora."
 
-msgid "Suis cette petite liste : crée tes classes, compose ton horaire, puis importe tes vacances."
+msgid "Suivez cette petite liste : créez vos classes, composez votre horaire, puis importez vos vacances."
 msgstr "Sigue esta pequeña lista: crea tus clases, compón tu horario y luego importa tus vacaciones."
 
 msgid "Passer"
@@ -3075,13 +3075,13 @@ msgstr "Siguiente"
 msgid "Terminer"
 msgstr "Terminar"
 
-msgid "Ce que tu obtiens"
+msgid "Ce que vous obtenez"
 msgstr "Lo que obtienes"
 
 msgid "Planification et calendrier"
 msgstr "Planificación y calendario"
 
-msgid "ta semaine période par période, les vacances de ton canton déjà placées."
+msgid "votre semaine période par période, les vacances de votre canton déjà placées."
 msgstr "tu semana periodo a periodo, con las vacaciones de tu cantón ya colocadas."
 
 msgid "Page du cours"
@@ -3096,7 +3096,7 @@ msgstr "notas y medias automáticas, ausencias, marcas, plano de la clase."
 msgid "stylo, surligneur, règle, compas et équerre en vrais centimètres."
 msgstr "bolígrafo, subrayador, regla, compás y escuadra en centímetros reales."
 
-msgid "50 Go pour garder tes documents d'une année à l'autre."
+msgid "50 Go pour garder vos documents d'une année à l'autre."
 msgstr "50 GB para guardar tus documentos de un curso a otro."
 
 msgid "Prix affiché à l’étape suivante"
@@ -3123,7 +3123,7 @@ msgstr "/ año"
 msgid "Le calendrier de la semaine"
 msgstr "El calendario de la semana"
 
-msgid "Chaque période aux couleurs de tes classes, les vacances du canton déjà placées."
+msgid "Chaque période aux couleurs de vos classes, les vacances du canton déjà placées."
 msgstr "Cada periodo con los colores de tus clases y las vacaciones del cantón ya colocadas."
 
 msgid "La planification d'un cours"
@@ -3135,13 +3135,13 @@ msgstr "Un título, el desarrollo con casillas y los documentos adjuntos."
 msgid "La page du cours"
 msgstr "La página de la clase"
 
-msgid "Ta planification, les documents épinglés et les présences sur un seul écran."
+msgid "Votre planification, les documents épinglés et les présences sur un seul écran."
 msgstr "Tu planificación, los documentos fijados y la asistencia en una sola pantalla."
 
 msgid "Le lecteur PDF"
 msgstr "El lector de PDF"
 
-msgid "Annote tes documents : stylo, surligneur, règle et compas en vrais centimètres."
+msgid "Annotez vos documents : stylo, surligneur, règle et compas en vrais centimètres."
 msgstr "Anota tus documentos: bolígrafo, subrayador, regla y compás en centímetros reales."
 
 msgid "Les notes"
@@ -3153,10 +3153,10 @@ msgstr "Las medias se calculan solas y se exportan en PDF o en hoja de cálculo.
 msgid "Le plan de classe"
 msgstr "El plano de la clase"
 
-msgid "Glisse les élèves sur les tables et retrouve qui est où, d’un coup d’œil."
+msgid "Glissez les élèves sur les tables et retrouvez qui est où, d’un coup d’œil."
 msgstr "Arrastra a los alumnos a las mesas y ve quién está dónde de un vistazo."
 
-msgid "Découvre ProfCalendar avant de t’abonner"
+msgid "Découvrez ProfCalendar avant de vous abonner"
 msgstr "Descubre ProfCalendar antes de suscribirte"
 
 msgid "Une vidéo, six écrans réels et un compte d’exemple à explorer librement."
@@ -3180,7 +3180,7 @@ msgstr "Pantalla siguiente"
 msgid "Explorer un compte d’exemple"
 msgstr "Explorar una cuenta de ejemplo"
 
-msgid "Sans inscription : navigue partout, rien n’est enregistré."
+msgid "Sans inscription : naviguez partout, rien n’est enregistré."
 msgstr "Sin registro: navega por todas partes, no se guarda nada."
 
 msgid "Voir la vidéo de présentation"
@@ -3195,16 +3195,16 @@ msgstr "Descargar ProfCalendar en la App Store"
 msgid "Télécharger sur l’"
 msgstr "Descargar en la"
 
-msgid "Pas encore sûr ? Regarde la vidéo, les écrans ou explore un compte d’exemple"
+msgid "Pas encore convaincu ? Regardez la vidéo, les écrans ou explorez un compte d’exemple"
 msgstr "¿Aún no lo tienes claro? Mira el vídeo, las pantallas o explora una cuenta de ejemplo"
 
-msgid "Pas encore décidé ? Explore un compte d’exemple"
+msgid "Pas encore décidé ? Explorez un compte d’exemple"
 msgstr "¿Aún no te decides? Explora una cuenta de ejemplo"
 
 msgid "Compte de démonstration"
 msgstr "Cuenta de demostración"
 
-msgid "explore librement : rien n'est enregistré."
+msgid "explorez librement : rien n'est enregistré."
 msgstr "explora libremente: no se guarda nada."
 
 msgid "Quitter la démo"
@@ -3215,6 +3215,3165 @@ msgstr "Volver a mi cuenta"
 
 msgid "Premiers pas"
 msgstr "Primeros pasos"
+
+msgid "Votre horaire type est déjà configuré. Vous pouvez le modifier ici."
+msgstr "Tu horario tipo ya está configurado. Puedes modificarlo aquí."
+
+msgid "janv."
+msgstr "ene."
+
+msgid "févr."
+msgstr "feb."
+
+msgid "mars"
+msgstr "marzo"
+
+msgid "avr."
+msgstr "abr."
+
+msgid "mai"
+msgstr "mayo"
+
+msgid "juin"
+msgstr "junio"
+
+msgid "juil."
+msgstr "jul."
+
+msgid "août"
+msgstr "agosto"
+
+msgid "sept."
+msgstr "sept."
+
+msgid "oct."
+msgstr "oct."
+
+msgid "nov."
+msgstr "nov."
+
+msgid "déc."
+msgstr "dic."
+
+msgid "S{n}"
+msgstr "S{n}"
+
+msgid "Semaine du {label}"
+msgstr "Semana del {label}"
+
+msgid "Année scolaire non configurée"
+msgstr "Curso escolar no configurado"
+
+msgid "Vue normale"
+msgstr "Vista normal"
+
+msgid "Vue étendue"
+msgstr "Vista ampliada"
+
+msgid "Erreur de connexion au serveur"
+msgstr "Error de conexión con el servidor"
+
+msgid "Erreur lors du chargement"
+msgstr "Error al cargar"
+
+msgid "Erreur lors du chargement (HTTP {status})"
+msgstr "Error al cargar (HTTP {status})"
+
+msgid "Erreur lors de la suppression : {error}"
+msgstr "Error al eliminar: {error}"
+
+msgid "Erreur lors de la sauvegarde : {error}"
+msgstr "Error al guardar: {error}"
+
+msgid "Non défini"
+msgstr "Sin definir"
+
+msgid "Veuillez sélectionner une classe"
+msgstr "Selecciona una clase"
+
+msgid "Aucun fichier dans cette classe"
+msgstr "No hay archivos en esta clase"
+
+msgid "Racine"
+msgstr "Raíz"
+
+msgid "Épingler"
+msgstr "Fijar"
+
+msgid "Désépingler"
+msgstr "Dejar de fijar"
+
+msgid "Joindre à cette période"
+msgstr "Adjuntar a este periodo"
+
+msgid "Supprimer de la classe"
+msgstr "Eliminar de la clase"
+
+msgid "Erreur lors de l'épinglage : {error}"
+msgstr "Error al fijar: {error}"
+
+msgid "Erreur lors de l'épinglage du fichier"
+msgstr "Error al fijar el archivo"
+
+msgid "Supprimer « {name} » de cette classe ? (le fichier reste dans votre gestionnaire personnel s'il en vient)"
+msgstr "¿Eliminar «{name}» de esta clase? (El archivo se queda en tu gestor personal si proviene de allí.)"
+
+msgid "Fichier"
+msgstr "Archivo"
+
+msgid "éphémère"
+msgstr "temporal"
+
+msgid "Supprimé automatiquement le lendemain du cours"
+msgstr "Se elimina automáticamente el día después de la clase"
+
+msgid "Retirer de cette période"
+msgstr "Quitar de este periodo"
+
+msgid "Enregistrez d'abord la planification, puis joignez le fichier."
+msgstr "Guarda primero la planificación y luego adjunta el archivo."
+
+msgid "Enregistrez d'abord la planification, puis ajoutez le fichier."
+msgstr "Guarda primero la planificación y luego añade el archivo."
+
+msgid "Erreur lors du chargement du PDF"
+msgstr "Error al cargar el PDF"
+
+msgid "Erreur lors du chargement du PDF : {error}"
+msgstr "Error al cargar el PDF: {error}"
+
+msgid "Page {n}"
+msgstr "Página {n}"
+
+msgid "Sauvegardé"
+msgstr "Guardado"
+
+msgid "Erreur de sauvegarde"
+msgstr "Error al guardar"
+
+msgid "Sauvegarde à la fermeture"
+msgstr "Se guarda al cerrar"
+
+msgid "Voulez-vous vraiment effacer toutes les annotations ?"
+msgstr "¿Seguro que quieres borrar todas las anotaciones?"
+
+msgid "Veuillez d'abord sélectionner une date et une période"
+msgstr "Selecciona primero una fecha y un periodo"
+
+msgid "Veuillez d'abord sélectionner une classe"
+msgstr "Selecciona primero una clase"
+
+msgid "Type de classe non supporté"
+msgstr "Tipo de clase no compatible"
+
+msgid "Erreur lors du chargement des feuilles blanches"
+msgstr "Error al cargar las hojas en blanco"
+
+msgid "Feuilles blanches de la leçon"
+msgstr "Hojas en blanco de la clase"
+
+msgid "Nouvelle feuille"
+msgstr "Nueva hoja"
+
+msgid "Erreur lors du chargement de la feuille : {error}"
+msgstr "Error al cargar la hoja: {error}"
+
+msgid "Erreur lors du chargement de la feuille blanche"
+msgstr "Error al cargar la hoja en blanco"
+
+msgid "Contexte de période non disponible"
+msgstr "Contexto del periodo no disponible"
+
+msgid "Êtes-vous sûr de vouloir supprimer cette feuille blanche ? Cette action est irréversible."
+msgstr "¿Seguro que quieres eliminar esta hoja en blanco? Esta acción es irreversible."
+
+msgid "Erreur lors de la suppression de la feuille blanche"
+msgstr "Error al eliminar la hoja en blanco"
+
+msgid "Planification - {date}"
+msgstr "Planificación - {date}"
+
+msgid "Veuillez sélectionner une classe pour voir les créneaux"
+msgstr "Selecciona una clase para ver las franjas"
+
+msgid "Erreur lors du chargement des créneaux"
+msgstr "Error al cargar las franjas"
+
+msgid "Aucun créneau configuré pour cette journée"
+msgstr "No hay franjas configuradas para este día"
+
+msgid "Modifier ce créneau"
+msgstr "Editar esta franja"
+
+msgid "Sans titre"
+msgstr "Sin título"
+
+msgid "Cliquez pour planifier ce créneau"
+msgstr "Haz clic para planificar esta franja"
+
+msgid "Créneau libre - Cliquez pour ajouter une planification"
+msgstr "Franja libre - Haz clic para añadir una planificación"
+
+msgid "Planifier le créneau - Période {n}"
+msgstr "Planificar la franja - Periodo {n}"
+
+msgid "Groupe"
+msgstr "Grupo"
+
+msgid "Classe entière"
+msgstr "Toda la clase"
+
+msgid "Sélectionnez un groupe ou laissez \"Classe entière\" pour tous les élèves"
+msgstr "Selecciona un grupo o deja \"Toda la clase\" para todos los alumnos"
+
+msgid "Application automatique :"
+msgstr "Aplicación automática:"
+
+msgid "Répéter le même groupe chaque semaine jusqu'à la fin de l'année"
+msgstr "Repetir el mismo grupo cada semana hasta el final del curso"
+
+msgid "Alterner entre tous les groupes de la classe chaque semaine"
+msgstr "Alternar entre todos los grupos de la clase cada semana"
+
+msgid "Appliquer seulement pour cette date"
+msgstr "Aplicar solo a esta fecha"
+
+msgid "Titre"
+msgstr "Título"
+
+msgid "Titre du cours"
+msgstr "Título de la clase"
+
+msgid "Ex: Introduction aux fractions"
+msgstr "Ej.: Introducción a las fracciones"
+
+msgid "Détails du cours, exercices prévus..."
+msgstr "Detalles de la clase, ejercicios previstos..."
+
+msgid "Mémos pour ce créneau"
+msgstr "Notas para esta franja"
+
+msgid "Tâche personnalisée"
+msgstr "Tarea personalizada"
+
+msgid "Effacer la planification de cette période ?"
+msgstr "¿Borrar la planificación de este periodo?"
+
+msgid "Erreur lors du chargement des présences"
+msgstr "Error al cargar la asistencia"
+
+msgid "{n} min"
+msgstr "{n} min"
+
+msgid "En retard"
+msgstr "Con retraso"
+
+msgid "Aucun devoir donné ce jour."
+msgstr "No se asignó ninguna tarea este día."
+
+msgid "Donné ce jour · à rendre le {date}"
+msgstr "Asignada este día · entrega el {date}"
+
+msgid "À rendre ce jour"
+msgstr "Entrega este día"
+
+msgid "Voir les devoirs reçus"
+msgstr "Ver las tareas recibidas"
+
+msgid "Voir les résultats"
+msgstr "Ver los resultados"
+
+msgid "Choisissez d'abord une classe pour ce créneau."
+msgstr "Elige primero una clase para esta franja."
+
+msgid "Aucune classe pour cette période."
+msgstr "No hay ninguna clase para este periodo."
+
+msgid "Fusionné"
+msgstr "Fusionado"
+
+msgid "Devoir(s) à rendre"
+msgstr "Tareas para entregar"
+
+msgid "Les données de l'année se mettent en place."
+msgstr "Preparando los datos del curso."
+
+msgid "Votre calendrier utilise des <strong>réglages par défaut</strong>. Personnalisez vos données pour qu'il colle à votre établissement :"
+msgstr "Tu calendario usa <strong>ajustes predeterminados</strong>. Personaliza tus datos para que se ajuste a tu centro:"
+
+msgid "Mon horaire"
+msgstr "Mi horario"
+
+msgid "Mes pauses"
+msgstr "Mis pausas"
+
+msgid "Mes vacances"
+msgstr "Mis vacaciones"
+
+msgid "Semaine du %(start)s au %(end)s"
+msgstr "Semana del %(start)s al %(end)s"
+
+msgid "Choisir une semaine ou une date"
+msgstr "Elegir una semana o una fecha"
+
+msgid "S%(n)s"
+msgstr "S%(n)s"
+
+msgid "Aller à une date"
+msgstr "Ir a una fecha"
+
+msgid "Semaines de l'année"
+msgstr "Semanas del curso"
+
+msgid "Basculer la vue"
+msgstr "Cambiar la vista"
+
+msgid "Vue hebdomadaire"
+msgstr "Vista semanal"
+
+msgid "Jour avec cours"
+msgstr "Día con clases"
+
+msgid "Jour sans cours"
+msgstr "Día sin clases"
+
+msgid "Tâches complétées"
+msgstr "Tareas completadas"
+
+msgid "Tâches en cours"
+msgstr "Tareas en curso"
+
+msgid "Tâches non commencées"
+msgstr "Tareas sin empezar"
+
+msgid "Planification"
+msgstr "Planificación"
+
+msgid "Planifier le cours"
+msgstr "Planificar la clase"
+
+msgid "Afficher/Masquer les fichiers"
+msgstr "Mostrar/ocultar archivos"
+
+msgid "Feuilles blanches"
+msgstr "Hojas en blanco"
+
+msgid "Nouvelle"
+msgstr "Nueva"
+
+msgid "Fichiers joints"
+msgstr "Archivos adjuntos"
+
+msgid "Ajouter un fichier depuis votre ordinateur, supprimé automatiquement le lendemain du cours"
+msgstr "Añade un archivo desde tu ordenador; se elimina automáticamente el día después de la clase"
+
+msgid "Fichier éphémère"
+msgstr "Archivo temporal"
+
+msgid "Cours"
+msgstr "Clase"
+
+msgid "Tâche perso"
+msgstr "Tarea personal"
+
+msgid "Horaire (facultatif)"
+msgstr "Horario (opcional)"
+
+msgid "Ex : une réunion de 14h00 à 15h30 — affiché sur le calendrier."
+msgstr "Ej.: una reunión de 14:00 a 15:30 — se muestra en el calendario."
+
+msgid "Astuce : commencez une ligne par « - [ ] » pour créer une case à cocher."
+msgstr "Consejo: empieza una línea con «- [ ]» para crear una casilla."
+
+msgid "Créer un devoir"
+msgstr "Crear una tarea"
+
+msgid "Effacer"
+msgstr "Borrar"
+
+msgid "Fichiers de la classe"
+msgstr "Archivos de la clase"
+
+msgid "Créer des feuilles blanches"
+msgstr "Crear hojas en blanco"
+
+msgid "Chargement des fichiers..."
+msgstr "Cargando archivos..."
+
+msgid "Fichiers épinglés"
+msgstr "Archivos fijados"
+
+msgid "Planification de la journée"
+msgstr "Planificación del día"
+
+msgid "Classe sélectionnée"
+msgstr "Clase seleccionada"
+
+msgid "-- Classe prédéfinie --"
+msgstr "-- Clase predefinida --"
+
+msgid "Présences de la période"
+msgstr "Asistencia del periodo"
+
+msgid "Chargement des présences..."
+msgstr "Cargando la asistencia..."
+
+msgid "Aucune feuille blanche pour cette période"
+msgstr "No hay hojas en blanco para este periodo"
+
+msgid "Tâches réalisées"
+msgstr "Tareas realizadas"
+
+msgid "Tâches non réalisées"
+msgstr "Tareas no realizadas"
+
+msgid "Élèves absents"
+msgstr "Alumnos ausentes"
+
+msgid "Élèves en retard"
+msgstr "Alumnos con retraso"
+
+msgid "Tous les élèves étaient présents"
+msgstr "Todos los alumnos estaban presentes"
+
+msgid "Gestion des classes"
+msgstr "Gestión de clases"
+
+msgid "Nouvelle classe"
+msgstr "Nueva clase"
+
+msgid "Corbeille"
+msgstr "Papelera"
+
+msgid "Options de la classe"
+msgstr "Opciones de la clase"
+
+msgid "Supprimer %(name)s · %(subject)s"
+msgstr "Eliminar %(name)s · %(subject)s"
+
+msgid "Classe liée — Maître de classe :"
+msgstr "Clase vinculada — Tutor de la clase:"
+
+msgid "Enseignants liés à cette classe :"
+msgstr "Profesores vinculados a esta clase:"
+
+msgid "Classe :"
+msgstr "Clase:"
+
+msgid "Nom de la classe"
+msgstr "Nombre de la clase"
+
+msgid "ex. 9VP2"
+msgstr "p. ej. 9VP2"
+
+msgid "ex. Mathématiques"
+msgstr "p. ej. Matemáticas"
+
+msgid "Créer la classe"
+msgstr "Crear la clase"
+
+msgid "Section"
+msgstr "Sección"
+
+msgid "Élèves"
+msgstr "Alumnos"
+
+msgid "Rapport élève"
+msgstr "Informe del alumno"
+
+msgid "Absences"
+msgstr "Ausencias"
+
+msgid "Plan de classe"
+msgstr "Plano de clase"
+
+msgid "Groupes"
+msgstr "Grupos"
+
+msgid "Éval. formative"
+msgstr "Eval. formativa"
+
+msgid "Aménagements"
+msgstr "Adaptaciones"
+
+msgid "Annonces"
+msgstr "Anuncios"
+
+msgid "Liste des élèves"
+msgstr "Lista de alumnos"
+
+msgid "Code élèves"
+msgstr "Código de alumnos"
+
+msgid "Code parents"
+msgstr "Código de padres"
+
+msgid "Importer (CSV/Excel)"
+msgstr "Importar (CSV/Excel)"
+
+msgid "Ajouter un élève"
+msgstr "Añadir un alumno"
+
+msgid "Importer des élèves"
+msgstr "Importar alumnos"
+
+msgid "Collez directement depuis Excel/Numbers (ou choisissez un fichier CSV)."
+msgstr "Pega directamente desde Excel/Numbers (o elige un archivo CSV)."
+
+msgid "Colonnes attendues :"
+msgstr "Columnas esperadas:"
+
+msgid "Email élève"
+msgstr "Email del alumno"
+
+msgid "Email mère"
+msgstr "Email de la madre"
+
+msgid "Email père"
+msgstr "Email del padre"
+
+msgid "(seuls le prénom et le nom sont nécessaires — la 1<sup>re</sup> ligne d'en-têtes est détectée automatiquement)."
+msgstr "(solo se necesitan el nombre y el apellido — la 1.<sup>a</sup> fila de encabezados se detecta automáticamente)."
+
+msgid "Après « Analyser », vous pourrez <strong>réassigner ou interchanger les colonnes</strong> avant de valider."
+msgstr "Después de «Analizar», podrás <strong>reasignar o intercambiar las columnas</strong> antes de confirmar."
+
+msgid "…ou choisissez un fichier exporté de votre administration scolaire."
+msgstr "…o elige un archivo exportado de tu administración escolar."
+
+msgid "Analyser"
+msgstr "Analizar"
+
+msgid "Ajouter un élève de la classe du maître"
+msgstr "Añadir un alumno de la clase del tutor"
+
+msgid "Sélectionner un élève"
+msgstr "Seleccionar un alumno"
+
+msgid "Nom de famille"
+msgstr "Apellido"
+
+msgid "Obligatoire uniquement si un élève a déjà ce prénom"
+msgstr "Obligatorio solo si un alumno ya tiene este nombre"
+
+msgid "Email élève (optionnel)"
+msgstr "Email del alumno (opcional)"
+
+msgid "Email mère (optionnel)"
+msgstr "Email de la madre (opcional)"
+
+msgid "exemple@mail.com"
+msgstr "ejemplo@mail.com"
+
+msgid "Email père (optionnel)"
+msgstr "Email del padre (opcional)"
+
+msgid "Ajouter des élèves au groupe mixte"
+msgstr "Añadir alumnos al grupo mixto"
+
+msgid "Sélectionnez des élèves parmi les classes sources disponibles :"
+msgstr "Selecciona alumnos de las clases de origen disponibles:"
+
+msgid "Supprimer du groupe mixte"
+msgstr "Quitar del grupo mixto"
+
+msgid "Nouvelle annonce"
+msgstr "Nuevo anuncio"
+
+msgid "Publiez une information pour toute la classe. Elle s'affiche dans l'espace des parents ; vous pouvez aussi les prévenir par email."
+msgstr "Publica una información para toda la clase. Aparece en el espacio de los padres; también puedes avisarles por email."
+
+msgid "Ex. : Sortie au musée jeudi"
+msgstr "Ej.: Salida al museo el jueves"
+
+msgid "Message"
+msgstr "Mensaje"
+
+msgid "Détaillez votre annonce ici…"
+msgstr "Detalla tu anuncio aquí…"
+
+msgid "Prévenir les parents par email"
+msgstr "Avisar a los padres por email"
+
+msgid "Publier"
+msgstr "Publicar"
+
+msgid "Imprimer le rapport"
+msgstr "Imprimir el informe"
+
+msgid "Sélectionner un élève :"
+msgstr "Seleccionar un alumno:"
+
+msgid "Informations générales"
+msgstr "Información general"
+
+msgid "Prénom :"
+msgstr "Nombre:"
+
+msgid "Nom :"
+msgstr "Apellido:"
+
+msgid "Email élève :"
+msgstr "Email del alumno:"
+
+msgid "Email mère :"
+msgstr "Email de la madre:"
+
+msgid "Email père :"
+msgstr "Email del padre:"
+
+msgid "Groupes :"
+msgstr "Grupos:"
+
+msgid "Évaluations formatives"
+msgstr "Evaluaciones formativas"
+
+msgid "Informations supplémentaires"
+msgstr "Información adicional"
+
+msgid "Ajouter des informations sur cet élève..."
+msgstr "Añade información sobre este alumno..."
+
+msgid "Historique des informations"
+msgstr "Historial de información"
+
+msgid "Fichiers associés"
+msgstr "Archivos asociados"
+
+msgid "Ajouter un fichier"
+msgstr "Añadir un archivo"
+
+msgid "Gestion des notes"
+msgstr "Gestión de notas"
+
+msgid "Export PDF"
+msgstr "Exportar PDF"
+
+msgid "Export CSV"
+msgstr "Exportar CSV"
+
+msgid "Évaluations"
+msgstr "Evaluaciones"
+
+msgid "Moyenne classe"
+msgstr "Promedio de la clase"
+
+msgid "Inclus notes collaborateurs"
+msgstr "Incluye notas de colaboradores"
+
+msgid "Lecture seule"
+msgstr "Solo lectura"
+
+msgid "Aucune évaluation créée pour %(subject)s"
+msgstr "No se ha creado ninguna evaluación para %(subject)s"
+
+msgid "Créer une première évaluation"
+msgstr "Crear una primera evaluación"
+
+msgid "Discipline en lecture seule"
+msgstr "Asignatura de solo lectura"
+
+msgid "Aucune évaluation créée"
+msgstr "No se ha creado ninguna evaluación"
+
+msgid "Analyse de l'évaluation sélectionnée"
+msgstr "Análisis de la evaluación seleccionada"
+
+msgid "Moyenne :"
+msgstr "Promedio:"
+
+msgid "Note la plus haute :"
+msgstr "Nota más alta:"
+
+msgid "Note la plus basse :"
+msgstr "Nota más baja:"
+
+msgid "Fichiers par discipline"
+msgstr "Archivos por asignatura"
+
+msgid "Dossier"
+msgstr "Carpeta"
+
+msgid "Glissez vos fichiers ou dossiers ici pour %(subject)s"
+msgstr "Arrastra tus archivos o carpetas aquí para %(subject)s"
+
+msgid "PDF, PNG, JPG • Max 80 MB • Les dossiers seront importés avec leur structure"
+msgstr "PDF, PNG, JPG • Máx. 80 MB • Las carpetas se importarán con su estructura"
+
+msgid "Aucun fichier pour %(subject)s"
+msgstr "No hay archivos para %(subject)s"
+
+msgid "Créez un dossier ou uploadez des fichiers pour commencer"
+msgstr "Crea una carpeta o sube archivos para empezar"
+
+msgid "Glissez vos fichiers ou dossiers ici"
+msgstr "Arrastra tus archivos o carpetas aquí"
+
+msgid "Ce dossier est vide"
+msgstr "Esta carpeta está vacía"
+
+msgid "Suivi des coches"
+msgstr "Seguimiento de marcas"
+
+msgid "Réinitialiser toutes les coches"
+msgstr "Restablecer todas las marcas"
+
+msgid "Mode d'affichage :"
+msgstr "Modo de visualización:"
+
+msgid "Tableau unifié (toutes disciplines)"
+msgstr "Tabla unificada (todas las asignaturas)"
+
+msgid "Tableaux séparés par discipline"
+msgstr "Tablas separadas por asignatura"
+
+msgid "Coches centralisées (maître de classe)"
+msgstr "Marcas centralizadas (tutor de la clase)"
+
+msgid "Seul le maître de classe peut modifier le mode d'affichage"
+msgstr "Solo el tutor de la clase puede cambiar el modo de visualización"
+
+msgid "Mode verrouillé par %(name)s"
+msgstr "Modo bloqueado por %(name)s"
+
+msgid "le maître de classe"
+msgstr "el tutor de la clase"
+
+msgid "Aucun modèle de sanction importé dans cette classe"
+msgstr "No se ha importado ninguna plantilla de sanción en esta clase"
+
+msgid "Allez dans %(link)s pour créer et importer des modèles"
+msgstr "Ve a %(link)s para crear e importar plantillas"
+
+msgid "Ajoutez des élèves dans l'onglet « Élèves » pour commencer le suivi des sanctions"
+msgstr "Añade alumnos en la pestaña «Alumnos» para empezar el seguimiento de sanciones"
+
+msgid "Retards"
+msgstr "Retrasos"
+
+msgid "Absences justifiées"
+msgstr "Ausencias justificadas"
+
+msgid "Date de début"
+msgstr "Fecha de inicio"
+
+msgid "Date de fin"
+msgstr "Fecha de fin"
+
+msgid "Filtrer"
+msgstr "Filtrar"
+
+msgid "Période(s)"
+msgstr "Periodo(s)"
+
+msgid "Horaires"
+msgstr "Horarios"
+
+msgid "Commentaire"
+msgstr "Comentario"
+
+msgid "Aucune absence trouvée pour cette classe."
+msgstr "No se han encontrado ausencias para esta clase."
+
+msgid "Minutes de retard"
+msgstr "Minutos de retraso"
+
+msgid "Aucun retard trouvé pour cette classe."
+msgstr "No se han encontrado retrasos para esta clase."
+
+msgid "Approuver"
+msgstr "Aprobar"
+
+msgid "Refuser"
+msgstr "Rechazar"
+
+msgid "Parent :"
+msgstr "Padre/madre:"
+
+msgid "Fichier :"
+msgstr "Archivo:"
+
+msgid "Remarque :"
+msgstr "Nota:"
+
+msgid "Réponse ou note pour le parent..."
+msgstr "Respuesta o nota para el padre o la madre..."
+
+msgid "Traité le %(date)s"
+msgstr "Procesado el %(date)s"
+
+msgid "Aucune justification d'absence"
+msgstr "Ninguna justificación de ausencia"
+
+msgid "Les parents peuvent maintenant justifier les absences via leur portail dédié."
+msgstr "Los padres ya pueden justificar las ausencias desde su portal."
+
+msgid "Les justifications apparaîtront ici pour validation."
+msgstr "Las justificaciones aparecerán aquí para su validación."
+
+msgid "Simple"
+msgstr "Individual"
+
+msgid "Double"
+msgstr "Doble"
+
+msgid "Bureau prof"
+msgstr "Mesa del profesor"
+
+msgid "Réinitialiser élèves"
+msgstr "Restablecer alumnos"
+
+msgid "Enregistrer plan"
+msgstr "Guardar plano"
+
+msgid "Imprimer"
+msgstr "Imprimir"
+
+msgid "Charger plan du maître"
+msgstr "Cargar plano del tutor"
+
+msgid "Créez votre plan de classe"
+msgstr "Crea tu plano de clase"
+
+msgid "Utilisez les outils de gauche pour ajouter des tables et un bureau."
+msgstr "Usa las herramientas de la izquierda para añadir mesas y una mesa del profesor."
+
+msgid "Déplacez ensuite les étiquettes des élèves depuis le panneau de droite."
+msgstr "Después arrastra las etiquetas de los alumnos desde el panel de la derecha."
+
+msgid "Élèves de la classe"
+msgstr "Alumnos de la clase"
+
+msgid "élèves"
+msgstr "alumnos"
+
+msgid "Gestion des groupes"
+msgstr "Gestión de grupos"
+
+msgid "Nom du groupe *"
+msgstr "Nombre del grupo *"
+
+msgid "Ex : Groupe A, Avancés, Débutants..."
+msgstr "Ej.: Grupo A, Avanzados, Principiantes..."
+
+msgid "Description (optionnel)"
+msgstr "Descripción (opcional)"
+
+msgid "Description du groupe ou objectifs..."
+msgstr "Descripción del grupo u objetivos..."
+
+msgid "Sélectionner les élèves"
+msgstr "Seleccionar los alumnos"
+
+msgid "Évaluation formative"
+msgstr "Evaluación formativa"
+
+msgid "Discipline :"
+msgstr "Asignatura:"
+
+msgid "Cliquez sur une case pour annoter l'élève. Les colonnes affichées dépendent de vos paramètres."
+msgstr "Haz clic en una casilla para anotar al alumno. Las columnas mostradas dependen de tu configuración."
+
+msgid "Ex : Fiche d'exercices p. 42"
+msgstr "Ej.: Ficha de ejercicios p. 42"
+
+msgid "Appréciation"
+msgstr "Valoración"
+
+msgid "Pastille"
+msgstr "Punto de color"
+
+msgid "Visible par vous seul…"
+msgstr "Solo visible para ti…"
+
+msgid "Gestion des aménagements"
+msgstr "Gestión de adaptaciones"
+
+msgid "Aucun aménagement défini pour cette classe"
+msgstr "No hay adaptaciones definidas para esta clase"
+
+msgid "Les aménagements se gèrent individuellement pour chaque élève"
+msgstr "Las adaptaciones se gestionan individualmente para cada alumno"
+
+msgid "Ajouter un aménagement"
+msgstr "Añadir una adaptación"
+
+msgid "Type d'aménagement"
+msgstr "Tipo de adaptación"
+
+msgid "Choisir dans la liste prédéfinie"
+msgstr "Elegir de la lista predefinida"
+
+msgid "Créer un aménagement personnalisé"
+msgstr "Crear una adaptación personalizada"
+
+msgid "Aménagement prédéfini"
+msgstr "Adaptación predefinida"
+
+msgid "Nom de l'aménagement"
+msgstr "Nombre de la adaptación"
+
+msgid "Ex : Calculatrice autorisée"
+msgstr "Ej.: Calculadora permitida"
+
+msgid "Temps"
+msgstr "Tiempo"
+
+msgid "Chrono"
+msgstr "Cronómetro"
+
+msgid "Sablier"
+msgstr "Reloj de arena"
+
+msgid "Ordinateur"
+msgstr "Ordenador"
+
+msgid "Tablette"
+msgstr "Tableta"
+
+msgid "Imprimante"
+msgstr "Impresora"
+
+msgid "Lecture"
+msgstr "Lectura"
+
+msgid "Écriture"
+msgstr "Escritura"
+
+msgid "Oral"
+msgstr "Oral"
+
+msgid "Parole"
+msgstr "Habla"
+
+msgid "Écoute"
+msgstr "Escucha"
+
+msgid "Visuel"
+msgstr "Visual"
+
+msgid "Agrandissement"
+msgstr "Ampliación"
+
+msgid "Loupe"
+msgstr "Lupa"
+
+msgid "Isolement"
+msgstr "Aislamiento"
+
+msgid "Position"
+msgstr "Posición"
+
+msgid "Silence"
+msgstr "Silencio"
+
+msgid "Calculs"
+msgstr "Cálculos"
+
+msgid "Calculatrice"
+msgstr "Calculadora"
+
+msgid "Géométrie"
+msgstr "Geometría"
+
+msgid "Règle"
+msgstr "Regla"
+
+msgid "Crayon"
+msgstr "Lápiz"
+
+msgid "Stylo"
+msgstr "Bolígrafo"
+
+msgid "Aide-mémoire"
+msgstr "Ayuda memoria"
+
+msgid "Objectif"
+msgstr "Objetivo"
+
+msgid "Motivation"
+msgstr "Motivación"
+
+msgid "Répétition"
+msgstr "Repetición"
+
+msgid "Documentation"
+msgstr "Documentación"
+
+msgid "Audio"
+msgstr "Audio"
+
+msgid "Amplification"
+msgstr "Amplificación"
+
+msgid "Créatif"
+msgstr "Creativo"
+
+msgid "Images"
+msgstr "Imágenes"
+
+msgid "Graphiques"
+msgstr "Gráficos"
+
+msgid "Organisation"
+msgstr "Organización"
+
+msgid "Rapidité"
+msgstr "Rapidez"
+
+msgid "Outil"
+msgstr "Herramienta"
+
+msgid "Adaptation"
+msgstr "Adaptación"
+
+msgid "Ludique"
+msgstr "Lúdico"
+
+msgid "Interactif"
+msgstr "Interactivo"
+
+msgid "Repérage"
+msgstr "Orientación"
+
+msgid "Étiquettes"
+msgstr "Etiquetas"
+
+msgid "Éclairage"
+msgstr "Iluminación"
+
+msgid "Couleurs"
+msgstr "Colores"
+
+msgid "Check-list"
+msgstr "Lista de control"
+
+msgid "Configuration"
+msgstr "Configuración"
+
+msgid "Accès"
+msgstr "Acceso"
+
+msgid "Apprentissage"
+msgstr "Aprendizaje"
+
+msgid "Fiche"
+msgstr "Ficha"
+
+msgid "Expression"
+msgstr "Expresión"
+
+msgid "Excellence"
+msgstr "Excelencia"
+
+msgid "Idée"
+msgstr "Idea"
+
+msgid "Musical"
+msgstr "Musical"
+
+msgid "Rythme"
+msgstr "Ritmo"
+
+msgid "Animation"
+msgstr "Animación"
+
+msgid "Description détaillée de l'aménagement"
+msgstr "Descripción detallada de la adaptación"
+
+msgid "Cet aménagement concerne une extension de temps"
+msgstr "Esta adaptación es una extensión de tiempo"
+
+msgid "Multiplicateur de temps"
+msgstr "Multiplicador de tiempo"
+
+msgid "+25%% (1/4 de temps en plus)"
+msgstr "+25%% (1/4 de tiempo extra)"
+
+msgid "+33%% (1/3 de temps en plus)"
+msgstr "+33%% (1/3 de tiempo extra)"
+
+msgid "+50%% (1/2 de temps en plus)"
+msgstr "+50%% (1/2 de tiempo extra)"
+
+msgid "+75%% (3/4 de temps en plus)"
+msgstr "+75%% (3/4 de tiempo extra)"
+
+msgid "+100%% (temps doublé)"
+msgstr "+100%% (tiempo doble)"
+
+msgid "Notes spécifiques pour cet élève (optionnel)"
+msgstr "Notas específicas para este alumno (opcional)"
+
+msgid "Notes particulières ou adaptations spécifiques..."
+msgstr "Notas particulares o adaptaciones específicas..."
+
+msgid "Enseignants de la classe"
+msgstr "Profesores de la clase"
+
+msgid "Maître de classe"
+msgstr "Tutor de la clase"
+
+msgid "Disciplines :"
+msgstr "Asignaturas:"
+
+msgid "Aucun enseignant trouvé pour cette classe"
+msgstr "No se han encontrado profesores para esta clase"
+
+msgid "Partager un fichier avec des élèves"
+msgstr "Compartir un archivo con alumnos"
+
+msgid "Fichier à partager"
+msgstr "Archivo para compartir"
+
+msgid "élève(s) sélectionné(s)"
+msgstr "alumno(s) seleccionado(s)"
+
+msgid "Message pour les élèves (optionnel)"
+msgstr "Mensaje para los alumnos (opcional)"
+
+msgid "Ajoutez un message personnalisé pour expliquer pourquoi vous partagez ce fichier (ex. : « Document pour rattraper le cours du 15/01 »)"
+msgstr "Añade un mensaje personalizado para explicar por qué compartes este archivo (p. ej.: «Documento para recuperar la clase del 15/01»)"
+
+msgid "Ce message apparaîtra avec le fichier sur la plateforme élève"
+msgstr "Este mensaje aparecerá con el archivo en la plataforma de alumnos"
+
+msgid "Supprimer la classe {name} ({subject}) ? Elle reste 30 jours dans la corbeille."
+msgstr "¿Eliminar la clase {name} ({subject})? Permanecerá 30 días en la papelera."
+
+msgid "— Ignorer —"
+msgstr "— Ignorar —"
+
+msgid "Collez d'abord votre liste d'élèves."
+msgstr "Pega primero tu lista de alumnos."
+
+msgid "Associez vos colonnes"
+msgstr "Asocia tus columnas"
+
+msgid "(changez un menu pour interchanger)"
+msgstr "(cambia un menú para intercambiar)"
+
+msgid "Col. {n}"
+msgstr "Col. {n}"
+
+msgid "Analyse impossible"
+msgstr "No se pudo analizar"
+
+msgid "{n} élève(s) prêt(s) à être importé(s)"
+msgstr "{n} alumno(s) listo(s) para importar"
+
+msgid "… et {n} de plus"
+msgstr "… y {n} más"
+
+msgid "Ignorés ({n}) :"
+msgstr "Ignorados ({n}):"
+
+msgid "Erreurs ({n}) :"
+msgstr "Errores ({n}):"
+
+msgid "ligne {n}"
+msgstr "línea {n}"
+
+msgid "Importer {n} élève(s)"
+msgstr "Importar {n} alumno(s)"
+
+msgid "Erreur lors de l'analyse"
+msgstr "Error durante el análisis"
+
+msgid "Import en cours…"
+msgstr "Importando…"
+
+msgid "{n} élève(s) importé(s) avec succès"
+msgstr "{n} alumno(s) importado(s) correctamente"
+
+msgid "Import impossible"
+msgstr "No se pudo importar"
+
+msgid "Erreur lors de l'import"
+msgstr "Error durante la importación"
+
+msgid "Impossible de charger les annonces."
+msgstr "No se pudieron cargar los anuncios."
+
+msgid "Aucune annonce pour l'instant."
+msgstr "Todavía no hay anuncios."
+
+msgid "envoyée à {n} parent(s)"
+msgstr "enviado a {n} padre(s)"
+
+msgid "Titre et message obligatoires."
+msgstr "El título y el mensaje son obligatorios."
+
+msgid "Publication…"
+msgstr "Publicando…"
+
+msgid "Annonce publiée · email envoyé à {n} parent(s)"
+msgstr "Anuncio publicado · email enviado a {n} padre(s)"
+
+msgid "Annonce publiée"
+msgstr "Anuncio publicado"
+
+msgid "Publication impossible"
+msgstr "No se pudo publicar"
+
+msgid "Erreur lors de la publication"
+msgstr "Error al publicar"
+
+msgid "Supprimer cette annonce ?"
+msgstr "¿Eliminar este anuncio?"
+
+msgid "Annonce supprimée"
+msgstr "Anuncio eliminado"
+
+msgid "Suppression impossible"
+msgstr "No se pudo eliminar"
+
+msgid "Déposez un élève ici"
+msgstr "Suelta aquí un alumno"
+
+msgid "Bureau enseignant"
+msgstr "Mesa del docente"
+
+msgid "Espace de travail non trouvé"
+msgstr "Espacio de trabajo no encontrado"
+
+msgid "Plan de classe sauvegardé avec succès !"
+msgstr "¡Plano de clase guardado!"
+
+msgid "Erreur de connexion lors de la sauvegarde"
+msgstr "Error de conexión al guardar"
+
+msgid "Erreur lors du chargement : {error}"
+msgstr "Error al cargar: {error}"
+
+msgid "Erreur de connexion lors du chargement"
+msgstr "Error de conexión al cargar"
+
+msgid "Aucune classe sélectionnée"
+msgstr "Ninguna clase seleccionada"
+
+msgid "Voulez-vous remplacer votre plan actuel par celui du maître de classe ? Cette action est irréversible."
+msgstr "¿Quieres reemplazar tu plano actual por el del tutor de la clase? Esta acción es irreversible."
+
+msgid "Plan du maître de classe chargé avec succès"
+msgstr "Plano del tutor de la clase cargado"
+
+msgid "Erreur lors du chargement du plan du maître"
+msgstr "Error al cargar el plano del tutor de la clase"
+
+msgid "Élève {id}"
+msgstr "Alumno {id}"
+
+msgid "Modifications en attente…"
+msgstr "Cambios pendientes…"
+
+msgid "Enregistrement…"
+msgstr "Guardando…"
+
+msgid "Enregistré {time}"
+msgstr "Guardado a las {time}"
+
+msgid "Non enregistré : {detail}"
+msgstr "No guardado: {detail}"
+
+msgid "Aucun élément à imprimer. Veuillez d'abord créer votre plan de classe."
+msgstr "No hay nada que imprimir. Crea primero tu plano de clase."
+
+msgid "Impossible d'ouvrir la fenêtre d'impression. Vérifiez que les pop-ups sont autorisés."
+msgstr "No se puede abrir la ventana de impresión. Comprueba que las ventanas emergentes estén permitidas."
+
+msgid "Plan de classe – {name}"
+msgstr "Plano de clase – {name}"
+
+msgid "Sélectionnez une classe pour voir les aménagements"
+msgstr "Selecciona una clase para ver las adaptaciones"
+
+msgid "Aucun élève dans cette classe"
+msgstr "No hay alumnos en esta clase"
+
+msgid "Ajouter"
+msgstr "Añadir"
+
+msgid "+{pct}%% de temps"
+msgstr "+{pct}%% de tiempo"
+
+msgid "Aucun aménagement"
+msgstr "Ninguna adaptación"
+
+msgid "-- Sélectionner un élève --"
+msgstr "-- Selecciona un alumno --"
+
+msgid "-- Sélectionner un aménagement --"
+msgstr "-- Selecciona una adaptación --"
+
+msgid "Extension de temps : +{pct}%%"
+msgstr "Tiempo adicional: +{pct}%%"
+
+msgid "Veuillez sélectionner un élève"
+msgstr "Selecciona un alumno"
+
+msgid "Veuillez sélectionner un aménagement prédéfini"
+msgstr "Selecciona una adaptación predefinida"
+
+msgid "Veuillez entrer un nom pour l'aménagement personnalisé"
+msgstr "Introduce un nombre para la adaptación personalizada"
+
+msgid "Erreur lors de la sauvegarde"
+msgstr "Error al guardar"
+
+msgid "Êtes-vous sûr de vouloir supprimer cet aménagement ?"
+msgstr "¿Seguro que quieres eliminar esta adaptación?"
+
+msgid "Nouveau dossier"
+msgstr "Nueva carpeta"
+
+msgid "Nom du dossier"
+msgstr "Nombre de la carpeta"
+
+msgid "Ex : Exercices"
+msgstr "ej: Ejercicios"
+
+msgid "Créer"
+msgstr "Crear"
+
+msgid "Aperçu"
+msgstr "Vista previa"
+
+msgid "Renommer"
+msgstr "Renombrar"
+
+msgid "Nouveau nom"
+msgstr "Nuevo nombre"
+
+msgid "Upload en cours..."
+msgstr "Subiendo..."
+
+msgid "Nouvelle évaluation"
+msgstr "Nueva evaluación"
+
+msgid "Informations de l'évaluation"
+msgstr "Información de la evaluación"
+
+msgid "Titre de l'évaluation"
+msgstr "Título de la evaluación"
+
+msgid "Ex : Test de mathématiques chapitre 3"
+msgstr "ej: Examen de matemáticas tema 3"
+
+msgid "Date de l'évaluation"
+msgstr "Fecha de la evaluación"
+
+msgid "Note maximale"
+msgstr "Nota máxima"
+
+msgid "Les notes seront saisies directement selon cette échelle"
+msgstr "Las notas se introducirán directamente según esta escala"
+
+msgid "Note minimale"
+msgstr "Nota mínima"
+
+msgid "Note la plus basse possible"
+msgstr "Nota más baja posible"
+
+msgid "Type d'évaluation"
+msgstr "Tipo de evaluación"
+
+msgid "Test significatif"
+msgstr "Prueba significativa"
+
+msgid "Compte pour 1 note directement"
+msgstr "Cuenta directamente como 1 nota"
+
+msgid "Élément de test assimilé (TA)"
+msgstr "Elemento de prueba asimilada (TA)"
+
+msgid "Sera groupé avec d'autres éléments TA pour former 1 note"
+msgstr "Se agrupará con otros elementos TA para formar 1 nota"
+
+msgid "Configuration du test assimilé"
+msgstr "Configuración de la prueba asimilada"
+
+msgid "Créer un nouveau groupe TA"
+msgstr "Crear un nuevo grupo TA"
+
+msgid "Ajouter à un groupe TA existant"
+msgstr "Añadir a un grupo TA existente"
+
+msgid "Nom du groupe TA"
+msgstr "Nombre del grupo TA"
+
+msgid "Ex : TA1 - Algèbre"
+msgstr "ej: TA1 - Álgebra"
+
+msgid "Groupe TA existant"
+msgstr "Grupo TA existente"
+
+msgid "Suivant : Saisir les notes"
+msgstr "Siguiente: introducir las notas"
+
+msgid "Saisie des notes"
+msgstr "Introducción de notas"
+
+msgid "Entrez les notes pour chaque élève (laissez vide si absent)"
+msgstr "Introduce las notas de cada alumno (deja vacío si está ausente)"
+
+msgid "Retour"
+msgstr "Volver"
+
+msgid "Créer l'évaluation"
+msgstr "Crear la evaluación"
+
+msgid "Les élèves des groupes mixtes sont gérés depuis la page des groupes mixtes."
+msgstr "Los alumnos de los grupos mixtos se gestionan desde la página de grupos mixtos."
+
+msgid "Nouvel élève"
+msgstr "Nuevo alumno"
+
+msgid "Enregistrement..."
+msgstr "Guardando..."
+
+msgid "Erreur lors de l'enregistrement"
+msgstr "Error al guardar"
+
+msgid "Ajout..."
+msgstr "Añadiendo..."
+
+msgid "Aucun élève disponible"
+msgstr "No hay alumnos disponibles"
+
+msgid "Ajouter l'élève"
+msgstr "Añadir alumno"
+
+msgid "Tous les élèves de la classe du maître sont déjà ajoutés"
+msgstr "Ya se han añadido todos los alumnos de la clase del tutor"
+
+msgid "Aucun élève dans cette classe pour le moment."
+msgstr "Todavía no hay alumnos en esta clase."
+
+msgid "Modifier l'élève"
+msgstr "Editar alumno"
+
+msgid "Êtes-vous sûr de vouloir supprimer {name} ?\n\nCette action supprimera également toutes les notes de cet élève."
+msgstr "¿Seguro que quieres eliminar a {name}?\n\nEsta acción también eliminará todas las notas de este alumno."
+
+msgid "Choisir un élève"
+msgstr "Elige un alumno"
+
+msgid "Aucun élève dans ce groupe mixte"
+msgstr "No hay alumnos en este grupo mixto"
+
+msgid "Les élèves doivent être ajoutés depuis la page de gestion des groupes mixtes"
+msgstr "Los alumnos deben añadirse desde la página de gestión de grupos mixtos"
+
+msgid "Ajouter le premier élève"
+msgstr "Añadir el primer alumno"
+
+msgid "Êtes-vous sûr de vouloir supprimer {name} du groupe mixte ?\n\nL'élève restera dans sa classe d'origine."
+msgstr "¿Seguro que quieres quitar a {name} del grupo mixto?\n\nEl alumno seguirá en su clase de origen."
+
+msgid "Erreur lors de la génération du code"
+msgstr "Error al generar el código"
+
+msgid "Code d'accès classe généré"
+msgstr "Código de acceso de la clase generado"
+
+msgid "Code d'accès pour la classe {name} :"
+msgstr "Código de acceso para la clase {name}:"
+
+msgid "Ce code est valide pendant 1 an."
+msgstr "Este código es válido durante 1 año."
+
+msgid "Tous les élèves de la classe peuvent utiliser ce code pour créer leur compte."
+msgstr "Todos los alumnos de la clase pueden usar este código para crear su cuenta."
+
+msgid "Ils doivent utiliser l'email que vous avez enregistré pour eux."
+msgstr "Deben usar el correo electrónico que registraste para ellos."
+
+msgid "Copier le code"
+msgstr "Copiar el código"
+
+msgid "Code d'accès parents"
+msgstr "Código de acceso para padres"
+
+msgid "Code pour les parents de la classe {name} :"
+msgstr "Código para los padres de la clase {name}:"
+
+msgid "Les parents doivent utiliser ce code ainsi que le nom de l'enseignant ({teacher}) pour se lier à la classe."
+msgstr "Los padres deben usar este código junto con el nombre del docente ({teacher}) para vincularse a la clase."
+
+msgid "Erreur lors de la récupération du code parents"
+msgstr "Error al obtener el código para padres"
+
+msgid "Copié !"
+msgstr "¡Copiado!"
+
+msgid "Impossible de copier le code"
+msgstr "No se pudo copiar el código"
+
+msgid "Confirmation requise"
+msgstr "Confirmación necesaria"
+
+msgid "Erreur lors de la mise à jour"
+msgstr "Error al actualizar"
+
+msgid "Confirmer"
+msgstr "Confirmar"
+
+msgid "Êtes-vous sûr de vouloir remettre toutes les coches à zéro pour cette classe ?\n\nCette action est irréversible."
+msgstr "¿Seguro que quieres poner a cero todas las marcas de esta clase?\n\nEsta acción es irreversible."
+
+msgid "Erreur lors de la réinitialisation"
+msgstr "Error al restablecer"
+
+msgid "Erreur lors du chargement des fichiers"
+msgstr "Error al cargar los archivos"
+
+msgid "{n} fichier(s)"
+msgstr "{n} archivo(s)"
+
+msgid "{xp} XP — {n} questions"
+msgstr "{xp} XP — {n} preguntas"
+
+msgid "Télécharger avec vos annotations et pages ajoutées"
+msgstr "Descargar con tus anotaciones y páginas añadidas"
+
+msgid "Épinglé"
+msgstr "Fijado"
+
+msgid "Annoté dans l’application"
+msgstr "Anotado en la aplicación"
+
+msgid "Partager avec des élèves"
+msgstr "Compartir con alumnos"
+
+msgid "Analyse de la structure en cours..."
+msgstr "Analizando la estructura..."
+
+msgid "Erreur lors de la création des dossiers"
+msgstr "Error al crear las carpetas"
+
+msgid "Erreur lors de la création de la structure"
+msgstr "Error al crear la estructura"
+
+msgid "{n} fichier(s) uploadé(s) avec succès"
+msgstr "{n} archivo(s) subido(s) correctamente"
+
+msgid "{n} échec(s). Premier : {error}"
+msgstr "{n} fallo(s). Primero: {error}"
+
+msgid "Aucun fichier sélectionné"
+msgstr "Ningún archivo seleccionado"
+
+msgid "Préparation de l'upload de {files} fichier(s) dans {folders} dossier(s)..."
+msgstr "Preparando la subida de {files} archivo(s) en {folders} carpeta(s)..."
+
+msgid "Dossier uploadé avec succès !"
+msgstr "¡Carpeta subida correctamente!"
+
+msgid "Erreur lors de l'upload du dossier"
+msgstr "Error al subir la carpeta"
+
+msgid "Type de fichier non autorisé : {name}"
+msgstr "Tipo de archivo no permitido: {name}"
+
+msgid "Fichier trop volumineux : {name} (max 250 MB)"
+msgstr "Archivo demasiado grande: {name} (máx. 250 MB)"
+
+msgid "(+{n} autres)"
+msgstr "(+{n} más)"
+
+msgid "{n} fichier(s) non supporté(s) — seuls PDF, images, Word et Pages sont acceptés. Ignorés : {files}"
+msgstr "{n} archivo(s) no compatible(s): solo se aceptan PDF, imágenes, Word y Pages. Omitidos: {files}"
+
+msgid "{n} fichier(s) trop volumineux (>250 MB) : {files}"
+msgstr "{n} archivo(s) demasiado grande(s) (>250 MB): {files}"
+
+msgid "Aucune classe sélectionnée pour l'upload"
+msgstr "No hay ninguna clase seleccionada para la subida"
+
+msgid "Erreur lors de l'upload de {name}"
+msgstr "Error al subir {name}"
+
+msgid "Dossier créé avec succès"
+msgstr "Carpeta creada correctamente"
+
+msgid "Erreur lors de la création du dossier"
+msgstr "Error al crear la carpeta"
+
+msgid "Renommage effectué avec succès"
+msgstr "Renombrado correctamente"
+
+msgid "Erreur lors du renommage"
+msgstr "Error al renombrar"
+
+msgid "Êtes-vous sûr de vouloir supprimer ce fichier ?"
+msgstr "¿Seguro que quieres eliminar este archivo?"
+
+msgid "Fichier supprimé avec succès"
+msgstr "Archivo eliminado correctamente"
+
+msgid "Êtes-vous sûr de vouloir supprimer le dossier « {name} » et tout son contenu ?"
+msgstr "¿Seguro que quieres eliminar la carpeta «{name}» y todo su contenido?"
+
+msgid "Dossier « {name} » supprimé avec succès"
+msgstr "Carpeta «{name}» eliminada correctamente"
+
+msgid "Regrouper les tests TA"
+msgstr "Agrupar las pruebas TA"
+
+msgid "Voir les tests individuels"
+msgstr "Ver las pruebas individuales"
+
+msgid "Modifier l'évaluation"
+msgstr "Editar la evaluación"
+
+msgid "Supprimer l'évaluation"
+msgstr "Eliminar la evaluación"
+
+msgid "Vous ne pouvez pas créer d'évaluations pour cette discipline (lecture seule)."
+msgstr "No puedes crear evaluaciones para esta asignatura (solo lectura)."
+
+msgid "Cette note maximale sera utilisée pour toutes les évaluations de cette classe"
+msgstr "Esta nota máxima se usará para todas las evaluaciones de esta clase"
+
+msgid "Cette note minimale sera utilisée pour toutes les évaluations de cette classe"
+msgstr "Esta nota mínima se usará para todas las evaluaciones de esta clase"
+
+msgid "Les notes seront saisies sur {max} (cohérence avec les tests existants)"
+msgstr "Las notas se introducirán sobre {max} (coherencia con las pruebas existentes)"
+
+msgid "Note minimale : {min} (cohérence avec les tests existants)"
+msgstr "Nota mínima: {min} (coherencia con las pruebas existentes)"
+
+msgid "Veuillez entrer un nom pour le groupe TA"
+msgstr "Introduce un nombre para el grupo TA"
+
+msgid "Évaluation créée avec succès"
+msgstr "Evaluación creada correctamente"
+
+msgid "Erreur lors de la création"
+msgstr "Error al crear"
+
+msgid "Erreur lors de la création de l'évaluation"
+msgstr "Error al crear la evaluación"
+
+msgid "Abs."
+msgstr "Aus."
+
+msgid "Vous ne pouvez pas modifier les évaluations de cette discipline (lecture seule)."
+msgstr "No puedes editar las evaluaciones de esta asignatura (solo lectura)."
+
+msgid "Évaluation introuvable"
+msgstr "Evaluación no encontrada"
+
+msgid "Évaluation modifiée avec succès"
+msgstr "Evaluación modificada correctamente"
+
+msgid "Erreur lors de la modification"
+msgstr "Error al modificar"
+
+msgid "Erreur lors de la modification de l'évaluation"
+msgstr "Error al modificar la evaluación"
+
+msgid "Vous ne pouvez pas supprimer les évaluations de cette discipline (lecture seule)."
+msgstr "No puedes eliminar las evaluaciones de esta asignatura (solo lectura)."
+
+msgid "Êtes-vous sûr de vouloir supprimer l'évaluation « {title} » ?\n\nCette action est irréversible et supprimera toutes les notes associées."
+msgstr "¿Seguro que quieres eliminar la evaluación «{title}»?\n\nEsta acción es irreversible y eliminará todas las notas asociadas."
+
+msgid "Évaluation supprimée avec succès"
+msgstr "Evaluación eliminada correctamente"
+
+msgid "Erreur lors de la suppression de l'évaluation"
+msgstr "Error al eliminar la evaluación"
+
+msgid "Erreur lors du chargement des absences : {error}"
+msgstr "Error al cargar las ausencias: {error}"
+
+msgid "Erreur de connexion : {error}"
+msgstr "Error de conexión: {error}"
+
+msgid "Erreur lors du chargement des retards : {error}"
+msgstr "Error al cargar los retrasos: {error}"
+
+msgid "Aucun groupe créé pour cette classe"
+msgstr "No se ha creado ningún grupo para esta clase"
+
+msgid "Cliquez sur « Créer un groupe » pour commencer"
+msgstr "Haz clic en «Crear un grupo» para empezar"
+
+msgid "{n} élève(s)"
+msgstr "{n} alumno(s)"
+
+msgid "Créer un groupe"
+msgstr "Crear un grupo"
+
+msgid "Modifier le groupe"
+msgstr "Editar el grupo"
+
+msgid "Le nom du groupe est obligatoire"
+msgstr "El nombre del grupo es obligatorio"
+
+msgid "Êtes-vous sûr de vouloir supprimer ce groupe ?"
+msgstr "¿Seguro que quieres eliminar este grupo?"
+
+msgid "Groupe supprimé avec succès"
+msgstr "Grupo eliminado correctamente"
+
+msgid "-- Choisir un élève --"
+msgstr "-- Elige un alumno --"
+
+msgid "Aucun groupe"
+msgstr "Ningún grupo"
+
+msgid "Aucune note enregistrée"
+msgstr "Ninguna nota registrada"
+
+msgid "Total"
+msgstr "Total"
+
+msgid "Détails"
+msgstr "Detalles"
+
+msgid "(vous)"
+msgstr "(tú)"
+
+msgid "Aucune absence enregistrée"
+msgstr "Ninguna ausencia registrada"
+
+msgid "Enseignant(s)"
+msgstr "Docente(s)"
+
+msgid "{n} période(s)"
+msgstr "{n} periodo(s)"
+
+msgid "Erreur lors du chargement des sanctions"
+msgstr "Error al cargar las sanciones"
+
+msgid "Erreur lors du chargement des absences"
+msgstr "Error al cargar las ausencias"
+
+msgid "Aucune information enregistrée"
+msgstr "Ninguna información registrada"
+
+msgid "Veuillez saisir des informations avant d'enregistrer"
+msgstr "Introduce información antes de guardar"
+
+msgid "Informations sauvegardées"
+msgstr "Información guardada"
+
+msgid "Aucun fichier associé"
+msgstr "Ningún archivo asociado"
+
+msgid "Ajouté le {date}"
+msgstr "Añadido el {date}"
+
+msgid "Veuillez sélectionner au moins un fichier"
+msgstr "Selecciona al menos un archivo"
+
+msgid "Fichier(s) uploadé(s) avec succès"
+msgstr "Archivo(s) subido(s) correctamente"
+
+msgid "Erreur lors de l'upload"
+msgstr "Error al subir el archivo"
+
+msgid "Fichier supprimé"
+msgstr "Archivo eliminado"
+
+msgid "Statut mis à jour avec succès"
+msgstr "Estado actualizado correctamente"
+
+msgid "Erreur lors de la mise à jour : {error}"
+msgstr "Error al actualizar: {error}"
+
+msgid "Erreur lors de la mise à jour du statut"
+msgstr "Error al actualizar el estado"
+
+msgid "Note sauvegardée"
+msgstr "Comentario guardado"
+
+msgid "Erreur lors de la sauvegarde de la note"
+msgstr "Error al guardar el comentario"
+
+msgid "Sélectionner tous les élèves"
+msgstr "Seleccionar todos los alumnos"
+
+msgid "Pas d'email"
+msgstr "Sin correo electrónico"
+
+msgid "Impossible de charger les élèves"
+msgstr "No se pudieron cargar los alumnos"
+
+msgid "Erreur réseau : {error}"
+msgstr "Error de red: {error}"
+
+msgid "Veuillez sélectionner au moins un élève."
+msgstr "Selecciona al menos un alumno."
+
+msgid "Partage en cours..."
+msgstr "Compartiendo..."
+
+msgid "Fichier partagé avec {n} élève(s)"
+msgstr "Archivo compartido con {n} alumno(s)"
+
+msgid "Erreur lors du partage"
+msgstr "Error al compartir"
+
+msgid "Erreur lors du partage du fichier"
+msgstr "Error al compartir el archivo"
+
+msgid "Partager le fichier"
+msgstr "Compartir el archivo"
+
+msgid "Chargement des élèves disponibles..."
+msgstr "Cargando los alumnos disponibles..."
+
+msgid "Aucun élève disponible à ajouter."
+msgstr "No hay alumnos disponibles para añadir."
+
+msgid "Erreur lors du chargement des élèves disponibles."
+msgstr "Error al cargar los alumnos disponibles."
+
+msgid "Tous les élèves des classes sources sont déjà dans le groupe mixte."
+msgstr "Todos los alumnos de las clases de origen ya están en el grupo mixto."
+
+msgid "Ajouter {n} élève(s) sélectionné(s)"
+msgstr "Añadir {n} alumno(s) seleccionado(s)"
+
+msgid "Ajouter les élèves sélectionnés"
+msgstr "Añadir los alumnos seleccionados"
+
+msgid "Ajout en cours..."
+msgstr "Añadiendo..."
+
+msgid "{n} élève(s) ajouté(s) avec succès !"
+msgstr "¡{n} alumno(s) añadido(s) correctamente!"
+
+msgid "Erreur lors de l'ajout des élèves"
+msgstr "Error al añadir los alumnos"
+
+msgid "Aucun élève sélectionné"
+msgstr "Ningún alumno seleccionado"
+
+msgid "Le rapport doit être ouvert avant l'impression"
+msgstr "El informe debe estar abierto antes de imprimir"
+
+msgid "Informations de l'élève non chargées. Veuillez attendre le chargement complet."
+msgstr "La información del alumno no se ha cargado. Espera a que termine de cargarse."
+
+msgid "Rapport d'élève"
+msgstr "Informe del alumno"
+
+msgid "Élève :"
+msgstr "Alumno:"
+
+msgid "Date :"
+msgstr "Fecha:"
+
+msgid "Imprimé le {date} à {time}"
+msgstr "Impreso el {date} a las {time}"
+
+msgid "Vert"
+msgstr "Verde"
+
+msgid "Jaune"
+msgstr "Amarillo"
+
+msgid "Orange"
+msgstr "Naranja"
+
+msgid "Rouge"
+msgstr "Rojo"
+
+msgid "Bleu"
+msgstr "Azul"
+
+msgid "Violet"
+msgstr "Violeta"
+
+msgid "janv.|févr.|mars|avr.|mai|juin|juil.|août|sept.|oct.|nov.|déc."
+msgstr "ene.|feb.|mar.|abr.|may.|jun.|jul.|ago.|sept.|oct.|nov.|dic."
+
+msgid "{day} {month}"
+msgstr "{day} {month}"
+
+msgid "Aucune discipline disponible."
+msgstr "No hay ninguna asignatura disponible."
+
+msgid "Erreur de chargement."
+msgstr "Error de carga."
+
+msgid "Aucune évaluation formative pour l'instant. Cliquez sur « Nouvelle évaluation » pour commencer."
+msgstr "Todavía no hay evaluaciones formativas. Haz clic en «Nueva evaluación» para empezar."
+
+msgid "Aucune discipline sélectionnée."
+msgstr "Ninguna asignatura seleccionada."
+
+msgid "Donnez un titre à l'évaluation."
+msgstr "Ponle un título a la evaluación."
+
+msgid "Supprimer cette évaluation et toutes les appréciations associées ?"
+msgstr "¿Eliminar esta evaluación y todas las apreciaciones asociadas?"
+
+msgid "Aucun niveau défini — ajoutez votre échelle dans les paramètres."
+msgstr "Ningún nivel definido — añade tu escala en los ajustes."
+
+msgid "Aucune évaluation formative"
+msgstr "Ninguna evaluación formativa"
+
+msgid "Aucun cours"
+msgstr "Ninguna clase"
+
+msgid "Leçon en cours"
+msgstr "Clase en curso"
+
+msgid "Réessayer"
+msgstr "Reintentar"
+
+msgid "Devoir"
+msgstr "Tarea"
+
+msgid "Supprimer ce devoir ?"
+msgstr "¿Eliminar esta tarea?"
+
+msgid "Aucun devoir pour cette classe."
+msgstr "No hay tareas para esta clase."
+
+msgid "Voir les rendus"
+msgstr "Ver las entregas"
+
+msgid "à rendre le {date}"
+msgstr "para entregar el {date}"
+
+msgid "aujourd'hui"
+msgstr "hoy"
+
+msgid "Document joint"
+msgstr "Documento adjunto"
+
+msgid "Participation active et pertinente."
+msgstr "Participación activa y pertinente."
+
+msgid "Beaux progrès, bravo !"
+msgstr "¡Buenos progresos, enhorabuena!"
+
+msgid "Très bonne attitude en classe."
+msgstr "Muy buena actitud en clase."
+
+msgid "A aidé un camarade."
+msgstr "Ayudó a un compañero."
+
+msgid "Excellent travail aujourd'hui."
+msgstr "Excelente trabajo hoy."
+
+msgid "A oublié son matériel."
+msgstr "Olvidó su material."
+
+msgid "Devoirs non faits."
+msgstr "Tareas sin hacer."
+
+msgid "Bavardages répétés."
+msgstr "Charla reiterada en clase."
+
+msgid "Manque de concentration."
+msgstr "Falta de concentración."
+
+msgid "Comportement perturbateur."
+msgstr "Comportamiento perturbador."
+
+msgid "Travail non rendu."
+msgstr "Trabajo no entregado."
+
+msgid "Doit faire signer le carnet."
+msgstr "Debe hacer firmar la agenda."
+
+msgid "Écrivez une remarque."
+msgstr "Escribe una observación."
+
+msgid "Remarque enregistrée"
+msgstr "Observación guardada"
+
+msgid "Dictée indisponible — touchez le micro 🎤 du clavier."
+msgstr "Dictado no disponible — toca el micrófono 🎤 del teclado."
+
+msgid "Touchez le micro 🎤 de votre clavier pour dicter."
+msgstr "Toca el micrófono 🎤 de tu teclado para dictar."
+
+msgid "Utilisez le micro 🎤 de votre clavier pour dicter."
+msgstr "Usa el micrófono 🎤 de tu teclado para dictar."
+
+msgid "Appuyez sur le micro 🎤 de votre clavier pour dicter."
+msgstr "Pulsa el micrófono 🎤 de tu teclado para dictar."
+
+msgid "Lecture planification"
+msgstr "Ver planificación"
+
+msgid "Aucune description"
+msgstr "Sin descripción"
+
+msgid "Sauvegarde..."
+msgstr "Guardando..."
+
+msgid "Erreur lors de l'enregistrement : {error}"
+msgstr "Error al guardar: {error}"
+
+msgid "Planification enregistrée"
+msgstr "Planificación guardada"
+
+msgid "Veuillez entrer le nombre de minutes de retard"
+msgstr "Introduce el número de minutos de retraso"
+
+msgid "Remettre présent"
+msgstr "Volver a marcar como presente"
+
+msgid "Marquer en retard"
+msgstr "Marcar como retrasado"
+
+msgid "Erreur lors de la mise à jour de la présence"
+msgstr "Error al actualizar la asistencia"
+
+msgid "Le cours est terminé !"
+msgstr "¡La clase ha terminado!"
+
+msgid "Annotable"
+msgstr "Anotable"
+
+msgid "EXERCICE"
+msgstr "EJERCICIO"
+
+msgid "{n} questions"
+msgstr "{n} preguntas"
+
+msgid "{n} exercices"
+msgstr "{n} ejercicios"
+
+msgid "Aucun fichier dans ce dossier"
+msgstr "No hay archivos en esta carpeta"
+
+msgid "Supprimer la feuille blanche"
+msgstr "Eliminar la hoja en blanco"
+
+msgid "Aucune classe sélectionnée."
+msgstr "Ninguna clase seleccionada."
+
+msgid "Erreur lors de l'envoi du fichier."
+msgstr "Error al enviar el archivo."
+
+msgid "Erreur lors de l'envoi du fichier : {error}"
+msgstr "Error al enviar el archivo: {error}"
+
+msgid "Êtes-vous sûr de vouloir effacer toutes les annotations de cette page ?"
+msgstr "¿Seguro que quieres borrar todas las anotaciones de esta página?"
+
+msgid "Annotations sauvegardées"
+msgstr "Anotaciones guardadas"
+
+msgid "Erreur lors du chargement du fichier"
+msgstr "Error al cargar el archivo"
+
+msgid "Ouverture de « {name} »…"
+msgstr "Abriendo «{name}»…"
+
+msgid "Ouverture du fichier…"
+msgstr "Abriendo el archivo…"
+
+msgid "Erreur : la fenêtre de visualisation n'existe pas."
+msgstr "Error: la ventana de visualización no existe."
+
+msgid "Erreur : le conteneur de visualisation n'existe pas."
+msgstr "Error: el contenedor de visualización no existe."
+
+msgid "Veuillez recharger la page (Ctrl/Cmd+R)."
+msgstr "Recarga la página (Ctrl/Cmd+R)."
+
+msgid "Erreur lors de la création du lecteur PDF : {error}"
+msgstr "Error al crear el visor de PDF: {error}"
+
+msgid "Erreur lors de la création du lecteur : {error}"
+msgstr "Error al crear el visor: {error}"
+
+msgid "Erreur lors du chargement du lecteur : {error}"
+msgstr "Error al cargar el visor: {error}"
+
+msgid "Informations de leçon manquantes"
+msgstr "Falta información de la clase"
+
+msgid "Erreur lors du chargement de la feuille blanche : {error}"
+msgstr "Error al cargar la hoja en blanco: {error}"
+
+msgid "Chargement de la vue annuelle…"
+msgstr "Cargando la vista anual…"
+
+msgid "Impossible de charger la vue annuelle."
+msgstr "No se puede cargar la vista anual."
+
+msgid "Aucun cours de cette classe ce jour-là."
+msgstr "Esta clase no tiene ninguna sesión ese día."
+
+msgid "Créneau libre – cliquez pour planifier"
+msgstr "Franja libre – haz clic para planificar"
+
+msgid "🎯 Sanctions à attribuer - Demandez aux élèves d'apporter leur agenda"
+msgstr "🎯 Sanciones por asignar - Pide a los alumnos que traigan su agenda"
+
+msgid "À rendre le {date}"
+msgstr "Para entregar el {date}"
+
+msgid "Date à déterminer"
+msgstr "Fecha por determinar"
+
+msgid "{n} coches"
+msgstr "{n} marcas"
+
+msgid "Bureau du professeur"
+msgstr "Mesa del profesor"
+
+msgid "Erreur de chargement"
+msgstr "Error de carga"
+
+msgid "Erreur de chargement : {error}"
+msgstr "Error de carga: {error}"
+
+msgid "Impossible de déterminer le cours courant"
+msgstr "No se puede determinar la clase actual"
+
+msgid "Erreur lors de l'ajout du fichier éphémère"
+msgstr "Error al añadir el archivo temporal"
+
+msgid "Erreur lors de l'ajout du fichier"
+msgstr "Error al añadir el archivo"
+
+msgid "Erreur lors de l'ajout de l'exercice"
+msgstr "Error al añadir el ejercicio"
+
+msgid "Publier et lancer"
+msgstr "Publicar y lanzar"
+
+msgid "Ajouter en mode classique"
+msgstr "Añadir en modo clásico"
+
+msgid "Lancer le combat !"
+msgstr "¡Lanzar el combate!"
+
+msgid "Lancement..."
+msgstr "Lanzando..."
+
+msgid "Erreur lors du lancement"
+msgstr "Error al lanzar"
+
+msgid "Combat"
+msgstr "Combate"
+
+msgid "Classique"
+msgstr "Clásico"
+
+msgid "Mode Combat"
+msgstr "Modo combate"
+
+msgid "Mode Classique"
+msgstr "Modo clásico"
+
+msgid "Suivi live"
+msgstr "Seguimiento en directo"
+
+msgid "Supprimer « {name} » de cette classe ?"
+msgstr "¿Quitar «{name}» de esta clase?"
+
+msgid "Supprimer cette ressource de la planification ?"
+msgstr "¿Quitar este recurso de la planificación?"
+
+msgid "Aucune session de combat active trouvée."
+msgstr "No se ha encontrado ninguna sesión de combate activa."
+
+msgid "En attente des élèves"
+msgstr "Esperando a los alumnos"
+
+msgid "Question en cours"
+msgstr "Pregunta en curso"
+
+msgid "Choix des actions"
+msgstr "Elección de acciones"
+
+msgid "Exécution du round"
+msgstr "Ejecución de la ronda"
+
+msgid "Tour des monstres"
+msgstr "Turno de los monstruos"
+
+msgid "Fin du round"
+msgstr "Fin de la ronda"
+
+msgid "Round {n}"
+msgstr "Ronda {n}"
+
+msgid "({n} combattant)"
+msgstr "({n} combatiente)"
+
+msgid "({n} combattants)"
+msgstr "({n} combatientes)"
+
+msgid "Pas connecté"
+msgstr "No conectado"
+
+msgid "+{xp} XP — {correct}/{total} correct"
+msgstr "+{xp} XP — {correct}/{total} correctas"
+
+msgid "Arrêter la mission en direct ?"
+msgstr "¿Detener la misión en directo?"
+
+msgid "Aucun cours prévu"
+msgstr "No hay ninguna clase prevista"
+
+msgid "Votre horaire type n'est pas encore rempli. Configurez-le pour voir vos prochains cours ici."
+msgstr "Tu horario tipo aún no está completado. Configúralo para ver aquí tus próximas clases."
+
+msgid "Remplir mon horaire type"
+msgstr "Completar mi horario tipo"
+
+msgid "Cours non défini"
+msgstr "Clase no definida"
+
+msgid "Samedi"
+msgstr "Sábado"
+
+msgid "Dimanche"
+msgstr "Domingo"
+
+msgid "janvier"
+msgstr "enero"
+
+msgid "février"
+msgstr "febrero"
+
+msgid "avril"
+msgstr "abril"
+
+msgid "juillet"
+msgstr "julio"
+
+msgid "septembre"
+msgstr "septiembre"
+
+msgid "octobre"
+msgstr "octubre"
+
+msgid "novembre"
+msgstr "noviembre"
+
+msgid "décembre"
+msgstr "diciembre"
+
+msgid "%(weekday)s %(day)s %(month)s %(year)s"
+msgstr "%(weekday)s %(day)s de %(month)s de %(year)s"
+
+msgid "Disposition :"
+msgstr "Disposición:"
+
+msgid "Disposition par défaut (3 colonnes)"
+msgstr "Disposición predeterminada (3 columnas)"
+
+msgid "Focus planification (planification large)"
+msgstr "Enfoque en la planificación (planificación ancha)"
+
+msgid "Focus ressources (ressources large)"
+msgstr "Enfoque en los recursos (recursos anchos)"
+
+msgid "Focus présences (présences large)"
+msgstr "Enfoque en la asistencia (asistencia ancha)"
+
+msgid "Disposition verticale (1 colonne)"
+msgstr "Disposición vertical (1 columna)"
+
+msgid "Heure actuelle"
+msgstr "Hora actual"
+
+msgid "Pause/Reprendre"
+msgstr "Pausar/Reanudar"
+
+msgid "Planification du cours"
+msgstr "Planificación de la clase"
+
+msgid "Ressources du cours"
+msgstr "Recursos de la clase"
+
+msgid "PDF/Document"
+msgstr "PDF/Documento"
+
+msgid "Éphémère — supprimé automatiquement le lendemain du cours"
+msgstr "Temporal — se elimina automáticamente al día siguiente de la clase"
+
+msgid "Non publié"
+msgstr "No publicado"
+
+msgid "Devoirs de la classe"
+msgstr "Tareas de la clase"
+
+msgid "Fichier éphémère : joint à ce cours (créé au besoin) et supprimé automatiquement le lendemain"
+msgstr "Archivo temporal: se adjunta a esta clase (creada si hace falta) y se elimina automáticamente al día siguiente"
+
+msgid "Objectifs du cours, activités prévues, exercices, devoirs..."
+msgstr "Objetivos de la clase, actividades previstas, ejercicios, tareas..."
+
+msgid "Astuce : Commencez une ligne par \"-\" pour créer une case à cocher"
+msgstr "Consejo: empieza una línea con \"-\" para crear una casilla"
+
+msgid "Ajouter un exercice interactif"
+msgstr "Añadir un ejercicio interactivo"
+
+msgid "+ exercice interactif"
+msgstr "+ ejercicio interactivo"
+
+msgid "Sélectionner un ou plusieurs élèves"
+msgstr "Selecciona uno o varios alumnos"
+
+msgid "Commencez à taper le nom d'un élève..."
+msgstr "Empieza a escribir el nombre de un alumno..."
+
+msgid "Élèves sélectionnés :"
+msgstr "Alumnos seleccionados:"
+
+msgid "Contenu de la remarque"
+msgstr "Contenido de la observación"
+
+msgid "Entrez la remarque..."
+msgstr "Escribe la observación..."
+
+msgid "Envoyer aux parents et à l'élève"
+msgstr "Enviar a los padres y al alumno"
+
+msgid "Aucune planification pour ce cours"
+msgstr "No hay planificación para esta clase"
+
+msgid "Créer une planification"
+msgstr "Crear una planificación"
+
+msgid "Suivi des élèves"
+msgstr "Seguimiento de los alumnos"
+
+msgid "Présents"
+msgstr "Presentes"
+
+msgid "Absents"
+msgstr "Ausentes"
+
+msgid "Groupe : %(name)s"
+msgstr "Grupo: %(name)s"
+
+msgid "%(n)s élève(s) dans ce groupe"
+msgstr "Alumnos en este grupo: %(n)s"
+
+msgid "%(n)s élève(s) dans la classe"
+msgstr "Alumnos en la clase: %(n)s"
+
+msgid "Ajouter une remarque"
+msgstr "Añadir una observación"
+
+msgid "Diminuer de 1 minute"
+msgstr "Restar 1 minuto"
+
+msgid "Augmenter de 1 minute"
+msgstr "Sumar 1 minuto"
+
+msgid "Remarque"
+msgstr "Observación"
+
+msgid "Notez la remarque…"
+msgstr "Escribe la observación…"
+
+msgid "Envoyer aux parents/élève"
+msgstr "Enviar a los padres/alumno"
+
+msgid "Dicter"
+msgstr "Dictar"
+
+msgid "Cliquez sur les tables pour ajouter des avertissements : jaune → rouge → noir"
+msgstr "Haz clic en las mesas para añadir avisos: amarillo → rojo → negro"
+
+msgid "Cliquez sur un jour de cours pour le planifier, ou sur un numéro de semaine pour ouvrir la semaine."
+msgstr "Haz clic en un día de clase para planificarlo, o en el número de semana para abrir la semana."
+
+msgid "Ouvrir le calendrier"
+msgstr "Abrir el calendario"
+
+msgid "Créer ou ouvrir des feuilles blanches"
+msgstr "Crear o abrir hojas en blanco"
+
+msgid "Ajouter un fichier depuis votre ordinateur"
+msgstr "Añadir un archivo desde tu ordenador"
+
+msgid "Chargement des ressources..."
+msgstr "Cargando recursos..."
+
+msgid "Ressources épinglées"
+msgstr "Recursos fijados"
+
+msgid "Aucune ressource dans cette classe"
+msgstr "No hay recursos en esta clase"
+
+msgid "Utilisez le gestionnaire de fichiers pour ajouter des ressources à cette classe"
+msgstr "Usa el gestor de archivos para añadir recursos a esta clase"
+
+msgid "Éditer la planification"
+msgstr "Editar la planificación"
+
+msgid "Fermer la vue côte-à-côte"
+msgstr "Cerrar la vista en paralelo"
+
+msgid "Retour aux créneaux"
+msgstr "Volver a las franjas"
+
+msgid "(facultatif)"
+msgstr "(opcional)"
+
+msgid "Ex. Nombres relatifs"
+msgstr "Ej.: Números enteros"
+
+msgid "Contenu du cours"
+msgstr "Contenido de la clase"
+
+msgid "Un tiret en début de ligne crée une case à cocher"
+msgstr "Un guion al principio de una línea crea una casilla"
+
+msgid "Groupe d'élèves"
+msgstr "Grupo de alumnos"
+
+msgid "Répéter ce groupe"
+msgstr "Repetir este grupo"
+
+msgid "Cette semaine seulement"
+msgstr "Solo esta semana"
+
+msgid "Le même groupe toutes les semaines"
+msgstr "El mismo grupo todas las semanas"
+
+msgid "Alterner les groupes chaque semaine"
+msgstr "Alternar los grupos cada semana"
+
+msgid "Ajouter une ressource"
+msgstr "Añadir un recurso"
+
+msgid "Fichiers de classe"
+msgstr "Archivos de la clase"
+
+msgid "Chargement des exercices..."
+msgstr "Cargando ejercicios..."
+
+msgid "Aucun exercice disponible"
+msgstr "Ningún ejercicio disponible"
+
+msgid "Lancer l'exercice"
+msgstr "Lanzar el ejercicio"
+
+msgid "Les élèves font l'exercice à leur rythme. Pas de suivi en direct."
+msgstr "Los alumnos hacen el ejercicio a su ritmo. Sin seguimiento en directo."
+
+msgid "Mission en direct ! Suivez la progression de chaque élève en temps réel."
+msgstr "¡Misión en directo! Sigue el progreso de cada alumno en tiempo real."
+
+msgid "Lancer la mission"
+msgstr "Lanzar la misión"
+
+msgid "Combat RPG"
+msgstr "Combate RPG"
+
+msgid "Ouvrir l'arène RPG (projecteur)"
+msgstr "Abrir la arena RPG (proyector)"
+
+msgid "Arrêter la mission"
+msgstr "Detener la misión"
+
+msgid "Heure"
+msgstr "Hora"
+
+msgid "%(n)s devoir(s) à rendre : %(titles)s"
+msgstr "%(n)s tarea(s) para entregar: %(titles)s"
+
+msgid "%(n)s devoir"
+msgstr "%(n)s tarea"
+
+msgid "%(n)s devoirs"
+msgstr "%(n)s tareas"
+
+msgid "P{n}"
+msgstr "P{n}"
+
+msgid "%(n)s mémo(s)"
+msgstr "%(n)s nota(s)"
+
+msgid "Cliquez pour voir cette semaine"
+msgstr "Haz clic para ver esta semana"
+
+msgid "Objectifs :"
+msgstr "Objetivos:"
+
+msgid "Nouveau devoir"
+msgstr "Nueva tarea"
+
+msgid "Ex : Exercices p. 42 n° 1 à 5"
+msgstr "Ej.: Ejercicios p. 42 n.º 1 a 5"
+
+msgid "Type de devoir"
+msgstr "Tipo de tarea"
+
+msgid "Devoir classique (à faire pour la date)"
+msgstr "Tarea clásica (para hacer antes de la fecha)"
+
+msgid "À rendre (l'élève envoie une photo)"
+msgstr "Para entregar (el alumno envía una foto)"
+
+msgid "Exercice interactif"
+msgstr "Ejercicio interactivo"
+
+msgid "Date de rendu (prochains cours de la classe)"
+msgstr "Fecha de entrega (próximas sesiones de la clase)"
+
+msgid "Consignes (facultatif)"
+msgstr "Instrucciones (opcional)"
+
+msgid "Précisions pour les élèves…"
+msgstr "Precisiones para los alumnos…"
+
+msgid "Document pour les élèves (facultatif)"
+msgstr "Documento para los alumnos (opcional)"
+
+msgid "Modifier le devoir"
+msgstr "Modificar la tarea"
+
+msgid "Document actuel : {name} — en choisir un nouveau le remplacera."
+msgstr "Documento actual: {name} — si eliges uno nuevo, lo reemplazará."
+
+msgid "fichier"
+msgstr "archivo"
+
+msgid "{date} (date actuelle)"
+msgstr "{date} (fecha actual)"
+
+msgid "Aucune date de cours à venir"
+msgstr "No hay próximas fechas de clase"
+
+msgid "{title} (brouillon)"
+msgstr "{title} (borrador)"
+
+msgid "Aucun exercice — créez-en un d'abord"
+msgstr "Ningún ejercicio — crea uno primero"
+
+msgid "Aucune classe pour ce cours."
+msgstr "No hay ninguna clase para esta sesión."
+
+msgid "Donnez un titre au devoir."
+msgstr "Ponle un título a la tarea."
+
+msgid "Choisissez une date de rendu."
+msgstr "Elige una fecha de entrega."
+
+msgid "Choisissez un exercice interactif."
+msgstr "Elige un ejercicio interactivo."
+
+msgid "Enregistré, mais document non joint : {error}"
+msgstr "Guardado, pero el documento no se adjuntó: {error}"
+
+msgid "Enregistré, mais document non joint (réseau)"
+msgstr "Guardado, pero el documento no se adjuntó (error de red)"
+
+msgid "Devoir modifié"
+msgstr "Tarea modificada"
+
+msgid "Devoir créé"
+msgstr "Tarea creada"
+
+msgid "Horaire type"
+msgstr "Horario tipo"
+
+msgid "Créez votre horaire type"
+msgstr "Crea tu horario tipo"
+
+msgid "Cliquez sur les cases pour assigner vos classes à chaque période. Cet horaire sera utilisé comme modèle pour toute l'année."
+msgstr "Haz clic en las casillas para asignar tus clases a cada período. Este horario se usará como modelo para todo el año."
+
+msgid "Dernière étape ! Une fois votre horaire type créé, cliquez sur « Valider l'horaire » pour accéder à votre calendrier complet."
+msgstr "¡Último paso! Una vez creado tu horario tipo, haz clic en «Validar el horario» para acceder a tu calendario completo."
+
+msgid "Tâches personnalisées"
+msgstr "Tareas personalizadas"
+
+msgid "Heures de votre école"
+msgstr "Horario de tu escuela"
+
+msgid "%(n)s périodes, de %(start)s à %(end)s"
+msgstr "%(n)s períodos, de %(start)s a %(end)s"
+
+msgid "%(n)s périodes"
+msgstr "%(n)s períodos"
+
+msgid "%(n)s min"
+msgstr "%(n)s min"
+
+msgid "%(n)s min entre deux périodes"
+msgstr "%(n)s min entre dos períodos"
+
+msgid "Modifier les heures"
+msgstr "Modificar el horario"
+
+msgid "Ces heures sont proposées par défaut. Vérifiez qu'elles correspondent à votre école avant de placer vos classes."
+msgstr "Estas horas se proponen por defecto. Comprueba que corresponden a tu escuela antes de colocar tus clases."
+
+msgid "Début des cours"
+msgstr "Inicio de las clases"
+
+msgid "Fin de la journée"
+msgstr "Fin de la jornada"
+
+msgid "Durée d'une période"
+msgstr "Duración de un período"
+
+msgid "min"
+msgstr "min"
+
+msgid "Entre deux périodes"
+msgstr "Entre dos períodos"
+
+msgid "Pauses (récréation, midi…)"
+msgstr "Pausas (recreo, mediodía…)"
+
+msgid "Ajouter une pause"
+msgstr "Añadir una pausa"
+
+msgid "Aperçu de vos périodes"
+msgstr "Vista previa de tus períodos"
+
+msgid "Enregistrer les heures"
+msgstr "Guardar el horario"
+
+msgid "Période %(n)s"
+msgstr "Período %(n)s"
+
+msgid "Valider l'horaire"
+msgstr "Validar el horario"
+
+msgid "Sélectionner une classe"
+msgstr "Selecciona una clase"
+
+msgid "Salle (optionnel)"
+msgstr "Aula (opcional)"
+
+msgid "Ex : B204"
+msgstr "ej: B204"
+
+msgid "Retirer la classe"
+msgstr "Quitar la clase"
+
+msgid "Ajouter une tâche personnalisée"
+msgstr "Añadir una tarea personalizada"
+
+msgid "Titre de la tâche :"
+msgstr "Título de la tarea:"
+
+msgid "Ex: Surveillance, Réunion, etc."
+msgstr "ej: Vigilancia, Reunión, etc."
+
+msgid "Salle (optionnel) :"
+msgstr "Aula (opcional):"
+
+msgid "Horaire exact (optionnel) :"
+msgstr "Horario exacto (opcional):"
+
+msgid "Sans horaire, la tâche occupe toute la période. Avec, elle s'affichera chaque semaine à ces heures précises dans le calendrier."
+msgstr "Sin horario, la tarea ocupa todo el período. Con horario, aparecerá cada semana a esas horas exactas en el calendario."
+
+msgid "Autre tâche"
+msgstr "Otra tarea"
+
+msgid "Erreur : impossible de déterminer le créneau sélectionné"
+msgstr "Error: no se puede determinar la franja seleccionada"
+
+msgid "Veuillez saisir un titre pour la tâche"
+msgstr "Introduce un título para la tarea"
+
+msgid "Erreur : informations de créneau manquantes"
+msgstr "Error: falta información de la franja"
+
+msgid "Erreur : impossible de trouver la cellule cible"
+msgstr "Error: no se encuentra la celda de destino"
+
+msgid "Cliquez pour séparer ces périodes"
+msgstr "Haz clic para separar estos períodos"
+
+msgid "Cliquez pour lier ces périodes"
+msgstr "Haz clic para unir estos períodos"
+
+msgid "impossible de modifier la liaison"
+msgstr "no se puede modificar la unión"
+
+msgid "Nom de la pause"
+msgstr "Nombre de la pausa"
+
+msgid "Récréation"
+msgstr "Recreo"
+
+msgid "De"
+msgstr "De"
+
+msgid "À"
+msgstr "A"
+
+msgid "Supprimer cette pause"
+msgstr "Eliminar esta pausa"
+
+msgid "Pause"
+msgstr "Pausa"
+
+msgid "Vérifiez le début et la fin de la journée."
+msgstr "Comprueba el inicio y el fin de la jornada."
+
+msgid "Ces réglages ne donnent aucune période."
+msgstr "Estos ajustes no dan ningún período."
+
+msgid "Votre horaire contient des cours en période {used}, mais ces réglages n'en donnent que {n}. Ces cours ne seront plus affichés. Continuer ?"
+msgstr "Tu horario contiene clases en el período {used}, pero estos ajustes solo dan {n}. Esas clases dejarán de mostrarse. ¿Continuar?"
+
+msgid "Enregistrement impossible."
+msgstr "No se ha podido guardar."
+
+msgid "Uploader fichiers"
+msgstr "Subir archivos"
+
+msgid "Uploader dossier"
+msgstr "Subir carpeta"
+
+msgid "%(used)s / %(max)s GB utilisés (%(pct)s %%)"
+msgstr "%(used)s / %(max)s GB usados (%(pct)s %%)"
+
+msgid "Les dossiers seront importés avec leur structure complète"
+msgstr "Las carpetas se importarán con toda su estructura"
+
+msgid "Déposer ici pour déplacer à la racine"
+msgstr "Suelta aquí para mover a la raíz"
+
+msgid "Chargement…"
+msgstr "Cargando…"
+
+msgid "Aucun fichier pour le moment"
+msgstr "Aún no hay archivos"
+
+msgid "Créez un dossier ou glissez des fichiers ici pour commencer"
+msgstr "Crea una carpeta o arrastra archivos aquí para empezar"
+
+msgid "Mes classes"
+msgstr "Mis clases"
+
+msgid "Supprimer les %(n)s élément(s)"
+msgstr "Eliminar %(n)s elemento(s)"
+
+msgid "Ex: Cours de mathématiques"
+msgstr "ej: Clases de matemáticas"
+
+msgid "Couleur du dossier"
+msgstr "Color de la carpeta"
+
+msgid "Déplacer vers…"
+msgstr "Mover a…"
+
+msgid "réessayer"
+msgstr "reintentar"
+
+msgid "Confirmation"
+msgstr "Confirmación"
+
+msgid "Supprimer « {name} » ? Cette action est définitive."
+msgstr "¿Eliminar «{name}»? Esta acción es definitiva."
+
+msgid "Supprimer ce fichier ? Cette action est définitive."
+msgstr "¿Eliminar este archivo? Esta acción es definitiva."
+
+msgid "Supprimer le dossier « {name} » ? Cette action est définitive."
+msgstr "¿Eliminar la carpeta «{name}»? Esta acción es definitiva."
+
+msgid "Supprimer le dossier « {name} » et ses {n} fichier(s) ? Cette action est définitive."
+msgstr "¿Eliminar la carpeta «{name}» y sus {n} archivo(s)? Esta acción es definitiva."
+
+msgid "Supprimer ce dossier ? Cette action est définitive."
+msgstr "¿Eliminar esta carpeta? Esta acción es definitiva."
+
+msgid "Supprimer ce dossier et ses {n} fichier(s) ? Cette action est définitive."
+msgstr "¿Eliminar esta carpeta y sus {n} archivo(s)? Esta acción es definitiva."
+
+msgid "Supprimer {n} élément(s) ? Cette action est définitive."
+msgstr "¿Eliminar {n} elemento(s)? Esta acción es definitiva."
+
+msgid "Supprimer {n} fichier(s) ? Cette action est définitive."
+msgstr "¿Eliminar {n} archivo(s)? Esta acción es definitiva."
+
+msgid "Supprimer {n} dossier(s) et leur contenu ? Cette action est définitive."
+msgstr "¿Eliminar {n} carpeta(s) y su contenido? Esta acción es definitiva."
+
+msgid "Supprimer {files} fichier(s) et {folders} dossier(s) et leur contenu ? Cette action est définitive."
+msgstr "¿Eliminar {files} archivo(s) y {folders} carpeta(s) con su contenido? Esta acción es definitiva."
+
+msgid "Dossier supprimé"
+msgstr "Carpeta eliminada"
+
+msgid "{n} élément(s) supprimé(s)"
+msgstr "{n} elemento(s) eliminado(s)"
+
+msgid "Renommé avec succès"
+msgstr "Renombrado correctamente"
+
+msgid "Couleur mise à jour"
+msgstr "Color actualizado"
+
+msgid "Sera créé dans « {name} »"
+msgstr "Se creará en «{name}»"
+
+msgid "Sera créé à la racine"
+msgstr "Se creará en la raíz"
+
+msgid "Dossier créé"
+msgstr "Carpeta creada"
+
+msgid "Déplacement impossible (un dossier ne peut pas aller dans lui-même)"
+msgstr "No se puede mover (una carpeta no puede ir dentro de sí misma)"
+
+msgid "Déplacé vers « {name} »"
+msgstr "Movido a «{name}»"
+
+msgid "Déplacé vers la racine"
+msgstr "Movido a la raíz"
+
+msgid "{n} éléments déplacés vers « {name} »"
+msgstr "{n} elementos movidos a «{name}»"
+
+msgid "{n} éléments déplacés vers la racine"
+msgstr "{n} elementos movidos a la raíz"
+
+msgid "{n} éléments"
+msgstr "{n} elementos"
+
+msgid "{name} uploadé avec succès"
+msgstr "{name} subido correctamente"
+
+msgid "erreur serveur ({status})"
+msgstr "error del servidor ({status})"
+
+msgid "connexion interrompue — réessayez"
+msgstr "conexión interrumpida — inténtalo de nuevo"
+
+msgid "{n} fichier(s) uploadé(s)"
+msgstr "{n} archivo(s) subido(s)"
+
+msgid "{n} déjà présent(s), ignoré(s)"
+msgstr "{n} ya presente(s), omitido(s)"
+
+msgid "• {name} : {reason}"
+msgstr "• {name}: {reason}"
+
+msgid "… et {n} autre(s)"
+msgstr "… y {n} más"
+
+msgid "{n} fichier(s) NON copié(s) :"
+msgstr "{n} archivo(s) NO copiado(s):"
+
+msgid "Déplacer les {n} éléments vers…"
+msgstr "Mover los {n} elementos a…"
+
+msgid "Supprimer les {n} éléments"
+msgstr "Eliminar los {n} elementos"
+
+msgid "Tout désélectionner"
+msgstr "Deseleccionar todo"
+
+msgid "Réduire"
+msgstr "Contraer"
+
+msgid "Nouveau dossier ici"
+msgstr "Nueva carpeta aquí"
+
+msgid "Ouvrir dans un onglet"
+msgstr "Abrir en una pestaña"
+
+msgid "Uploader des fichiers"
+msgstr "Subir archivos"
+
+msgid "Uploader un dossier"
+msgstr "Subir una carpeta"
+
+msgid "Compte"
+msgstr "Cuenta"
+
+msgid "Affichage"
+msgstr "Visualización"
+
+msgid "Sécurité"
+msgstr "Seguridad"
+
+msgid "Espace élèves et parents"
+msgstr "Espacio alumnos y padres"
+
+msgid "Année et horaires"
+msgstr "Año y horarios"
+
+msgid "Vacances"
+msgstr "Vacaciones"
+
+msgid "Pauses"
+msgstr "Pausas"
+
+msgid "Supprimer mon compte"
+msgstr "Eliminar mi cuenta"
+
+msgid "Informations du compte"
+msgstr "Información de la cuenta"
+
+msgid "Adresse email"
+msgstr "Dirección de correo electrónico"
+
+msgid "Changer le mot de passe"
+msgstr "Cambiar la contraseña"
+
+msgid "Mot de passe actuel"
+msgstr "Contraseña actual"
+
+msgid "Au moins 8 caractères, avec une majuscule et un chiffre"
+msgstr "Al menos 8 caracteres, con una mayúscula y un número"
+
+msgid "Confirmer le nouveau mot de passe"
+msgstr "Confirmar la nueva contraseña"
+
+msgid "Affichage des aménagements"
+msgstr "Visualización de las adaptaciones"
+
+msgid "Choisissez comment les aménagements des élèves doivent être affichés dans la vue des cours :"
+msgstr "Elige cómo se muestran las adaptaciones de los alumnos en la vista de las lecciones:"
+
+msgid "Ne pas afficher les aménagements"
+msgstr "No mostrar las adaptaciones"
+
+msgid "Afficher uniquement l'émoticône des aménagements"
+msgstr "Mostrar solo el emoji de las adaptaciones"
+
+msgid "Afficher le nom complet des aménagements"
+msgstr "Mostrar el nombre completo de las adaptaciones"
+
+msgid "Enregistrer les paramètres"
+msgstr "Guardar los ajustes"
+
+msgid "Préférences d'affichage"
+msgstr "Preferencias de visualización"
+
+msgid "Tri des élèves"
+msgstr "Orden de los alumnos"
+
+msgid "Choisissez comment les élèves doivent être triés dans les listes :"
+msgstr "Elige cómo se ordenan los alumnos en las listas:"
+
+msgid "Par nom de famille (Dupont, Martin, etc.)"
+msgstr "Por apellido (García, Martín, etc.)"
+
+msgid "Par prénom (Alice, Bob, etc.)"
+msgstr "Por nombre (Alicia, Bruno, etc.)"
+
+msgid "Permet d'annoter rapidement le travail des élèves (test formatif, devoir) pour voir d'un coup d'œil qui a bien fait son travail. Une fois activée, un onglet « Éval. formative » apparaît dans <em>Gérer les classes</em>, et les appréciations se retrouvent dans le rapport de l'élève."
+msgstr "Te permite anotar rápidamente el trabajo de los alumnos (prueba formativa, tarea) para ver de un vistazo quién ha hecho bien su trabajo. Una vez activada, aparece una pestaña «Evaluación formativa» en <em>Gestionar las clases</em> y las valoraciones se incluyen en el informe del alumno."
+
+msgid "Activer l'évaluation formative"
+msgstr "Activar la evaluación formativa"
+
+msgid "Ce que vous voulez saisir"
+msgstr "Lo que quieres registrar"
+
+msgid "Retirez ce dont vous ne vous servez pas : les colonnes décochées n'apparaîtront nulle part."
+msgstr "Quita lo que no uses: las columnas desmarcadas no aparecerán en ningún sitio."
+
+msgid "(selon votre échelle ci-dessous)"
+msgstr "(según tu escala de abajo)"
+
+msgid "(texte libre, visible de vous seul)"
+msgstr "(texto libre, solo visible para ti)"
+
+msgid "Pastille de couleur"
+msgstr "Punto de color"
+
+msgid "(repère visuel rapide)"
+msgstr "(referencia visual rápida)"
+
+msgid "Échelle d'appréciation"
+msgstr "Escala de valoración"
+
+msgid "Les niveaux proposés quand vous annotez un élève, du plus élevé au plus bas. Supprimer un niveau ne supprime pas les commentaires ni les pastilles déjà posés."
+msgstr "Los niveles que se proponen cuando anotas a un alumno, del más alto al más bajo. Eliminar un nivel no elimina los comentarios ni los puntos de color ya puestos."
+
+msgid "Nouveau niveau (ex. : Acquis)"
+msgstr "Nuevo nivel (p. ej.: Adquirido)"
+
+msgid "Double authentification (2FA)"
+msgstr "Autenticación en dos pasos (2FA)"
+
+msgid "La double authentification est activée"
+msgstr "La autenticación en dos pasos está activada"
+
+msgid "Un code de votre application d'authentification est requis à chaque connexion."
+msgstr "Se requiere un código de tu aplicación de autenticación en cada inicio de sesión."
+
+msgid "Mot de passe pour désactiver :"
+msgstr "Contraseña para desactivar:"
+
+msgid "Entrez votre mot de passe"
+msgstr "Introduce tu contraseña"
+
+msgid "Désactiver la double authentification"
+msgstr "Desactivar la autenticación en dos pasos"
+
+msgid "Protégez votre compte avec une application d'authentification. Un code à 6 chiffres sera demandé à chaque connexion en plus de votre mot de passe."
+msgstr "Protege tu cuenta con una aplicación de autenticación. En cada inicio de sesión se pedirá un código de 6 cifras además de tu contraseña."
+
+msgid "Comment ça marche ?"
+msgstr "¿Cómo funciona?"
+
+msgid "Installez une app d'authentification"
+msgstr "Instala una app de autenticación"
+
+msgid "Téléchargez une de ces applications gratuites sur votre téléphone :"
+msgstr "Descarga una de estas aplicaciones gratuitas en tu teléfono:"
+
+msgid "Mots de passe (Apple)"
+msgstr "Contraseñas (Apple)"
+
+msgid "Scannez le QR code"
+msgstr "Escanea el código QR"
+
+msgid "Cliquez sur \"Configurer\" ci-dessous, puis scannez le QR code avec votre application."
+msgstr "Haz clic en «Configurar» abajo y luego escanea el código QR con tu aplicación."
+
+msgid "Entrez le code pour confirmer"
+msgstr "Introduce el código para confirmar"
+
+msgid "L'application génère un code à 6 chiffres qui change toutes les 30 secondes. Entrez-le pour activer la 2FA."
+msgstr "La aplicación genera un código de 6 cifras que cambia cada 30 segundos. Introdúcelo para activar la 2FA."
+
+msgid "Lors de la connexion"
+msgstr "Al iniciar sesión"
+
+msgid "Après votre mot de passe, le code sera demandé. Sur iPhone, il se remplit automatiquement via l'app Mots de passe !"
+msgstr "Después de tu contraseña se te pedirá el código. ¡En el iPhone se rellena automáticamente con la app Contraseñas!"
+
+msgid "1. Scannez ce QR code avec votre application :"
+msgstr "1. Escanea este código QR con tu aplicación:"
+
+msgid "QR Code"
+msgstr "Código QR"
+
+msgid "Ou entrez ce code manuellement :"
+msgstr "O introduce este código manualmente:"
+
+msgid "2. Entrez le code affiché par l'application :"
+msgstr "2. Introduce el código que muestra la aplicación:"
+
+msgid "Activer la double authentification"
+msgstr "Activar la autenticación en dos pasos"
+
+msgid "Configurer la double authentification"
+msgstr "Configurar la autenticación en dos pasos"
+
+msgid "Vous avez un abonnement <strong>Premium</strong>"
+msgstr "Tienes una suscripción <strong>Premium</strong>"
+
+msgid "Accès à vie, offert aux premiers inscrits. Merci d'avoir été là dès le début !"
+msgstr "Acceso de por vida, ofrecido a los primeros inscritos. ¡Gracias por estar aquí desde el principio!"
+
+msgid "Valide jusqu'au %(date)s"
+msgstr "Válido hasta el %(date)s"
+
+msgid "Accès illimité"
+msgstr "Acceso ilimitado"
+
+msgid "Gérer mon abonnement App Store"
+msgstr "Gestionar mi suscripción de la App Store"
+
+msgid "Ou sur l'iPad / l'iPhone : Réglages > [votre nom] > Abonnements."
+msgstr "O en el iPad / iPhone: Ajustes > [tu nombre] > Suscripciones."
+
+msgid "Choisissez un abonnement pour utiliser ProfCalendar."
+msgstr "Elige una suscripción para usar ProfCalendar."
+
+msgid "Utiliser un bon"
+msgstr "Usar un cupón"
+
+msgid "Si vous avez reçu un code promotionnel, entrez-le ci-dessous pour activer votre accès Premium."
+msgstr "Si has recibido un código promocional, introdúcelo abajo para activar tu acceso Premium."
+
+msgid "Entrez votre code"
+msgstr "Introduce tu código"
+
+msgid "Appliquer"
+msgstr "Aplicar"
+
+msgid "Exporter mes données"
+msgstr "Exportar mis datos"
+
+msgid "Conformément à la nLPD et au RGPD, vous pouvez télécharger l'ensemble de vos données personnelles (compte, classes, élèves) au format JSON."
+msgstr "De conformidad con la nLPD y el RGPD, puedes descargar todos tus datos personales (cuenta, clases, alumnos) en formato JSON."
+
+msgid "Télécharger mes données"
+msgstr "Descargar mis datos"
+
+msgid "Cette action est irréversible !"
+msgstr "¡Esta acción es irreversible!"
+
+msgid "La suppression de votre compte entraînera la perte définitive de toutes vos données : classes, élèves, évaluations, notes, remarques, sanctions, planifications, et fichiers."
+msgstr "Eliminar tu cuenta supondrá la pérdida definitiva de todos tus datos: clases, alumnos, evaluaciones, notas, observaciones, sanciones, planificaciones y archivos."
+
+msgid "<strong>Abonnement App Store :</strong> supprimer votre compte ne résilie pas l'abonnement pris sur l'App Store. Résiliez-le d'abord dans Réglages > [votre nom] > Abonnements > ProfCalendar, ou <a href=\"https://apps.apple.com/account/subscriptions\" target=\"_blank\" rel=\"noopener\">ouvrez vos abonnements Apple</a>."
+msgstr "<strong>Suscripción de la App Store:</strong> eliminar tu cuenta no cancela la suscripción contratada en la App Store. Cancélala primero en Ajustes > [tu nombre] > Suscripciones > ProfCalendar, o <a href=\"https://apps.apple.com/account/subscriptions\" target=\"_blank\" rel=\"noopener\">abre tus suscripciones de Apple</a>."
+
+msgid "Si vous êtes maître de classe et que des enseignants spécialisés sont liés à vos classes, un rapport PDF contenant les données des élèves (notes, remarques, sanctions) leur sera automatiquement envoyé avant la suppression."
+msgstr "Si eres tutor de la clase y hay docentes especialistas vinculados a tus clases, se les enviará automáticamente un informe PDF con los datos de los alumnos (notas, observaciones, sanciones) antes de la eliminación."
+
+msgid "Confirmez avec votre mot de passe :"
+msgstr "Confirma con tu contraseña:"
+
+msgid "Supprimer définitivement mon compte"
+msgstr "Eliminar definitivamente mi cuenta"
+
+msgid "Erreur lors de la sauvegarde des paramètres : {error}"
+msgstr "Error al guardar los ajustes: {error}"
+
+msgid "Une erreur est survenue. Veuillez réessayer."
+msgstr "Se ha producido un error. Inténtalo de nuevo."
+
+msgid "Les nouveaux mots de passe ne correspondent pas."
+msgstr "Las nuevas contraseñas no coinciden."
+
+msgid "Le nouveau mot de passe doit contenir au moins 8 caractères."
+msgstr "La nueva contraseña debe tener al menos 8 caracteres."
+
+msgid "Veuillez entrer votre mot de passe."
+msgstr "Introduce tu contraseña."
+
+msgid "Masquer le tutoriel"
+msgstr "Ocultar el tutorial"
+
+msgid "Veuillez entrer un code à 6 chiffres."
+msgstr "Introduce un código de 6 cifras."
+
+msgid "Voulez-vous vraiment désactiver la double authentification ?"
+msgstr "¿Seguro que quieres desactivar la autenticación en dos pasos?"
+
+msgid "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est IRRÉVERSIBLE."
+msgstr "¿Seguro que quieres eliminar tu cuenta? Esta acción es IRREVERSIBLE."
+
+msgid "DERNIÈRE CONFIRMATION : Toutes vos données seront définitivement supprimées. Continuer ?"
+msgstr "CONFIRMACIÓN FINAL: Todos tus datos se eliminarán definitivamente. ¿Continuar?"
+
+msgid "Suppression en cours..."
+msgstr "Eliminando..."
+
+msgid "Aucun niveau. Enregistrez une première fois pour obtenir l'échelle par défaut, ou ajoutez les vôtres."
+msgstr "No hay niveles. Guarda una primera vez para obtener la escala predeterminada o añade los tuyos."
+
+msgid "Impossible de charger l'échelle."
+msgstr "No se ha podido cargar la escala."
+
+msgid "Supprimer ce niveau ? Les appréciations qui l'utilisaient repasseront à « aucune »."
+msgstr "¿Eliminar este nivel? Las valoraciones que lo usaban volverán a «ninguna»."
 
 msgid "OK"
 msgstr "OK"
@@ -3237,10 +6396,10 @@ msgstr "Nada que pagar durante 14 días, sin permanencia."
 msgid "puis dès CHF 4.90 par mois, sans engagement."
 msgstr "después desde CHF 4.90 al mes, sin permanencia."
 
-msgid "Rien à payer aujourd’hui. Annule avant la fin de l’essai (Réglages > ton nom > Abonnements) et tu ne paies rien. On t’envoie un rappel deux jours avant."
+msgid "Rien à payer aujourd’hui. Annulez avant la fin de l’essai (Réglages > votre nom > Abonnements) et vous ne payez rien. Nous vous envoyons un rappel deux jours avant."
 msgstr "Nada que pagar hoy. Cancela antes de que termine la prueba (Ajustes > tu nombre > Suscripciones) y no pagas nada. Te enviamos un recordatorio dos días antes."
 
-msgid "Tu reçois un rappel par e-mail avant la fin de l’essai."
+msgid "Vous recevez un rappel par e-mail avant la fin de l’essai."
 msgstr "Recibes un recordatorio por correo antes de que termine la prueba."
 
 msgid "14 jours gratuits, puis facturé chaque mois"
@@ -3252,16 +6411,16 @@ msgstr "14 días gratis, después CHF 3.33/mes"
 msgid "Essai gratuit de 14 jours"
 msgstr "Prueba gratuita de 14 días"
 
-msgid "ta carte est demandée, mais rien n'est débité avant la fin de l'essai. Résilie avant cette date depuis Paramètres > Abonnement et tu ne paies rien."
+msgid "votre carte est demandée, mais rien n'est débité avant la fin de l'essai. Résiliez avant cette date depuis Paramètres > Abonnement et vous ne payez rien."
 msgstr "se pide tu tarjeta, pero no se cobra nada antes de que termine la prueba. Cancela antes de esa fecha en Ajustes > Suscripción y no pagas nada."
 
-msgid "Commence par créer tes classes"
+msgid "Commencez par créer vos classes"
 msgstr "Empieza creando tus clases"
 
-msgid "Cette page se remplit dès que tes classes et ton horaire sont en place. Ça prend environ deux minutes."
+msgid "Cette page se remplit dès que vos classes et votre horaire sont en place. Cela prend environ deux minutes."
 msgstr "Esta página se llena en cuanto tus clases y tu horario están listos. Tarda unos dos minutos."
 
-msgid "Mode démonstration : rien n'est enregistré. Crée ton compte pour utiliser ProfCalendar avec tes classes."
+msgid "Mode démonstration : rien n'est enregistré. Créez votre compte pour utiliser ProfCalendar avec vos classes."
 msgstr "Modo demostración: no se guarda nada. Crea tu cuenta para usar ProfCalendar con tus clases."
 
 msgid "Voir comment faire en vidéo"
@@ -3306,13 +6465,13 @@ msgstr "Ver el horario de la cuenta de ejemplo"
 msgid "Voir le tableau de bord du compte d’exemple"
 msgstr "Ver el panel de la cuenta de ejemplo"
 
-msgid "Avant de t’abonner, regarde comment ça marche sur un compte d’exemple déjà rempli : tu peux tout explorer, rien n’est enregistré."
+msgid "Avant de vous abonner, regardez comment cela fonctionne sur un compte d’exemple déjà rempli : vous pouvez tout explorer, rien n’est enregistré."
 msgstr "Antes de suscribirte, mira cómo funciona en una cuenta de ejemplo ya rellenada: puedes explorarlo todo, no se guarda nada."
 
-msgid "Envie de voir l’app avant de t’abonner ?"
+msgid "Envie de voir l’app avant de vous abonner ?"
 msgstr "¿Quieres ver la app antes de suscribirte?"
 
-msgid "Explore un compte d’exemple déjà rempli : calendrier, page du cours, notes et plan de classe. Rien n’est enregistré."
+msgid "Explorez un compte d’exemple déjà rempli : calendrier, page du cours, notes et plan de classe. Rien n’est enregistré."
 msgstr "Explora una cuenta de ejemplo ya rellenada: calendario, página de la clase, notas y plano de la clase. No se guarda nada."
 
 msgid "14 jours d’essai gratuit pour un premier abonnement"
@@ -3330,8 +6489,8 @@ msgstr "%(days)s días gratis, luego"
 msgid "Voix de synthèse"
 msgstr "Voz sintética"
 
-msgid "Ton essai Premium se termine dans %(num)d jour."
-msgid_plural "Ton essai Premium se termine dans %(num)d jours."
+msgid "Votre essai Premium se termine dans %(num)d jour."
+msgid_plural "Votre essai Premium se termine dans %(num)d jours."
 msgstr[0] "Tu prueba Premium termina en %(num)d día."
 msgstr[1] "Tu prueba Premium termina en %(num)d días."
 

@@ -1917,7 +1917,7 @@ def api_bulk_create_classrooms():
         created.append(classroom)
     if not created:
         return jsonify({'success': False,
-                        'message': 'Indique au moins un nom de classe et une matière.'}), 400
+                        'message': 'Indiquez au moins un nom de classe et une matière.'}), 400
     try:
         db.session.commit()
     except Exception as e:

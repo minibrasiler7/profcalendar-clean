@@ -87,19 +87,19 @@ msgstr "Log in"
 msgid "Inscription"
 msgstr "Sign up"
 
-msgid "Ton essai Premium est terminé. Réactive pour retrouver la gestion de classe, les notes, les présences et les exercices."
+msgid "Votre essai Premium est terminé. Réactivez-le pour retrouver la gestion de classe, les notes, les présences et les exercices."
 msgstr "Your Premium trial has ended. Reactivate to get back class management, grades, attendance and exercises."
 
-msgid "Ne perds pas la gestion de classe, les notes et les présences."
+msgid "Ne perdez pas la gestion de classe, les notes et les présences."
 msgstr "Don't lose class management, grades and attendance."
 
-msgid "Tu profites de"
+msgid "Vous profitez de"
 msgstr "You're enjoying"
 
 msgid "Premium gratuit"
 msgstr "free Premium"
 
-msgid "Profites-en pour tout explorer !"
+msgid "Profitez-en pour tout explorer !"
 msgstr "Make the most of it and explore everything!"
 
 msgid "Passer à Premium · dès CHF 4.90/mois"
@@ -276,7 +276,7 @@ msgstr "A verification code has been sent to your email address."
 msgid "Compte créé, mais impossible d'envoyer le code de vérification. Veuillez réessayer."
 msgstr "Account created, but the verification code could not be sent. Please try again."
 
-msgid "Bienvenue sur ProfCalendar ! 🎉 Tu profites de 30 jours de Premium offerts — toutes les fonctionnalités débloquées."
+msgid "Bienvenue sur ProfCalendar ! 🎉 Vous profitez de 30 jours de Premium offerts — toutes les fonctionnalités débloquées."
 msgstr "Welcome to ProfCalendar! 🎉 You get 30 days of free Premium — all features unlocked."
 
 msgid "Code invalide ou expiré."
@@ -639,16 +639,16 @@ msgstr "Date unavailable"
 msgid "Prêt à commencer ?"
 msgstr "Ready to get started?"
 
-msgid "Ton espace est déjà configuré (horaire, année scolaire…)."
+msgid "Votre espace est déjà configuré (horaire, année scolaire…)."
 msgstr "Your workspace is already set up (timetable, school year…)."
 
 msgid "Il ne reste qu'une chose à faire"
 msgstr "There is only one thing left to do"
 
-msgid "créer ta première classe"
+msgid "créer votre première classe"
 msgstr "create your first class"
 
-msgid "Ça prend 30 secondes, et tu pourras tout ajuster ensuite."
+msgid "Cela prend 30 secondes, et vous pourrez tout ajuster ensuite."
 msgstr "It takes 30 seconds, and you can adjust everything later."
 
 msgid "Créer ma première classe"
@@ -1836,13 +1836,13 @@ msgstr "ProfCalendar is published by Loïc Strauch, Switzerland."
 msgid "Ajouter des élèves"
 msgstr "Add students"
 
-msgid "Ajouter tes élèves"
+msgid "Ajouter vos élèves"
 msgstr "Add your students"
 
 msgid "Besoin d'aide ?"
 msgstr "Need help?"
 
-msgid "Calcule une moyenne pondérée en direct et trouve la note nécessaire au prochain test."
+msgid "Calculez une moyenne pondérée en direct et trouvez la note nécessaire au prochain test."
 msgstr "Compute a weighted average live and find the grade you need on your next test."
 
 msgid "Calculer"
@@ -1854,16 +1854,16 @@ msgstr "Cantonal school calendars"
 msgid "Ce bouton ouvre l'aide contextuelle sur chaque page. Il est toujours disponible."
 msgstr "This button opens contextual help on every page. It's always available."
 
-msgid "Clique sur ce bouton pour créer ta première classe — ça prend 30 secondes."
+msgid "Cliquez sur ce bouton pour créer votre première classe : cela prend 30 secondes."
 msgstr "Click this button to create your first class — it takes 30 seconds."
 
-msgid "Commence ici"
+msgid "Commencez ici"
 msgstr "Start here"
 
 msgid "Créer ma classe"
 msgstr "Create my class"
 
-msgid "Créer ta première classe"
+msgid "Créer votre première classe"
 msgstr "Create your first class"
 
 msgid "Créer un barème"
@@ -1872,7 +1872,7 @@ msgstr "Create a scale"
 msgid "Des outils en libre accès pour les enseignants romands — à utiliser tout de suite."
 msgstr "Free-to-use tools for teachers — ready to use right away."
 
-msgid "Donne-lui un nom et une discipline. Ça prend 30 secondes."
+msgid "Donnez-lui un nom et une discipline. Cela prend 30 secondes."
 msgstr "Give it a name and a subject. Takes 30 seconds."
 
 msgid "Essayer"
@@ -1884,22 +1884,22 @@ msgstr "e.g. Jane Smith"
 msgid "Exercices illimités du Cycle 3 (9H–11H), classés par thème du PER, avec correction immédiate et figures interactives."
 msgstr "Unlimited Cycle 3 (9H–11H) exercises, sorted by PER topic, with instant correction and interactive figures."
 
-msgid "Facultatif — c'est le nom affiché dans l'app. Laisse vide pour en générer un depuis ton email."
+msgid "Facultatif : c'est le nom affiché dans l'app. Laissez vide pour en générer un depuis votre e-mail."
 msgstr "Optional — the name shown in the app. Leave blank to generate one from your email."
 
-msgid "Faisons un tour rapide pour bien démarrer. Tu peux le passer à tout moment."
+msgid "Faisons un tour rapide pour bien démarrer. Vous pouvez le passer à tout moment."
 msgstr "Let's take a quick tour to get you started. You can skip it anytime."
 
-msgid "Génère le barème d’un test (barème fédéral suisse) : points &rarr; note, prêt à copier-coller."
+msgid "Générez le barème d’un test (barème fédéral suisse) : points &rarr; note, prêt à copier-coller."
 msgstr "Generate a test’s grading scale (Swiss federal scale): points &rarr; grade, ready to copy-paste."
 
 msgid "Générateur d’exercices de maths"
 msgstr "Math exercise generator"
 
-msgid "Ouvre le calendrier et clique sur une période pour la préparer."
+msgid "Ouvrez le calendrier et cliquez sur une période pour la préparer."
 msgstr "Open the calendar and click a period to prepare it."
 
-msgid "Planifier ton premier cours"
+msgid "Planifier votre premier cours"
 msgstr "Plan your first lesson"
 
 msgid "Planifier un cours"
@@ -1908,16 +1908,16 @@ msgstr "Plan a lesson"
 msgid "Ressources gratuites, sans inscription"
 msgstr "Free resources, no sign-up"
 
-msgid "Suis cette petite liste : créer ta classe, ajouter tes élèves, puis planifier ton premier cours."
+msgid "Suivez cette petite liste : créer votre classe, ajouter vos élèves, puis planifier votre premier cours."
 msgstr "Follow this short list: create your class, add your students, then plan your first lesson."
 
-msgid "Tes 3 étapes pour démarrer"
+msgid "Vos 3 étapes pour démarrer"
 msgstr "Your 3 steps to get started"
 
 msgid "Toutes les dates des vacances scolaires et jours fériés par canton romand, à consulter et à imprimer."
 msgstr "All school-holiday and public-holiday dates by canton, to view and print."
 
-msgid "Un par un, ou en collant ta liste depuis Excel (import CSV)."
+msgid "Un par un, ou en collant votre liste depuis Excel (import CSV)."
 msgstr "One by one, or by pasting your list from Excel (CSV import)."
 
 msgid "Voir les calendriers"
@@ -2865,19 +2865,19 @@ msgstr "No links yet."
 msgid "Erreur lors de l'ajout"
 msgstr "Error while adding"
 
-msgid "Choisis ton abonnement pour accéder à ProfCalendar."
+msgid "Choisissez votre abonnement pour accéder à ProfCalendar."
 msgstr "Choose your subscription to access ProfCalendar."
 
 msgid "Bienvenue sur ProfCalendar ! 🎉"
 msgstr "Welcome to ProfCalendar! 🎉"
 
-msgid "Bienvenue sur ProfCalendar ! 🎉 Choisis ton abonnement pour commencer."
+msgid "Bienvenue sur ProfCalendar ! 🎉 Choisissez votre abonnement pour commencer."
 msgstr "Welcome to ProfCalendar! 🎉 Choose your subscription to get started."
 
-msgid "Choisis ton abonnement pour commencer"
+msgid "Choisissez votre abonnement pour commencer"
 msgstr "Choose your subscription to get started"
 
-msgid "ProfCalendar est un outil payant, sans engagement : choisis la formule qui te convient. Tu peux résilier à tout moment."
+msgid "ProfCalendar est un outil payant, sans engagement : choisissez la formule qui vous convient. Vous pouvez résilier à tout moment."
 msgstr "ProfCalendar is a paid tool with no commitment: pick the plan that suits you. You can cancel at any time."
 
 msgid "Entrez votre code pour activer votre accès"
@@ -2898,7 +2898,7 @@ msgstr "Create your account"
 msgid "Abonnement dès CHF 4.90 par mois, sans engagement."
 msgstr "Subscription from CHF 4.90 per month, no commitment."
 
-msgid "Pour utiliser ProfCalendar, choisis un abonnement. Tu peux aussi restaurer un achat existant."
+msgid "Pour utiliser ProfCalendar, choisissez un abonnement. Vous pouvez aussi restaurer un achat existant."
 msgstr "To use ProfCalendar, choose a subscription. You can also restore an existing purchase."
 
 msgid "Débloquez toutes les fonctionnalités pour gérer vos classes : notes, présences, plan de classe, fichiers annotés et bien plus."
@@ -2997,10 +2997,10 @@ msgstr "ProfCalendar has completely changed the way I prepare my lessons. The ca
 msgid "Présences, coches et plan de classe au même endroit : je gagne un temps fou pendant le cours, et tout est prêt pour les entretiens."
 msgstr "Attendance, checks and seating plan in one place: I save a huge amount of time during the lesson, and everything is ready for parent meetings."
 
-msgid "Crée tes classes"
+msgid "Créez vos classes"
 msgstr "Create your classes"
 
-msgid "Un nom, une matière, une couleur. Ajoute-les toutes d'un coup."
+msgid "Un nom, une matière, une couleur. Ajoutez-les toutes d'un coup."
 msgstr "A name, a subject, a colour. Add them all at once."
 
 msgid "Nom (ex. 9VP2)"
@@ -3015,25 +3015,25 @@ msgstr "Create my classes"
 msgid "Une autre classe"
 msgstr "Another class"
 
-msgid "Indique au moins un nom de classe et une matière."
+msgid "Indiquez au moins un nom de classe et une matière."
 msgstr "Enter at least one class name and a subject."
 
 msgid "Erreur lors de la création des classes."
 msgstr "Error while creating the classes."
 
-msgid "Compose ton horaire"
+msgid "Composez votre horaire"
 msgstr "Build your timetable"
 
-msgid "Clique sur les périodes de ta semaine et choisis la classe. Valide : tu reviens ici."
+msgid "Cliquez sur les périodes de votre semaine et choisissez la classe. Validez : vous revenez ici."
 msgstr "Click the periods of your week and pick the class. Confirm, and you come back here."
 
 msgid "Ouvrir l'horaire"
 msgstr "Open the timetable"
 
-msgid "Importe tes vacances"
+msgid "Importez vos vacances"
 msgstr "Import your holidays"
 
-msgid "Choisis ton canton : vacances et jours fériés se placent tout seuls dans le calendrier."
+msgid "Choisissez votre canton : vacances et jours fériés se placent tout seuls dans le calendrier."
 msgstr "Pick your canton: holidays and public holidays land in the calendar by themselves."
 
 msgid "Canton"
@@ -3054,7 +3054,7 @@ msgstr "ProfCalendar works on a monthly or annual subscription, with no commitme
 msgid "Configurer mon compte (2 minutes)"
 msgstr "Set up my account (2 minutes)"
 
-msgid "Trois étapes guidées : tes classes, ton horaire, tes vacances."
+msgid "Trois étapes guidées : vos classes, votre horaire, vos vacances."
 msgstr "Three guided steps: your classes, your timetable, your holidays."
 
 msgid "Nouvelle tâche…"
@@ -3063,7 +3063,7 @@ msgstr "New task…"
 msgid "Aucune tâche pour le moment."
 msgstr "No tasks yet."
 
-msgid "Suis cette petite liste : crée tes classes, compose ton horaire, puis importe tes vacances."
+msgid "Suivez cette petite liste : créez vos classes, composez votre horaire, puis importez vos vacances."
 msgstr "Follow this short list: create your classes, build your timetable, then import your holidays."
 
 msgid "Passer"
@@ -3075,13 +3075,13 @@ msgstr "Next"
 msgid "Terminer"
 msgstr "Finish"
 
-msgid "Ce que tu obtiens"
+msgid "Ce que vous obtenez"
 msgstr "What you get"
 
 msgid "Planification et calendrier"
 msgstr "Planning and calendar"
 
-msgid "ta semaine période par période, les vacances de ton canton déjà placées."
+msgid "votre semaine période par période, les vacances de votre canton déjà placées."
 msgstr "your week period by period, with your canton's holidays already in place."
 
 msgid "Page du cours"
@@ -3096,7 +3096,7 @@ msgstr "automatic marks and averages, absences, behaviour tallies, seating plan.
 msgid "stylo, surligneur, règle, compas et équerre en vrais centimètres."
 msgstr "pen, highlighter, ruler, compass and set square in real centimetres."
 
-msgid "50 Go pour garder tes documents d'une année à l'autre."
+msgid "50 Go pour garder vos documents d'une année à l'autre."
 msgstr "50 GB to keep your documents from one year to the next."
 
 msgid "Prix affiché à l’étape suivante"
@@ -3123,7 +3123,7 @@ msgstr "/ year"
 msgid "Le calendrier de la semaine"
 msgstr "The weekly calendar"
 
-msgid "Chaque période aux couleurs de tes classes, les vacances du canton déjà placées."
+msgid "Chaque période aux couleurs de vos classes, les vacances du canton déjà placées."
 msgstr "Every period in your classes' colours, with your canton's holidays already in place."
 
 msgid "La planification d'un cours"
@@ -3135,13 +3135,13 @@ msgstr "A title, the lesson flow with checkboxes, and attached documents."
 msgid "La page du cours"
 msgstr "The lesson page"
 
-msgid "Ta planification, les documents épinglés et les présences sur un seul écran."
+msgid "Votre planification, les documents épinglés et les présences sur un seul écran."
 msgstr "Your plan, pinned documents and attendance on a single screen."
 
 msgid "Le lecteur PDF"
 msgstr "The PDF reader"
 
-msgid "Annote tes documents : stylo, surligneur, règle et compas en vrais centimètres."
+msgid "Annotez vos documents : stylo, surligneur, règle et compas en vrais centimètres."
 msgstr "Annotate your documents: pen, highlighter, ruler and compass in real centimetres."
 
 msgid "Les notes"
@@ -3153,10 +3153,10 @@ msgstr "Averages calculate themselves and export to PDF or a spreadsheet."
 msgid "Le plan de classe"
 msgstr "The seating plan"
 
-msgid "Glisse les élèves sur les tables et retrouve qui est où, d’un coup d’œil."
+msgid "Glissez les élèves sur les tables et retrouvez qui est où, d’un coup d’œil."
 msgstr "Drag students onto desks and see who sits where at a glance."
 
-msgid "Découvre ProfCalendar avant de t’abonner"
+msgid "Découvrez ProfCalendar avant de vous abonner"
 msgstr "Discover ProfCalendar before you subscribe"
 
 msgid "Une vidéo, six écrans réels et un compte d’exemple à explorer librement."
@@ -3180,7 +3180,7 @@ msgstr "Next screen"
 msgid "Explorer un compte d’exemple"
 msgstr "Explore a sample account"
 
-msgid "Sans inscription : navigue partout, rien n’est enregistré."
+msgid "Sans inscription : naviguez partout, rien n’est enregistré."
 msgstr "No sign-up: browse everywhere, nothing is saved."
 
 msgid "Voir la vidéo de présentation"
@@ -3195,16 +3195,16 @@ msgstr "Download ProfCalendar on the App Store"
 msgid "Télécharger sur l’"
 msgstr "Download on the"
 
-msgid "Pas encore sûr ? Regarde la vidéo, les écrans ou explore un compte d’exemple"
+msgid "Pas encore convaincu ? Regardez la vidéo, les écrans ou explorez un compte d’exemple"
 msgstr "Not sure yet? Watch the video, see the screens or explore a sample account"
 
-msgid "Pas encore décidé ? Explore un compte d’exemple"
+msgid "Pas encore décidé ? Explorez un compte d’exemple"
 msgstr "Not decided yet? Explore a sample account"
 
 msgid "Compte de démonstration"
 msgstr "Demo account"
 
-msgid "explore librement : rien n'est enregistré."
+msgid "explorez librement : rien n'est enregistré."
 msgstr "explore freely: nothing is saved."
 
 msgid "Quitter la démo"
@@ -3215,6 +3215,3165 @@ msgstr "Back to my account"
 
 msgid "Premiers pas"
 msgstr "Getting started"
+
+msgid "Votre horaire type est déjà configuré. Vous pouvez le modifier ici."
+msgstr "Your weekly timetable is already set up. You can edit it here."
+
+msgid "janv."
+msgstr "Jan"
+
+msgid "févr."
+msgstr "Feb"
+
+msgid "mars"
+msgstr "March"
+
+msgid "avr."
+msgstr "Apr"
+
+msgid "mai"
+msgstr "May"
+
+msgid "juin"
+msgstr "June"
+
+msgid "juil."
+msgstr "July"
+
+msgid "août"
+msgstr "August"
+
+msgid "sept."
+msgstr "Sept"
+
+msgid "oct."
+msgstr "Oct"
+
+msgid "nov."
+msgstr "Nov"
+
+msgid "déc."
+msgstr "Dec"
+
+msgid "S{n}"
+msgstr "W{n}"
+
+msgid "Semaine du {label}"
+msgstr "Week of {label}"
+
+msgid "Année scolaire non configurée"
+msgstr "School year not set up"
+
+msgid "Vue normale"
+msgstr "Normal view"
+
+msgid "Vue étendue"
+msgstr "Expanded view"
+
+msgid "Erreur de connexion au serveur"
+msgstr "Could not connect to the server"
+
+msgid "Erreur lors du chargement"
+msgstr "Error while loading"
+
+msgid "Erreur lors du chargement (HTTP {status})"
+msgstr "Error while loading (HTTP {status})"
+
+msgid "Erreur lors de la suppression : {error}"
+msgstr "Error while deleting: {error}"
+
+msgid "Erreur lors de la sauvegarde : {error}"
+msgstr "Error while saving: {error}"
+
+msgid "Non défini"
+msgstr "Not set"
+
+msgid "Veuillez sélectionner une classe"
+msgstr "Please select a class"
+
+msgid "Aucun fichier dans cette classe"
+msgstr "No files in this class"
+
+msgid "Racine"
+msgstr "Root"
+
+msgid "Épingler"
+msgstr "Pin"
+
+msgid "Désépingler"
+msgstr "Unpin"
+
+msgid "Joindre à cette période"
+msgstr "Attach to this period"
+
+msgid "Supprimer de la classe"
+msgstr "Remove from the class"
+
+msgid "Erreur lors de l'épinglage : {error}"
+msgstr "Error while pinning: {error}"
+
+msgid "Erreur lors de l'épinglage du fichier"
+msgstr "Error while pinning the file"
+
+msgid "Supprimer « {name} » de cette classe ? (le fichier reste dans votre gestionnaire personnel s'il en vient)"
+msgstr "Remove “{name}” from this class? (The file stays in your personal file manager if it came from there.)"
+
+msgid "Fichier"
+msgstr "File"
+
+msgid "éphémère"
+msgstr "temporary"
+
+msgid "Supprimé automatiquement le lendemain du cours"
+msgstr "Deleted automatically the day after the lesson"
+
+msgid "Retirer de cette période"
+msgstr "Remove from this period"
+
+msgid "Enregistrez d'abord la planification, puis joignez le fichier."
+msgstr "Save the plan first, then attach the file."
+
+msgid "Enregistrez d'abord la planification, puis ajoutez le fichier."
+msgstr "Save the plan first, then add the file."
+
+msgid "Erreur lors du chargement du PDF"
+msgstr "Error while loading the PDF"
+
+msgid "Erreur lors du chargement du PDF : {error}"
+msgstr "Error while loading the PDF: {error}"
+
+msgid "Page {n}"
+msgstr "Page {n}"
+
+msgid "Sauvegardé"
+msgstr "Saved"
+
+msgid "Erreur de sauvegarde"
+msgstr "Save error"
+
+msgid "Sauvegarde à la fermeture"
+msgstr "Saved when closing"
+
+msgid "Voulez-vous vraiment effacer toutes les annotations ?"
+msgstr "Do you really want to clear all annotations?"
+
+msgid "Veuillez d'abord sélectionner une date et une période"
+msgstr "Please select a date and a period first"
+
+msgid "Veuillez d'abord sélectionner une classe"
+msgstr "Please select a class first"
+
+msgid "Type de classe non supporté"
+msgstr "Unsupported class type"
+
+msgid "Erreur lors du chargement des feuilles blanches"
+msgstr "Error while loading the blank sheets"
+
+msgid "Feuilles blanches de la leçon"
+msgstr "Blank sheets for the lesson"
+
+msgid "Nouvelle feuille"
+msgstr "New sheet"
+
+msgid "Erreur lors du chargement de la feuille : {error}"
+msgstr "Error while loading the sheet: {error}"
+
+msgid "Erreur lors du chargement de la feuille blanche"
+msgstr "Error while loading the blank sheet"
+
+msgid "Contexte de période non disponible"
+msgstr "Period context not available"
+
+msgid "Êtes-vous sûr de vouloir supprimer cette feuille blanche ? Cette action est irréversible."
+msgstr "Are you sure you want to delete this blank sheet? This cannot be undone."
+
+msgid "Erreur lors de la suppression de la feuille blanche"
+msgstr "Error while deleting the blank sheet"
+
+msgid "Planification - {date}"
+msgstr "Planning - {date}"
+
+msgid "Veuillez sélectionner une classe pour voir les créneaux"
+msgstr "Please select a class to see the slots"
+
+msgid "Erreur lors du chargement des créneaux"
+msgstr "Error while loading the slots"
+
+msgid "Aucun créneau configuré pour cette journée"
+msgstr "No slots set up for this day"
+
+msgid "Modifier ce créneau"
+msgstr "Edit this slot"
+
+msgid "Sans titre"
+msgstr "Untitled"
+
+msgid "Cliquez pour planifier ce créneau"
+msgstr "Click to plan this slot"
+
+msgid "Créneau libre - Cliquez pour ajouter une planification"
+msgstr "Free slot - Click to add a plan"
+
+msgid "Planifier le créneau - Période {n}"
+msgstr "Plan the slot - Period {n}"
+
+msgid "Groupe"
+msgstr "Group"
+
+msgid "Classe entière"
+msgstr "Whole class"
+
+msgid "Sélectionnez un groupe ou laissez \"Classe entière\" pour tous les élèves"
+msgstr "Select a group or leave \"Whole class\" for all students"
+
+msgid "Application automatique :"
+msgstr "Apply automatically:"
+
+msgid "Répéter le même groupe chaque semaine jusqu'à la fin de l'année"
+msgstr "Repeat the same group every week until the end of the year"
+
+msgid "Alterner entre tous les groupes de la classe chaque semaine"
+msgstr "Alternate between all the class groups every week"
+
+msgid "Appliquer seulement pour cette date"
+msgstr "Apply to this date only"
+
+msgid "Titre"
+msgstr "Title"
+
+msgid "Titre du cours"
+msgstr "Lesson title"
+
+msgid "Ex: Introduction aux fractions"
+msgstr "E.g. Introduction to fractions"
+
+msgid "Détails du cours, exercices prévus..."
+msgstr "Lesson details, planned exercises..."
+
+msgid "Mémos pour ce créneau"
+msgstr "Memos for this slot"
+
+msgid "Tâche personnalisée"
+msgstr "Custom task"
+
+msgid "Effacer la planification de cette période ?"
+msgstr "Clear the plan for this period?"
+
+msgid "Erreur lors du chargement des présences"
+msgstr "Error while loading attendance"
+
+msgid "{n} min"
+msgstr "{n} min"
+
+msgid "En retard"
+msgstr "Late"
+
+msgid "Aucun devoir donné ce jour."
+msgstr "No homework given on this day."
+
+msgid "Donné ce jour · à rendre le {date}"
+msgstr "Given on this day · due {date}"
+
+msgid "À rendre ce jour"
+msgstr "Due on this day"
+
+msgid "Voir les devoirs reçus"
+msgstr "View submitted homework"
+
+msgid "Voir les résultats"
+msgstr "View results"
+
+msgid "Choisissez d'abord une classe pour ce créneau."
+msgstr "Choose a class for this slot first."
+
+msgid "Aucune classe pour cette période."
+msgstr "No class for this period."
+
+msgid "Fusionné"
+msgstr "Merged"
+
+msgid "Devoir(s) à rendre"
+msgstr "Homework due"
+
+msgid "Les données de l'année se mettent en place."
+msgstr "Setting up the year's data."
+
+msgid "Votre calendrier utilise des <strong>réglages par défaut</strong>. Personnalisez vos données pour qu'il colle à votre établissement :"
+msgstr "Your calendar uses <strong>default settings</strong>. Customize your data so it matches your school:"
+
+msgid "Mon horaire"
+msgstr "My timetable"
+
+msgid "Mes pauses"
+msgstr "My breaks"
+
+msgid "Mes vacances"
+msgstr "My holidays"
+
+msgid "Semaine du %(start)s au %(end)s"
+msgstr "Week from %(start)s to %(end)s"
+
+msgid "Choisir une semaine ou une date"
+msgstr "Choose a week or a date"
+
+msgid "S%(n)s"
+msgstr "W%(n)s"
+
+msgid "Aller à une date"
+msgstr "Go to a date"
+
+msgid "Semaines de l'année"
+msgstr "Weeks of the year"
+
+msgid "Basculer la vue"
+msgstr "Toggle view"
+
+msgid "Vue hebdomadaire"
+msgstr "Weekly view"
+
+msgid "Jour avec cours"
+msgstr "Day with lessons"
+
+msgid "Jour sans cours"
+msgstr "Day without lessons"
+
+msgid "Tâches complétées"
+msgstr "Tasks completed"
+
+msgid "Tâches en cours"
+msgstr "Tasks in progress"
+
+msgid "Tâches non commencées"
+msgstr "Tasks not started"
+
+msgid "Planification"
+msgstr "Planning"
+
+msgid "Planifier le cours"
+msgstr "Plan the lesson"
+
+msgid "Afficher/Masquer les fichiers"
+msgstr "Show/hide files"
+
+msgid "Feuilles blanches"
+msgstr "Blank sheets"
+
+msgid "Nouvelle"
+msgstr "New"
+
+msgid "Fichiers joints"
+msgstr "Attached files"
+
+msgid "Ajouter un fichier depuis votre ordinateur, supprimé automatiquement le lendemain du cours"
+msgstr "Add a file from your computer; it is deleted automatically the day after the lesson"
+
+msgid "Fichier éphémère"
+msgstr "Temporary file"
+
+msgid "Cours"
+msgstr "Lesson"
+
+msgid "Tâche perso"
+msgstr "Personal task"
+
+msgid "Horaire (facultatif)"
+msgstr "Time (optional)"
+
+msgid "Ex : une réunion de 14h00 à 15h30 — affiché sur le calendrier."
+msgstr "E.g. a meeting from 2:00 to 3:30 pm — shown on the calendar."
+
+msgid "Astuce : commencez une ligne par « - [ ] » pour créer une case à cocher."
+msgstr "Tip: start a line with “- [ ]” to create a checkbox."
+
+msgid "Créer un devoir"
+msgstr "Create homework"
+
+msgid "Effacer"
+msgstr "Clear"
+
+msgid "Fichiers de la classe"
+msgstr "Class files"
+
+msgid "Créer des feuilles blanches"
+msgstr "Create blank sheets"
+
+msgid "Chargement des fichiers..."
+msgstr "Loading files..."
+
+msgid "Fichiers épinglés"
+msgstr "Pinned files"
+
+msgid "Planification de la journée"
+msgstr "Day planning"
+
+msgid "Classe sélectionnée"
+msgstr "Selected class"
+
+msgid "-- Classe prédéfinie --"
+msgstr "-- Preset class --"
+
+msgid "Présences de la période"
+msgstr "Attendance for the period"
+
+msgid "Chargement des présences..."
+msgstr "Loading attendance..."
+
+msgid "Aucune feuille blanche pour cette période"
+msgstr "No blank sheets for this period"
+
+msgid "Tâches réalisées"
+msgstr "Tasks done"
+
+msgid "Tâches non réalisées"
+msgstr "Tasks not done"
+
+msgid "Élèves absents"
+msgstr "Absent students"
+
+msgid "Élèves en retard"
+msgstr "Late students"
+
+msgid "Tous les élèves étaient présents"
+msgstr "All students were present"
+
+msgid "Gestion des classes"
+msgstr "Class management"
+
+msgid "Nouvelle classe"
+msgstr "New class"
+
+msgid "Corbeille"
+msgstr "Trash"
+
+msgid "Options de la classe"
+msgstr "Class options"
+
+msgid "Supprimer %(name)s · %(subject)s"
+msgstr "Delete %(name)s · %(subject)s"
+
+msgid "Classe liée — Maître de classe :"
+msgstr "Linked class — Class teacher:"
+
+msgid "Enseignants liés à cette classe :"
+msgstr "Teachers linked to this class:"
+
+msgid "Classe :"
+msgstr "Class:"
+
+msgid "Nom de la classe"
+msgstr "Class name"
+
+msgid "ex. 9VP2"
+msgstr "e.g. 9VP2"
+
+msgid "ex. Mathématiques"
+msgstr "e.g. Mathematics"
+
+msgid "Créer la classe"
+msgstr "Create class"
+
+msgid "Section"
+msgstr "Section"
+
+msgid "Élèves"
+msgstr "Students"
+
+msgid "Rapport élève"
+msgstr "Student report"
+
+msgid "Absences"
+msgstr "Absences"
+
+msgid "Plan de classe"
+msgstr "Seating plan"
+
+msgid "Groupes"
+msgstr "Groups"
+
+msgid "Éval. formative"
+msgstr "Formative assessment"
+
+msgid "Aménagements"
+msgstr "Accommodations"
+
+msgid "Annonces"
+msgstr "Announcements"
+
+msgid "Liste des élèves"
+msgstr "Student list"
+
+msgid "Code élèves"
+msgstr "Student code"
+
+msgid "Code parents"
+msgstr "Parent code"
+
+msgid "Importer (CSV/Excel)"
+msgstr "Import (CSV/Excel)"
+
+msgid "Ajouter un élève"
+msgstr "Add a student"
+
+msgid "Importer des élèves"
+msgstr "Import students"
+
+msgid "Collez directement depuis Excel/Numbers (ou choisissez un fichier CSV)."
+msgstr "Paste directly from Excel/Numbers (or choose a CSV file)."
+
+msgid "Colonnes attendues :"
+msgstr "Expected columns:"
+
+msgid "Email élève"
+msgstr "Student email"
+
+msgid "Email mère"
+msgstr "Mother's email"
+
+msgid "Email père"
+msgstr "Father's email"
+
+msgid "(seuls le prénom et le nom sont nécessaires — la 1<sup>re</sup> ligne d'en-têtes est détectée automatiquement)."
+msgstr "(only the first and last name are required — a header row on the 1<sup>st</sup> line is detected automatically)."
+
+msgid "Après « Analyser », vous pourrez <strong>réassigner ou interchanger les colonnes</strong> avant de valider."
+msgstr "After “Analyse”, you can <strong>reassign or swap columns</strong> before confirming."
+
+msgid "…ou choisissez un fichier exporté de votre administration scolaire."
+msgstr "…or choose a file exported from your school administration."
+
+msgid "Analyser"
+msgstr "Analyse"
+
+msgid "Ajouter un élève de la classe du maître"
+msgstr "Add a student from the class teacher's class"
+
+msgid "Sélectionner un élève"
+msgstr "Select a student"
+
+msgid "Nom de famille"
+msgstr "Last name"
+
+msgid "Obligatoire uniquement si un élève a déjà ce prénom"
+msgstr "Required only if a student already has this first name"
+
+msgid "Email élève (optionnel)"
+msgstr "Student email (optional)"
+
+msgid "Email mère (optionnel)"
+msgstr "Mother's email (optional)"
+
+msgid "exemple@mail.com"
+msgstr "example@mail.com"
+
+msgid "Email père (optionnel)"
+msgstr "Father's email (optional)"
+
+msgid "Ajouter des élèves au groupe mixte"
+msgstr "Add students to the mixed group"
+
+msgid "Sélectionnez des élèves parmi les classes sources disponibles :"
+msgstr "Select students from the available source classes:"
+
+msgid "Supprimer du groupe mixte"
+msgstr "Remove from the mixed group"
+
+msgid "Nouvelle annonce"
+msgstr "New announcement"
+
+msgid "Publiez une information pour toute la classe. Elle s'affiche dans l'espace des parents ; vous pouvez aussi les prévenir par email."
+msgstr "Post information for the whole class. It appears in the parents' area; you can also notify them by email."
+
+msgid "Ex. : Sortie au musée jeudi"
+msgstr "e.g. Museum trip on Thursday"
+
+msgid "Message"
+msgstr "Message"
+
+msgid "Détaillez votre annonce ici…"
+msgstr "Write your announcement here…"
+
+msgid "Prévenir les parents par email"
+msgstr "Notify parents by email"
+
+msgid "Publier"
+msgstr "Publish"
+
+msgid "Imprimer le rapport"
+msgstr "Print report"
+
+msgid "Sélectionner un élève :"
+msgstr "Select a student:"
+
+msgid "Informations générales"
+msgstr "General information"
+
+msgid "Prénom :"
+msgstr "First name:"
+
+msgid "Nom :"
+msgstr "Last name:"
+
+msgid "Email élève :"
+msgstr "Student email:"
+
+msgid "Email mère :"
+msgstr "Mother's email:"
+
+msgid "Email père :"
+msgstr "Father's email:"
+
+msgid "Groupes :"
+msgstr "Groups:"
+
+msgid "Évaluations formatives"
+msgstr "Formative assessments"
+
+msgid "Informations supplémentaires"
+msgstr "Additional information"
+
+msgid "Ajouter des informations sur cet élève..."
+msgstr "Add information about this student..."
+
+msgid "Historique des informations"
+msgstr "Information history"
+
+msgid "Fichiers associés"
+msgstr "Attached files"
+
+msgid "Ajouter un fichier"
+msgstr "Add a file"
+
+msgid "Gestion des notes"
+msgstr "Grade management"
+
+msgid "Export PDF"
+msgstr "Export PDF"
+
+msgid "Export CSV"
+msgstr "Export CSV"
+
+msgid "Évaluations"
+msgstr "Assessments"
+
+msgid "Moyenne classe"
+msgstr "Class average"
+
+msgid "Inclus notes collaborateurs"
+msgstr "Includes colleagues' grades"
+
+msgid "Lecture seule"
+msgstr "Read-only"
+
+msgid "Aucune évaluation créée pour %(subject)s"
+msgstr "No assessment created for %(subject)s"
+
+msgid "Créer une première évaluation"
+msgstr "Create a first assessment"
+
+msgid "Discipline en lecture seule"
+msgstr "Read-only subject"
+
+msgid "Aucune évaluation créée"
+msgstr "No assessment created"
+
+msgid "Analyse de l'évaluation sélectionnée"
+msgstr "Analysis of the selected assessment"
+
+msgid "Moyenne :"
+msgstr "Average:"
+
+msgid "Note la plus haute :"
+msgstr "Highest grade:"
+
+msgid "Note la plus basse :"
+msgstr "Lowest grade:"
+
+msgid "Fichiers par discipline"
+msgstr "Files by subject"
+
+msgid "Dossier"
+msgstr "Folder"
+
+msgid "Glissez vos fichiers ou dossiers ici pour %(subject)s"
+msgstr "Drop your files or folders here for %(subject)s"
+
+msgid "PDF, PNG, JPG • Max 80 MB • Les dossiers seront importés avec leur structure"
+msgstr "PDF, PNG, JPG • Max 80 MB • Folders are imported with their structure"
+
+msgid "Aucun fichier pour %(subject)s"
+msgstr "No files for %(subject)s"
+
+msgid "Créez un dossier ou uploadez des fichiers pour commencer"
+msgstr "Create a folder or upload files to get started"
+
+msgid "Glissez vos fichiers ou dossiers ici"
+msgstr "Drop your files or folders here"
+
+msgid "Ce dossier est vide"
+msgstr "This folder is empty"
+
+msgid "Suivi des coches"
+msgstr "Check tracking"
+
+msgid "Réinitialiser toutes les coches"
+msgstr "Reset all checks"
+
+msgid "Mode d'affichage :"
+msgstr "Display mode:"
+
+msgid "Tableau unifié (toutes disciplines)"
+msgstr "Unified table (all subjects)"
+
+msgid "Tableaux séparés par discipline"
+msgstr "Separate tables by subject"
+
+msgid "Coches centralisées (maître de classe)"
+msgstr "Centralised checks (class teacher)"
+
+msgid "Seul le maître de classe peut modifier le mode d'affichage"
+msgstr "Only the class teacher can change the display mode"
+
+msgid "Mode verrouillé par %(name)s"
+msgstr "Mode locked by %(name)s"
+
+msgid "le maître de classe"
+msgstr "the class teacher"
+
+msgid "Aucun modèle de sanction importé dans cette classe"
+msgstr "No sanction template imported in this class"
+
+msgid "Allez dans %(link)s pour créer et importer des modèles"
+msgstr "Go to %(link)s to create and import templates"
+
+msgid "Ajoutez des élèves dans l'onglet « Élèves » pour commencer le suivi des sanctions"
+msgstr "Add students in the “Students” tab to start tracking sanctions"
+
+msgid "Retards"
+msgstr "Late arrivals"
+
+msgid "Absences justifiées"
+msgstr "Excused absences"
+
+msgid "Date de début"
+msgstr "Start date"
+
+msgid "Date de fin"
+msgstr "End date"
+
+msgid "Filtrer"
+msgstr "Filter"
+
+msgid "Période(s)"
+msgstr "Period(s)"
+
+msgid "Horaires"
+msgstr "Times"
+
+msgid "Commentaire"
+msgstr "Comment"
+
+msgid "Aucune absence trouvée pour cette classe."
+msgstr "No absences found for this class."
+
+msgid "Minutes de retard"
+msgstr "Minutes late"
+
+msgid "Aucun retard trouvé pour cette classe."
+msgstr "No late arrivals found for this class."
+
+msgid "Approuver"
+msgstr "Approve"
+
+msgid "Refuser"
+msgstr "Reject"
+
+msgid "Parent :"
+msgstr "Parent:"
+
+msgid "Fichier :"
+msgstr "File:"
+
+msgid "Remarque :"
+msgstr "Note:"
+
+msgid "Réponse ou note pour le parent..."
+msgstr "Reply or note for the parent..."
+
+msgid "Traité le %(date)s"
+msgstr "Processed on %(date)s"
+
+msgid "Aucune justification d'absence"
+msgstr "No absence justifications"
+
+msgid "Les parents peuvent maintenant justifier les absences via leur portail dédié."
+msgstr "Parents can now justify absences through their dedicated portal."
+
+msgid "Les justifications apparaîtront ici pour validation."
+msgstr "Justifications will appear here for approval."
+
+msgid "Simple"
+msgstr "Single"
+
+msgid "Double"
+msgstr "Double"
+
+msgid "Bureau prof"
+msgstr "Teacher's desk"
+
+msgid "Réinitialiser élèves"
+msgstr "Reset students"
+
+msgid "Enregistrer plan"
+msgstr "Save plan"
+
+msgid "Imprimer"
+msgstr "Print"
+
+msgid "Charger plan du maître"
+msgstr "Load class teacher's plan"
+
+msgid "Créez votre plan de classe"
+msgstr "Create your seating plan"
+
+msgid "Utilisez les outils de gauche pour ajouter des tables et un bureau."
+msgstr "Use the tools on the left to add desks and a teacher's desk."
+
+msgid "Déplacez ensuite les étiquettes des élèves depuis le panneau de droite."
+msgstr "Then drag the student labels from the panel on the right."
+
+msgid "Élèves de la classe"
+msgstr "Students in the class"
+
+msgid "élèves"
+msgstr "students"
+
+msgid "Gestion des groupes"
+msgstr "Group management"
+
+msgid "Nom du groupe *"
+msgstr "Group name *"
+
+msgid "Ex : Groupe A, Avancés, Débutants..."
+msgstr "e.g. Group A, Advanced, Beginners..."
+
+msgid "Description (optionnel)"
+msgstr "Description (optional)"
+
+msgid "Description du groupe ou objectifs..."
+msgstr "Group description or goals..."
+
+msgid "Sélectionner les élèves"
+msgstr "Select students"
+
+msgid "Évaluation formative"
+msgstr "Formative assessment"
+
+msgid "Discipline :"
+msgstr "Subject:"
+
+msgid "Cliquez sur une case pour annoter l'élève. Les colonnes affichées dépendent de vos paramètres."
+msgstr "Click a cell to annotate the student. The columns shown depend on your settings."
+
+msgid "Ex : Fiche d'exercices p. 42"
+msgstr "e.g. Worksheet p. 42"
+
+msgid "Appréciation"
+msgstr "Rating"
+
+msgid "Pastille"
+msgstr "Colour dot"
+
+msgid "Visible par vous seul…"
+msgstr "Visible only to you…"
+
+msgid "Gestion des aménagements"
+msgstr "Accommodation management"
+
+msgid "Aucun aménagement défini pour cette classe"
+msgstr "No accommodations defined for this class"
+
+msgid "Les aménagements se gèrent individuellement pour chaque élève"
+msgstr "Accommodations are managed individually for each student"
+
+msgid "Ajouter un aménagement"
+msgstr "Add an accommodation"
+
+msgid "Type d'aménagement"
+msgstr "Type of accommodation"
+
+msgid "Choisir dans la liste prédéfinie"
+msgstr "Choose from the predefined list"
+
+msgid "Créer un aménagement personnalisé"
+msgstr "Create a custom accommodation"
+
+msgid "Aménagement prédéfini"
+msgstr "Predefined accommodation"
+
+msgid "Nom de l'aménagement"
+msgstr "Accommodation name"
+
+msgid "Ex : Calculatrice autorisée"
+msgstr "e.g. Calculator allowed"
+
+msgid "Temps"
+msgstr "Time"
+
+msgid "Chrono"
+msgstr "Timer"
+
+msgid "Sablier"
+msgstr "Hourglass"
+
+msgid "Ordinateur"
+msgstr "Computer"
+
+msgid "Tablette"
+msgstr "Tablet"
+
+msgid "Imprimante"
+msgstr "Printer"
+
+msgid "Lecture"
+msgstr "Reading"
+
+msgid "Écriture"
+msgstr "Writing"
+
+msgid "Oral"
+msgstr "Oral"
+
+msgid "Parole"
+msgstr "Speech"
+
+msgid "Écoute"
+msgstr "Listening"
+
+msgid "Visuel"
+msgstr "Visual"
+
+msgid "Agrandissement"
+msgstr "Enlargement"
+
+msgid "Loupe"
+msgstr "Magnifier"
+
+msgid "Isolement"
+msgstr "Quiet space"
+
+msgid "Position"
+msgstr "Seating position"
+
+msgid "Silence"
+msgstr "Silence"
+
+msgid "Calculs"
+msgstr "Calculations"
+
+msgid "Calculatrice"
+msgstr "Calculator"
+
+msgid "Géométrie"
+msgstr "Geometry"
+
+msgid "Règle"
+msgstr "Ruler"
+
+msgid "Crayon"
+msgstr "Pencil"
+
+msgid "Stylo"
+msgstr "Pen"
+
+msgid "Aide-mémoire"
+msgstr "Memory aid"
+
+msgid "Objectif"
+msgstr "Goal"
+
+msgid "Motivation"
+msgstr "Motivation"
+
+msgid "Répétition"
+msgstr "Repetition"
+
+msgid "Documentation"
+msgstr "Documentation"
+
+msgid "Audio"
+msgstr "Audio"
+
+msgid "Amplification"
+msgstr "Amplification"
+
+msgid "Créatif"
+msgstr "Creative"
+
+msgid "Images"
+msgstr "Images"
+
+msgid "Graphiques"
+msgstr "Charts"
+
+msgid "Organisation"
+msgstr "Organisation"
+
+msgid "Rapidité"
+msgstr "Speed"
+
+msgid "Outil"
+msgstr "Tool"
+
+msgid "Adaptation"
+msgstr "Adaptation"
+
+msgid "Ludique"
+msgstr "Playful"
+
+msgid "Interactif"
+msgstr "Interactive"
+
+msgid "Repérage"
+msgstr "Orientation cues"
+
+msgid "Étiquettes"
+msgstr "Labels"
+
+msgid "Éclairage"
+msgstr "Lighting"
+
+msgid "Couleurs"
+msgstr "Colours"
+
+msgid "Check-list"
+msgstr "Checklist"
+
+msgid "Configuration"
+msgstr "Configuration"
+
+msgid "Accès"
+msgstr "Access"
+
+msgid "Apprentissage"
+msgstr "Learning"
+
+msgid "Fiche"
+msgstr "Worksheet"
+
+msgid "Expression"
+msgstr "Expression"
+
+msgid "Excellence"
+msgstr "Excellence"
+
+msgid "Idée"
+msgstr "Idea"
+
+msgid "Musical"
+msgstr "Musical"
+
+msgid "Rythme"
+msgstr "Rhythm"
+
+msgid "Animation"
+msgstr "Animation"
+
+msgid "Description détaillée de l'aménagement"
+msgstr "Detailed description of the accommodation"
+
+msgid "Cet aménagement concerne une extension de temps"
+msgstr "This accommodation is a time extension"
+
+msgid "Multiplicateur de temps"
+msgstr "Time multiplier"
+
+msgid "+25%% (1/4 de temps en plus)"
+msgstr "+25%% (1/4 extra time)"
+
+msgid "+33%% (1/3 de temps en plus)"
+msgstr "+33%% (1/3 extra time)"
+
+msgid "+50%% (1/2 de temps en plus)"
+msgstr "+50%% (1/2 extra time)"
+
+msgid "+75%% (3/4 de temps en plus)"
+msgstr "+75%% (3/4 extra time)"
+
+msgid "+100%% (temps doublé)"
+msgstr "+100%% (double time)"
+
+msgid "Notes spécifiques pour cet élève (optionnel)"
+msgstr "Specific notes for this student (optional)"
+
+msgid "Notes particulières ou adaptations spécifiques..."
+msgstr "Particular notes or specific adaptations..."
+
+msgid "Enseignants de la classe"
+msgstr "Class teachers"
+
+msgid "Maître de classe"
+msgstr "Class teacher"
+
+msgid "Disciplines :"
+msgstr "Subjects:"
+
+msgid "Aucun enseignant trouvé pour cette classe"
+msgstr "No teachers found for this class"
+
+msgid "Partager un fichier avec des élèves"
+msgstr "Share a file with students"
+
+msgid "Fichier à partager"
+msgstr "File to share"
+
+msgid "élève(s) sélectionné(s)"
+msgstr "student(s) selected"
+
+msgid "Message pour les élèves (optionnel)"
+msgstr "Message for the students (optional)"
+
+msgid "Ajoutez un message personnalisé pour expliquer pourquoi vous partagez ce fichier (ex. : « Document pour rattraper le cours du 15/01 »)"
+msgstr "Add a personal message explaining why you are sharing this file (e.g. “Document to catch up on the 15/01 lesson”)"
+
+msgid "Ce message apparaîtra avec le fichier sur la plateforme élève"
+msgstr "This message will appear with the file on the student platform"
+
+msgid "Supprimer la classe {name} ({subject}) ? Elle reste 30 jours dans la corbeille."
+msgstr "Delete the class {name} ({subject})? It stays in the trash for 30 days."
+
+msgid "— Ignorer —"
+msgstr "— Ignore —"
+
+msgid "Collez d'abord votre liste d'élèves."
+msgstr "First paste your list of students."
+
+msgid "Associez vos colonnes"
+msgstr "Match your columns"
+
+msgid "(changez un menu pour interchanger)"
+msgstr "(change a menu to swap)"
+
+msgid "Col. {n}"
+msgstr "Col. {n}"
+
+msgid "Analyse impossible"
+msgstr "Analysis failed"
+
+msgid "{n} élève(s) prêt(s) à être importé(s)"
+msgstr "{n} student(s) ready to import"
+
+msgid "… et {n} de plus"
+msgstr "… and {n} more"
+
+msgid "Ignorés ({n}) :"
+msgstr "Skipped ({n}):"
+
+msgid "Erreurs ({n}) :"
+msgstr "Errors ({n}):"
+
+msgid "ligne {n}"
+msgstr "line {n}"
+
+msgid "Importer {n} élève(s)"
+msgstr "Import {n} student(s)"
+
+msgid "Erreur lors de l'analyse"
+msgstr "Error during analysis"
+
+msgid "Import en cours…"
+msgstr "Importing…"
+
+msgid "{n} élève(s) importé(s) avec succès"
+msgstr "{n} student(s) imported successfully"
+
+msgid "Import impossible"
+msgstr "Import failed"
+
+msgid "Erreur lors de l'import"
+msgstr "Error during import"
+
+msgid "Impossible de charger les annonces."
+msgstr "Unable to load announcements."
+
+msgid "Aucune annonce pour l'instant."
+msgstr "No announcements yet."
+
+msgid "envoyée à {n} parent(s)"
+msgstr "sent to {n} parent(s)"
+
+msgid "Titre et message obligatoires."
+msgstr "Title and message are required."
+
+msgid "Publication…"
+msgstr "Publishing…"
+
+msgid "Annonce publiée · email envoyé à {n} parent(s)"
+msgstr "Announcement published · email sent to {n} parent(s)"
+
+msgid "Annonce publiée"
+msgstr "Announcement published"
+
+msgid "Publication impossible"
+msgstr "Publishing failed"
+
+msgid "Erreur lors de la publication"
+msgstr "Error while publishing"
+
+msgid "Supprimer cette annonce ?"
+msgstr "Delete this announcement?"
+
+msgid "Annonce supprimée"
+msgstr "Announcement deleted"
+
+msgid "Suppression impossible"
+msgstr "Deletion failed"
+
+msgid "Déposez un élève ici"
+msgstr "Drop a student here"
+
+msgid "Bureau enseignant"
+msgstr "Teacher's desk"
+
+msgid "Espace de travail non trouvé"
+msgstr "Workspace not found"
+
+msgid "Plan de classe sauvegardé avec succès !"
+msgstr "Seating plan saved!"
+
+msgid "Erreur de connexion lors de la sauvegarde"
+msgstr "Connection error while saving"
+
+msgid "Erreur lors du chargement : {error}"
+msgstr "Error while loading: {error}"
+
+msgid "Erreur de connexion lors du chargement"
+msgstr "Connection error while loading"
+
+msgid "Aucune classe sélectionnée"
+msgstr "No class selected"
+
+msgid "Voulez-vous remplacer votre plan actuel par celui du maître de classe ? Cette action est irréversible."
+msgstr "Replace your current plan with the class teacher's plan? This cannot be undone."
+
+msgid "Plan du maître de classe chargé avec succès"
+msgstr "Class teacher's plan loaded"
+
+msgid "Erreur lors du chargement du plan du maître"
+msgstr "Error loading the class teacher's plan"
+
+msgid "Élève {id}"
+msgstr "Student {id}"
+
+msgid "Modifications en attente…"
+msgstr "Changes pending…"
+
+msgid "Enregistrement…"
+msgstr "Saving…"
+
+msgid "Enregistré {time}"
+msgstr "Saved at {time}"
+
+msgid "Non enregistré : {detail}"
+msgstr "Not saved: {detail}"
+
+msgid "Aucun élément à imprimer. Veuillez d'abord créer votre plan de classe."
+msgstr "Nothing to print. Please create your seating plan first."
+
+msgid "Impossible d'ouvrir la fenêtre d'impression. Vérifiez que les pop-ups sont autorisés."
+msgstr "Unable to open the print window. Check that pop-ups are allowed."
+
+msgid "Plan de classe – {name}"
+msgstr "Seating plan – {name}"
+
+msgid "Sélectionnez une classe pour voir les aménagements"
+msgstr "Select a class to see the accommodations"
+
+msgid "Aucun élève dans cette classe"
+msgstr "No students in this class"
+
+msgid "Ajouter"
+msgstr "Add"
+
+msgid "+{pct}%% de temps"
+msgstr "+{pct}%% more time"
+
+msgid "Aucun aménagement"
+msgstr "No accommodations"
+
+msgid "-- Sélectionner un élève --"
+msgstr "-- Select a student --"
+
+msgid "-- Sélectionner un aménagement --"
+msgstr "-- Select an accommodation --"
+
+msgid "Extension de temps : +{pct}%%"
+msgstr "Extra time: +{pct}%%"
+
+msgid "Veuillez sélectionner un élève"
+msgstr "Please select a student"
+
+msgid "Veuillez sélectionner un aménagement prédéfini"
+msgstr "Please select a predefined accommodation"
+
+msgid "Veuillez entrer un nom pour l'aménagement personnalisé"
+msgstr "Please enter a name for the custom accommodation"
+
+msgid "Erreur lors de la sauvegarde"
+msgstr "Error while saving"
+
+msgid "Êtes-vous sûr de vouloir supprimer cet aménagement ?"
+msgstr "Are you sure you want to delete this accommodation?"
+
+msgid "Nouveau dossier"
+msgstr "New folder"
+
+msgid "Nom du dossier"
+msgstr "Folder name"
+
+msgid "Ex : Exercices"
+msgstr "e.g. Exercises"
+
+msgid "Créer"
+msgstr "Create"
+
+msgid "Aperçu"
+msgstr "Preview"
+
+msgid "Renommer"
+msgstr "Rename"
+
+msgid "Nouveau nom"
+msgstr "New name"
+
+msgid "Upload en cours..."
+msgstr "Uploading..."
+
+msgid "Nouvelle évaluation"
+msgstr "New assessment"
+
+msgid "Informations de l'évaluation"
+msgstr "Assessment details"
+
+msgid "Titre de l'évaluation"
+msgstr "Assessment title"
+
+msgid "Ex : Test de mathématiques chapitre 3"
+msgstr "e.g. Maths test chapter 3"
+
+msgid "Date de l'évaluation"
+msgstr "Assessment date"
+
+msgid "Note maximale"
+msgstr "Maximum grade"
+
+msgid "Les notes seront saisies directement selon cette échelle"
+msgstr "Grades will be entered directly on this scale"
+
+msgid "Note minimale"
+msgstr "Minimum grade"
+
+msgid "Note la plus basse possible"
+msgstr "Lowest possible grade"
+
+msgid "Type d'évaluation"
+msgstr "Assessment type"
+
+msgid "Test significatif"
+msgstr "Significant test"
+
+msgid "Compte pour 1 note directement"
+msgstr "Counts directly as 1 grade"
+
+msgid "Élément de test assimilé (TA)"
+msgstr "Assimilated test item (TA)"
+
+msgid "Sera groupé avec d'autres éléments TA pour former 1 note"
+msgstr "Will be grouped with other TA items to form 1 grade"
+
+msgid "Configuration du test assimilé"
+msgstr "Assimilated test (TA) setup"
+
+msgid "Créer un nouveau groupe TA"
+msgstr "Create a new TA group"
+
+msgid "Ajouter à un groupe TA existant"
+msgstr "Add to an existing TA group"
+
+msgid "Nom du groupe TA"
+msgstr "TA group name"
+
+msgid "Ex : TA1 - Algèbre"
+msgstr "e.g. TA1 - Algebra"
+
+msgid "Groupe TA existant"
+msgstr "Existing TA group"
+
+msgid "Suivant : Saisir les notes"
+msgstr "Next: enter grades"
+
+msgid "Saisie des notes"
+msgstr "Grade entry"
+
+msgid "Entrez les notes pour chaque élève (laissez vide si absent)"
+msgstr "Enter the grade for each student (leave blank if absent)"
+
+msgid "Retour"
+msgstr "Back"
+
+msgid "Créer l'évaluation"
+msgstr "Create assessment"
+
+msgid "Les élèves des groupes mixtes sont gérés depuis la page des groupes mixtes."
+msgstr "Students in mixed groups are managed from the mixed groups page."
+
+msgid "Nouvel élève"
+msgstr "New student"
+
+msgid "Enregistrement..."
+msgstr "Saving..."
+
+msgid "Erreur lors de l'enregistrement"
+msgstr "Error while saving"
+
+msgid "Ajout..."
+msgstr "Adding..."
+
+msgid "Aucun élève disponible"
+msgstr "No students available"
+
+msgid "Ajouter l'élève"
+msgstr "Add student"
+
+msgid "Tous les élèves de la classe du maître sont déjà ajoutés"
+msgstr "All students from the class teacher's class have already been added"
+
+msgid "Aucun élève dans cette classe pour le moment."
+msgstr "No students in this class yet."
+
+msgid "Modifier l'élève"
+msgstr "Edit student"
+
+msgid "Êtes-vous sûr de vouloir supprimer {name} ?\n\nCette action supprimera également toutes les notes de cet élève."
+msgstr "Are you sure you want to delete {name}?\n\nThis will also delete all of this student's grades."
+
+msgid "Choisir un élève"
+msgstr "Choose a student"
+
+msgid "Aucun élève dans ce groupe mixte"
+msgstr "No students in this mixed group"
+
+msgid "Les élèves doivent être ajoutés depuis la page de gestion des groupes mixtes"
+msgstr "Students must be added from the mixed groups management page"
+
+msgid "Ajouter le premier élève"
+msgstr "Add the first student"
+
+msgid "Êtes-vous sûr de vouloir supprimer {name} du groupe mixte ?\n\nL'élève restera dans sa classe d'origine."
+msgstr "Are you sure you want to remove {name} from the mixed group?\n\nThe student will remain in their original class."
+
+msgid "Erreur lors de la génération du code"
+msgstr "Error generating the code"
+
+msgid "Code d'accès classe généré"
+msgstr "Class access code generated"
+
+msgid "Code d'accès pour la classe {name} :"
+msgstr "Access code for class {name}:"
+
+msgid "Ce code est valide pendant 1 an."
+msgstr "This code is valid for 1 year."
+
+msgid "Tous les élèves de la classe peuvent utiliser ce code pour créer leur compte."
+msgstr "All students in the class can use this code to create their account."
+
+msgid "Ils doivent utiliser l'email que vous avez enregistré pour eux."
+msgstr "They must use the email address you saved for them."
+
+msgid "Copier le code"
+msgstr "Copy code"
+
+msgid "Code d'accès parents"
+msgstr "Parent access code"
+
+msgid "Code pour les parents de la classe {name} :"
+msgstr "Code for the parents of class {name}:"
+
+msgid "Les parents doivent utiliser ce code ainsi que le nom de l'enseignant ({teacher}) pour se lier à la classe."
+msgstr "Parents must use this code together with the teacher's name ({teacher}) to link to the class."
+
+msgid "Erreur lors de la récupération du code parents"
+msgstr "Error retrieving the parent code"
+
+msgid "Copié !"
+msgstr "Copied!"
+
+msgid "Impossible de copier le code"
+msgstr "Unable to copy the code"
+
+msgid "Confirmation requise"
+msgstr "Confirmation required"
+
+msgid "Erreur lors de la mise à jour"
+msgstr "Error while updating"
+
+msgid "Confirmer"
+msgstr "Confirm"
+
+msgid "Êtes-vous sûr de vouloir remettre toutes les coches à zéro pour cette classe ?\n\nCette action est irréversible."
+msgstr "Are you sure you want to reset all checks to zero for this class?\n\nThis action cannot be undone."
+
+msgid "Erreur lors de la réinitialisation"
+msgstr "Error while resetting"
+
+msgid "Erreur lors du chargement des fichiers"
+msgstr "Error loading files"
+
+msgid "{n} fichier(s)"
+msgstr "{n} file(s)"
+
+msgid "{xp} XP — {n} questions"
+msgstr "{xp} XP — {n} questions"
+
+msgid "Télécharger avec vos annotations et pages ajoutées"
+msgstr "Download with your annotations and added pages"
+
+msgid "Épinglé"
+msgstr "Pinned"
+
+msgid "Annoté dans l’application"
+msgstr "Annotated in the app"
+
+msgid "Partager avec des élèves"
+msgstr "Share with students"
+
+msgid "Analyse de la structure en cours..."
+msgstr "Analyzing the folder structure..."
+
+msgid "Erreur lors de la création des dossiers"
+msgstr "Error creating folders"
+
+msgid "Erreur lors de la création de la structure"
+msgstr "Error creating the folder structure"
+
+msgid "{n} fichier(s) uploadé(s) avec succès"
+msgstr "{n} file(s) uploaded successfully"
+
+msgid "{n} échec(s). Premier : {error}"
+msgstr "{n} failure(s). First: {error}"
+
+msgid "Aucun fichier sélectionné"
+msgstr "No file selected"
+
+msgid "Préparation de l'upload de {files} fichier(s) dans {folders} dossier(s)..."
+msgstr "Preparing to upload {files} file(s) in {folders} folder(s)..."
+
+msgid "Dossier uploadé avec succès !"
+msgstr "Folder uploaded successfully!"
+
+msgid "Erreur lors de l'upload du dossier"
+msgstr "Error uploading the folder"
+
+msgid "Type de fichier non autorisé : {name}"
+msgstr "File type not allowed: {name}"
+
+msgid "Fichier trop volumineux : {name} (max 250 MB)"
+msgstr "File too large: {name} (max 250 MB)"
+
+msgid "(+{n} autres)"
+msgstr "(+{n} more)"
+
+msgid "{n} fichier(s) non supporté(s) — seuls PDF, images, Word et Pages sont acceptés. Ignorés : {files}"
+msgstr "{n} unsupported file(s) — only PDF, images, Word and Pages are accepted. Skipped: {files}"
+
+msgid "{n} fichier(s) trop volumineux (>250 MB) : {files}"
+msgstr "{n} file(s) too large (>250 MB): {files}"
+
+msgid "Aucune classe sélectionnée pour l'upload"
+msgstr "No class selected for the upload"
+
+msgid "Erreur lors de l'upload de {name}"
+msgstr "Error uploading {name}"
+
+msgid "Dossier créé avec succès"
+msgstr "Folder created successfully"
+
+msgid "Erreur lors de la création du dossier"
+msgstr "Error creating the folder"
+
+msgid "Renommage effectué avec succès"
+msgstr "Renamed successfully"
+
+msgid "Erreur lors du renommage"
+msgstr "Error while renaming"
+
+msgid "Êtes-vous sûr de vouloir supprimer ce fichier ?"
+msgstr "Are you sure you want to delete this file?"
+
+msgid "Fichier supprimé avec succès"
+msgstr "File deleted successfully"
+
+msgid "Êtes-vous sûr de vouloir supprimer le dossier « {name} » et tout son contenu ?"
+msgstr "Are you sure you want to delete the folder “{name}” and all its contents?"
+
+msgid "Dossier « {name} » supprimé avec succès"
+msgstr "Folder “{name}” deleted successfully"
+
+msgid "Regrouper les tests TA"
+msgstr "Collapse TA tests"
+
+msgid "Voir les tests individuels"
+msgstr "Show individual tests"
+
+msgid "Modifier l'évaluation"
+msgstr "Edit assessment"
+
+msgid "Supprimer l'évaluation"
+msgstr "Delete assessment"
+
+msgid "Vous ne pouvez pas créer d'évaluations pour cette discipline (lecture seule)."
+msgstr "You cannot create assessments for this subject (read-only)."
+
+msgid "Cette note maximale sera utilisée pour toutes les évaluations de cette classe"
+msgstr "This maximum grade will be used for all assessments in this class"
+
+msgid "Cette note minimale sera utilisée pour toutes les évaluations de cette classe"
+msgstr "This minimum grade will be used for all assessments in this class"
+
+msgid "Les notes seront saisies sur {max} (cohérence avec les tests existants)"
+msgstr "Grades will be entered out of {max} (consistent with existing tests)"
+
+msgid "Note minimale : {min} (cohérence avec les tests existants)"
+msgstr "Minimum grade: {min} (consistent with existing tests)"
+
+msgid "Veuillez entrer un nom pour le groupe TA"
+msgstr "Please enter a name for the TA group"
+
+msgid "Évaluation créée avec succès"
+msgstr "Assessment created successfully"
+
+msgid "Erreur lors de la création"
+msgstr "Error while creating"
+
+msgid "Erreur lors de la création de l'évaluation"
+msgstr "Error while creating the assessment"
+
+msgid "Abs."
+msgstr "Abs."
+
+msgid "Vous ne pouvez pas modifier les évaluations de cette discipline (lecture seule)."
+msgstr "You cannot edit the assessments of this subject (read-only)."
+
+msgid "Évaluation introuvable"
+msgstr "Assessment not found"
+
+msgid "Évaluation modifiée avec succès"
+msgstr "Assessment updated successfully"
+
+msgid "Erreur lors de la modification"
+msgstr "Error while saving changes"
+
+msgid "Erreur lors de la modification de l'évaluation"
+msgstr "Error while updating the assessment"
+
+msgid "Vous ne pouvez pas supprimer les évaluations de cette discipline (lecture seule)."
+msgstr "You cannot delete the assessments of this subject (read-only)."
+
+msgid "Êtes-vous sûr de vouloir supprimer l'évaluation « {title} » ?\n\nCette action est irréversible et supprimera toutes les notes associées."
+msgstr "Are you sure you want to delete the assessment “{title}”?\n\nThis action cannot be undone and will delete all associated grades."
+
+msgid "Évaluation supprimée avec succès"
+msgstr "Assessment deleted successfully"
+
+msgid "Erreur lors de la suppression de l'évaluation"
+msgstr "Error while deleting the assessment"
+
+msgid "Erreur lors du chargement des absences : {error}"
+msgstr "Error loading absences: {error}"
+
+msgid "Erreur de connexion : {error}"
+msgstr "Connection error: {error}"
+
+msgid "Erreur lors du chargement des retards : {error}"
+msgstr "Error loading late arrivals: {error}"
+
+msgid "Aucun groupe créé pour cette classe"
+msgstr "No group created for this class"
+
+msgid "Cliquez sur « Créer un groupe » pour commencer"
+msgstr "Click “Create a group” to get started"
+
+msgid "{n} élève(s)"
+msgstr "{n} student(s)"
+
+msgid "Créer un groupe"
+msgstr "Create a group"
+
+msgid "Modifier le groupe"
+msgstr "Edit group"
+
+msgid "Le nom du groupe est obligatoire"
+msgstr "The group name is required"
+
+msgid "Êtes-vous sûr de vouloir supprimer ce groupe ?"
+msgstr "Are you sure you want to delete this group?"
+
+msgid "Groupe supprimé avec succès"
+msgstr "Group deleted successfully"
+
+msgid "-- Choisir un élève --"
+msgstr "-- Choose a student --"
+
+msgid "Aucun groupe"
+msgstr "No group"
+
+msgid "Aucune note enregistrée"
+msgstr "No grades recorded"
+
+msgid "Total"
+msgstr "Total"
+
+msgid "Détails"
+msgstr "Details"
+
+msgid "(vous)"
+msgstr "(you)"
+
+msgid "Aucune absence enregistrée"
+msgstr "No absences recorded"
+
+msgid "Enseignant(s)"
+msgstr "Teacher(s)"
+
+msgid "{n} période(s)"
+msgstr "{n} period(s)"
+
+msgid "Erreur lors du chargement des sanctions"
+msgstr "Error loading sanctions"
+
+msgid "Erreur lors du chargement des absences"
+msgstr "Error loading absences"
+
+msgid "Aucune information enregistrée"
+msgstr "No information recorded"
+
+msgid "Veuillez saisir des informations avant d'enregistrer"
+msgstr "Please enter some information before saving"
+
+msgid "Informations sauvegardées"
+msgstr "Information saved"
+
+msgid "Aucun fichier associé"
+msgstr "No attached files"
+
+msgid "Ajouté le {date}"
+msgstr "Added on {date}"
+
+msgid "Veuillez sélectionner au moins un fichier"
+msgstr "Please select at least one file"
+
+msgid "Fichier(s) uploadé(s) avec succès"
+msgstr "File(s) uploaded successfully"
+
+msgid "Erreur lors de l'upload"
+msgstr "Error while uploading"
+
+msgid "Fichier supprimé"
+msgstr "File deleted"
+
+msgid "Statut mis à jour avec succès"
+msgstr "Status updated successfully"
+
+msgid "Erreur lors de la mise à jour : {error}"
+msgstr "Error while updating: {error}"
+
+msgid "Erreur lors de la mise à jour du statut"
+msgstr "Error while updating the status"
+
+msgid "Note sauvegardée"
+msgstr "Note saved"
+
+msgid "Erreur lors de la sauvegarde de la note"
+msgstr "Error while saving the note"
+
+msgid "Sélectionner tous les élèves"
+msgstr "Select all students"
+
+msgid "Pas d'email"
+msgstr "No email"
+
+msgid "Impossible de charger les élèves"
+msgstr "Unable to load students"
+
+msgid "Erreur réseau : {error}"
+msgstr "Network error: {error}"
+
+msgid "Veuillez sélectionner au moins un élève."
+msgstr "Please select at least one student."
+
+msgid "Partage en cours..."
+msgstr "Sharing..."
+
+msgid "Fichier partagé avec {n} élève(s)"
+msgstr "File shared with {n} student(s)"
+
+msgid "Erreur lors du partage"
+msgstr "Error while sharing"
+
+msgid "Erreur lors du partage du fichier"
+msgstr "Error while sharing the file"
+
+msgid "Partager le fichier"
+msgstr "Share file"
+
+msgid "Chargement des élèves disponibles..."
+msgstr "Loading available students..."
+
+msgid "Aucun élève disponible à ajouter."
+msgstr "No students available to add."
+
+msgid "Erreur lors du chargement des élèves disponibles."
+msgstr "Error loading available students."
+
+msgid "Tous les élèves des classes sources sont déjà dans le groupe mixte."
+msgstr "All students from the source classes are already in the mixed group."
+
+msgid "Ajouter {n} élève(s) sélectionné(s)"
+msgstr "Add {n} selected student(s)"
+
+msgid "Ajouter les élèves sélectionnés"
+msgstr "Add selected students"
+
+msgid "Ajout en cours..."
+msgstr "Adding..."
+
+msgid "{n} élève(s) ajouté(s) avec succès !"
+msgstr "{n} student(s) added successfully!"
+
+msgid "Erreur lors de l'ajout des élèves"
+msgstr "Error while adding students"
+
+msgid "Aucun élève sélectionné"
+msgstr "No student selected"
+
+msgid "Le rapport doit être ouvert avant l'impression"
+msgstr "The report must be open before printing"
+
+msgid "Informations de l'élève non chargées. Veuillez attendre le chargement complet."
+msgstr "Student information not loaded. Please wait until it has fully loaded."
+
+msgid "Rapport d'élève"
+msgstr "Student report"
+
+msgid "Élève :"
+msgstr "Student:"
+
+msgid "Date :"
+msgstr "Date:"
+
+msgid "Imprimé le {date} à {time}"
+msgstr "Printed on {date} at {time}"
+
+msgid "Vert"
+msgstr "Green"
+
+msgid "Jaune"
+msgstr "Yellow"
+
+msgid "Orange"
+msgstr "Orange"
+
+msgid "Rouge"
+msgstr "Red"
+
+msgid "Bleu"
+msgstr "Blue"
+
+msgid "Violet"
+msgstr "Purple"
+
+msgid "janv.|févr.|mars|avr.|mai|juin|juil.|août|sept.|oct.|nov.|déc."
+msgstr "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec"
+
+msgid "{day} {month}"
+msgstr "{day} {month}"
+
+msgid "Aucune discipline disponible."
+msgstr "No subject available."
+
+msgid "Erreur de chargement."
+msgstr "Loading error."
+
+msgid "Aucune évaluation formative pour l'instant. Cliquez sur « Nouvelle évaluation » pour commencer."
+msgstr "No formative assessments yet. Click “New assessment” to get started."
+
+msgid "Aucune discipline sélectionnée."
+msgstr "No subject selected."
+
+msgid "Donnez un titre à l'évaluation."
+msgstr "Give the assessment a title."
+
+msgid "Supprimer cette évaluation et toutes les appréciations associées ?"
+msgstr "Delete this assessment and all associated feedback?"
+
+msgid "Aucun niveau défini — ajoutez votre échelle dans les paramètres."
+msgstr "No levels defined — add your scale in the settings."
+
+msgid "Aucune évaluation formative"
+msgstr "No formative assessments"
+
+msgid "Aucun cours"
+msgstr "No lesson"
+
+msgid "Leçon en cours"
+msgstr "Lesson in progress"
+
+msgid "Réessayer"
+msgstr "Try again"
+
+msgid "Devoir"
+msgstr "Homework"
+
+msgid "Supprimer ce devoir ?"
+msgstr "Delete this homework?"
+
+msgid "Aucun devoir pour cette classe."
+msgstr "No homework for this class."
+
+msgid "Voir les rendus"
+msgstr "View submissions"
+
+msgid "à rendre le {date}"
+msgstr "due {date}"
+
+msgid "aujourd'hui"
+msgstr "today"
+
+msgid "Document joint"
+msgstr "Attached document"
+
+msgid "Participation active et pertinente."
+msgstr "Active and relevant participation."
+
+msgid "Beaux progrès, bravo !"
+msgstr "Great progress, well done!"
+
+msgid "Très bonne attitude en classe."
+msgstr "Very good attitude in class."
+
+msgid "A aidé un camarade."
+msgstr "Helped a classmate."
+
+msgid "Excellent travail aujourd'hui."
+msgstr "Excellent work today."
+
+msgid "A oublié son matériel."
+msgstr "Forgot their materials."
+
+msgid "Devoirs non faits."
+msgstr "Homework not done."
+
+msgid "Bavardages répétés."
+msgstr "Repeated chatting."
+
+msgid "Manque de concentration."
+msgstr "Lack of concentration."
+
+msgid "Comportement perturbateur."
+msgstr "Disruptive behaviour."
+
+msgid "Travail non rendu."
+msgstr "Work not handed in."
+
+msgid "Doit faire signer le carnet."
+msgstr "Must get the school diary signed."
+
+msgid "Écrivez une remarque."
+msgstr "Write a remark."
+
+msgid "Remarque enregistrée"
+msgstr "Remark saved"
+
+msgid "Dictée indisponible — touchez le micro 🎤 du clavier."
+msgstr "Dictation unavailable — tap the 🎤 mic on the keyboard."
+
+msgid "Touchez le micro 🎤 de votre clavier pour dicter."
+msgstr "Tap the 🎤 mic on your keyboard to dictate."
+
+msgid "Utilisez le micro 🎤 de votre clavier pour dicter."
+msgstr "Use the 🎤 mic on your keyboard to dictate."
+
+msgid "Appuyez sur le micro 🎤 de votre clavier pour dicter."
+msgstr "Press the 🎤 mic on your keyboard to dictate."
+
+msgid "Lecture planification"
+msgstr "View planning"
+
+msgid "Aucune description"
+msgstr "No description"
+
+msgid "Sauvegarde..."
+msgstr "Saving..."
+
+msgid "Erreur lors de l'enregistrement : {error}"
+msgstr "Error while saving: {error}"
+
+msgid "Planification enregistrée"
+msgstr "Planning saved"
+
+msgid "Veuillez entrer le nombre de minutes de retard"
+msgstr "Please enter the number of minutes late"
+
+msgid "Remettre présent"
+msgstr "Mark as present again"
+
+msgid "Marquer en retard"
+msgstr "Mark as late"
+
+msgid "Erreur lors de la mise à jour de la présence"
+msgstr "Error updating attendance"
+
+msgid "Le cours est terminé !"
+msgstr "The lesson is over!"
+
+msgid "Annotable"
+msgstr "Annotatable"
+
+msgid "EXERCICE"
+msgstr "EXERCISE"
+
+msgid "{n} questions"
+msgstr "{n} questions"
+
+msgid "{n} exercices"
+msgstr "{n} exercises"
+
+msgid "Aucun fichier dans ce dossier"
+msgstr "No files in this folder"
+
+msgid "Supprimer la feuille blanche"
+msgstr "Delete the blank sheet"
+
+msgid "Aucune classe sélectionnée."
+msgstr "No class selected."
+
+msgid "Erreur lors de l'envoi du fichier."
+msgstr "Error uploading the file."
+
+msgid "Erreur lors de l'envoi du fichier : {error}"
+msgstr "Error uploading the file: {error}"
+
+msgid "Êtes-vous sûr de vouloir effacer toutes les annotations de cette page ?"
+msgstr "Are you sure you want to clear all annotations on this page?"
+
+msgid "Annotations sauvegardées"
+msgstr "Annotations saved"
+
+msgid "Erreur lors du chargement du fichier"
+msgstr "Error loading the file"
+
+msgid "Ouverture de « {name} »…"
+msgstr "Opening “{name}”…"
+
+msgid "Ouverture du fichier…"
+msgstr "Opening file…"
+
+msgid "Erreur : la fenêtre de visualisation n'existe pas."
+msgstr "Error: the viewer window doesn't exist."
+
+msgid "Erreur : le conteneur de visualisation n'existe pas."
+msgstr "Error: the viewer container doesn't exist."
+
+msgid "Veuillez recharger la page (Ctrl/Cmd+R)."
+msgstr "Please reload the page (Ctrl/Cmd+R)."
+
+msgid "Erreur lors de la création du lecteur PDF : {error}"
+msgstr "Error creating the PDF viewer: {error}"
+
+msgid "Erreur lors de la création du lecteur : {error}"
+msgstr "Error creating the viewer: {error}"
+
+msgid "Erreur lors du chargement du lecteur : {error}"
+msgstr "Error loading the viewer: {error}"
+
+msgid "Informations de leçon manquantes"
+msgstr "Missing lesson information"
+
+msgid "Erreur lors du chargement de la feuille blanche : {error}"
+msgstr "Error loading the blank sheet: {error}"
+
+msgid "Chargement de la vue annuelle…"
+msgstr "Loading yearly view…"
+
+msgid "Impossible de charger la vue annuelle."
+msgstr "Unable to load the yearly view."
+
+msgid "Aucun cours de cette classe ce jour-là."
+msgstr "No lesson for this class on that day."
+
+msgid "Créneau libre – cliquez pour planifier"
+msgstr "Free slot – click to plan"
+
+msgid "🎯 Sanctions à attribuer - Demandez aux élèves d'apporter leur agenda"
+msgstr "🎯 Sanctions to assign - Ask the students to bring their planner"
+
+msgid "À rendre le {date}"
+msgstr "Due {date}"
+
+msgid "Date à déterminer"
+msgstr "Date to be determined"
+
+msgid "{n} coches"
+msgstr "{n} checks"
+
+msgid "Bureau du professeur"
+msgstr "Teacher's desk"
+
+msgid "Erreur de chargement"
+msgstr "Loading error"
+
+msgid "Erreur de chargement : {error}"
+msgstr "Loading error: {error}"
+
+msgid "Impossible de déterminer le cours courant"
+msgstr "Unable to determine the current lesson"
+
+msgid "Erreur lors de l'ajout du fichier éphémère"
+msgstr "Error adding the temporary file"
+
+msgid "Erreur lors de l'ajout du fichier"
+msgstr "Error adding the file"
+
+msgid "Erreur lors de l'ajout de l'exercice"
+msgstr "Error adding the exercise"
+
+msgid "Publier et lancer"
+msgstr "Publish and launch"
+
+msgid "Ajouter en mode classique"
+msgstr "Add in classic mode"
+
+msgid "Lancer le combat !"
+msgstr "Start the battle!"
+
+msgid "Lancement..."
+msgstr "Launching..."
+
+msgid "Erreur lors du lancement"
+msgstr "Error while launching"
+
+msgid "Combat"
+msgstr "Battle"
+
+msgid "Classique"
+msgstr "Classic"
+
+msgid "Mode Combat"
+msgstr "Battle mode"
+
+msgid "Mode Classique"
+msgstr "Classic mode"
+
+msgid "Suivi live"
+msgstr "Live tracking"
+
+msgid "Supprimer « {name} » de cette classe ?"
+msgstr "Remove “{name}” from this class?"
+
+msgid "Supprimer cette ressource de la planification ?"
+msgstr "Remove this resource from the planning?"
+
+msgid "Aucune session de combat active trouvée."
+msgstr "No active battle session found."
+
+msgid "En attente des élèves"
+msgstr "Waiting for students"
+
+msgid "Question en cours"
+msgstr "Question in progress"
+
+msgid "Choix des actions"
+msgstr "Choosing actions"
+
+msgid "Exécution du round"
+msgstr "Round in progress"
+
+msgid "Tour des monstres"
+msgstr "Monsters' turn"
+
+msgid "Fin du round"
+msgstr "End of round"
+
+msgid "Round {n}"
+msgstr "Round {n}"
+
+msgid "({n} combattant)"
+msgstr "({n} fighter)"
+
+msgid "({n} combattants)"
+msgstr "({n} fighters)"
+
+msgid "Pas connecté"
+msgstr "Not connected"
+
+msgid "+{xp} XP — {correct}/{total} correct"
+msgstr "+{xp} XP — {correct}/{total} correct"
+
+msgid "Arrêter la mission en direct ?"
+msgstr "Stop the live mission?"
+
+msgid "Aucun cours prévu"
+msgstr "No lesson scheduled"
+
+msgid "Votre horaire type n'est pas encore rempli. Configurez-le pour voir vos prochains cours ici."
+msgstr "Your standard timetable hasn't been filled in yet. Set it up to see your upcoming lessons here."
+
+msgid "Remplir mon horaire type"
+msgstr "Fill in my standard timetable"
+
+msgid "Cours non défini"
+msgstr "Undefined lesson"
+
+msgid "Samedi"
+msgstr "Saturday"
+
+msgid "Dimanche"
+msgstr "Sunday"
+
+msgid "janvier"
+msgstr "January"
+
+msgid "février"
+msgstr "February"
+
+msgid "avril"
+msgstr "April"
+
+msgid "juillet"
+msgstr "July"
+
+msgid "septembre"
+msgstr "September"
+
+msgid "octobre"
+msgstr "October"
+
+msgid "novembre"
+msgstr "November"
+
+msgid "décembre"
+msgstr "December"
+
+msgid "%(weekday)s %(day)s %(month)s %(year)s"
+msgstr "%(weekday)s %(day)s %(month)s %(year)s"
+
+msgid "Disposition :"
+msgstr "Layout:"
+
+msgid "Disposition par défaut (3 colonnes)"
+msgstr "Default layout (3 columns)"
+
+msgid "Focus planification (planification large)"
+msgstr "Planning focus (wide planning)"
+
+msgid "Focus ressources (ressources large)"
+msgstr "Resources focus (wide resources)"
+
+msgid "Focus présences (présences large)"
+msgstr "Attendance focus (wide attendance)"
+
+msgid "Disposition verticale (1 colonne)"
+msgstr "Vertical layout (1 column)"
+
+msgid "Heure actuelle"
+msgstr "Current time"
+
+msgid "Pause/Reprendre"
+msgstr "Pause/Resume"
+
+msgid "Planification du cours"
+msgstr "Lesson planning"
+
+msgid "Ressources du cours"
+msgstr "Lesson resources"
+
+msgid "PDF/Document"
+msgstr "PDF/Document"
+
+msgid "Éphémère — supprimé automatiquement le lendemain du cours"
+msgstr "Temporary — automatically deleted the day after the lesson"
+
+msgid "Non publié"
+msgstr "Not published"
+
+msgid "Devoirs de la classe"
+msgstr "Class homework"
+
+msgid "Fichier éphémère : joint à ce cours (créé au besoin) et supprimé automatiquement le lendemain"
+msgstr "Temporary file: attached to this lesson (created if needed) and automatically deleted the next day"
+
+msgid "Objectifs du cours, activités prévues, exercices, devoirs..."
+msgstr "Lesson objectives, planned activities, exercises, homework..."
+
+msgid "Astuce : Commencez une ligne par \"-\" pour créer une case à cocher"
+msgstr "Tip: start a line with \"-\" to create a checkbox"
+
+msgid "Ajouter un exercice interactif"
+msgstr "Add an interactive exercise"
+
+msgid "+ exercice interactif"
+msgstr "+ interactive exercise"
+
+msgid "Sélectionner un ou plusieurs élèves"
+msgstr "Select one or more students"
+
+msgid "Commencez à taper le nom d'un élève..."
+msgstr "Start typing a student's name..."
+
+msgid "Élèves sélectionnés :"
+msgstr "Selected students:"
+
+msgid "Contenu de la remarque"
+msgstr "Remark content"
+
+msgid "Entrez la remarque..."
+msgstr "Enter the remark..."
+
+msgid "Envoyer aux parents et à l'élève"
+msgstr "Send to parents and student"
+
+msgid "Aucune planification pour ce cours"
+msgstr "No planning for this lesson"
+
+msgid "Créer une planification"
+msgstr "Create a plan"
+
+msgid "Suivi des élèves"
+msgstr "Student tracking"
+
+msgid "Présents"
+msgstr "Present"
+
+msgid "Absents"
+msgstr "Absent"
+
+msgid "Groupe : %(name)s"
+msgstr "Group: %(name)s"
+
+msgid "%(n)s élève(s) dans ce groupe"
+msgstr "%(n)s student(s) in this group"
+
+msgid "%(n)s élève(s) dans la classe"
+msgstr "%(n)s student(s) in the class"
+
+msgid "Ajouter une remarque"
+msgstr "Add a remark"
+
+msgid "Diminuer de 1 minute"
+msgstr "Decrease by 1 minute"
+
+msgid "Augmenter de 1 minute"
+msgstr "Increase by 1 minute"
+
+msgid "Remarque"
+msgstr "Remark"
+
+msgid "Notez la remarque…"
+msgstr "Write the remark…"
+
+msgid "Envoyer aux parents/élève"
+msgstr "Send to parents/student"
+
+msgid "Dicter"
+msgstr "Dictate"
+
+msgid "Cliquez sur les tables pour ajouter des avertissements : jaune → rouge → noir"
+msgstr "Click the desks to add warnings: yellow → red → black"
+
+msgid "Cliquez sur un jour de cours pour le planifier, ou sur un numéro de semaine pour ouvrir la semaine."
+msgstr "Click a lesson day to plan it, or a week number to open that week."
+
+msgid "Ouvrir le calendrier"
+msgstr "Open the calendar"
+
+msgid "Créer ou ouvrir des feuilles blanches"
+msgstr "Create or open blank sheets"
+
+msgid "Ajouter un fichier depuis votre ordinateur"
+msgstr "Add a file from your computer"
+
+msgid "Chargement des ressources..."
+msgstr "Loading resources..."
+
+msgid "Ressources épinglées"
+msgstr "Pinned resources"
+
+msgid "Aucune ressource dans cette classe"
+msgstr "No resources in this class"
+
+msgid "Utilisez le gestionnaire de fichiers pour ajouter des ressources à cette classe"
+msgstr "Use the file manager to add resources to this class"
+
+msgid "Éditer la planification"
+msgstr "Edit planning"
+
+msgid "Fermer la vue côte-à-côte"
+msgstr "Close side-by-side view"
+
+msgid "Retour aux créneaux"
+msgstr "Back to time slots"
+
+msgid "(facultatif)"
+msgstr "(optional)"
+
+msgid "Ex. Nombres relatifs"
+msgstr "E.g. Negative numbers"
+
+msgid "Contenu du cours"
+msgstr "Lesson content"
+
+msgid "Un tiret en début de ligne crée une case à cocher"
+msgstr "A dash at the start of a line creates a checkbox"
+
+msgid "Groupe d'élèves"
+msgstr "Student group"
+
+msgid "Répéter ce groupe"
+msgstr "Repeat this group"
+
+msgid "Cette semaine seulement"
+msgstr "This week only"
+
+msgid "Le même groupe toutes les semaines"
+msgstr "The same group every week"
+
+msgid "Alterner les groupes chaque semaine"
+msgstr "Alternate groups every week"
+
+msgid "Ajouter une ressource"
+msgstr "Add a resource"
+
+msgid "Fichiers de classe"
+msgstr "Class files"
+
+msgid "Chargement des exercices..."
+msgstr "Loading exercises..."
+
+msgid "Aucun exercice disponible"
+msgstr "No exercise available"
+
+msgid "Lancer l'exercice"
+msgstr "Launch the exercise"
+
+msgid "Les élèves font l'exercice à leur rythme. Pas de suivi en direct."
+msgstr "Students do the exercise at their own pace. No live tracking."
+
+msgid "Mission en direct ! Suivez la progression de chaque élève en temps réel."
+msgstr "Live mission! Follow each student's progress in real time."
+
+msgid "Lancer la mission"
+msgstr "Launch the mission"
+
+msgid "Combat RPG"
+msgstr "RPG battle"
+
+msgid "Ouvrir l'arène RPG (projecteur)"
+msgstr "Open the RPG arena (projector)"
+
+msgid "Arrêter la mission"
+msgstr "Stop the mission"
+
+msgid "Heure"
+msgstr "Time"
+
+msgid "%(n)s devoir(s) à rendre : %(titles)s"
+msgstr "%(n)s assignment(s) due: %(titles)s"
+
+msgid "%(n)s devoir"
+msgstr "%(n)s assignment"
+
+msgid "%(n)s devoirs"
+msgstr "%(n)s assignments"
+
+msgid "P{n}"
+msgstr "P{n}"
+
+msgid "%(n)s mémo(s)"
+msgstr "%(n)s memo(s)"
+
+msgid "Cliquez pour voir cette semaine"
+msgstr "Click to view this week"
+
+msgid "Objectifs :"
+msgstr "Objectives:"
+
+msgid "Nouveau devoir"
+msgstr "New homework"
+
+msgid "Ex : Exercices p. 42 n° 1 à 5"
+msgstr "E.g. Exercises p. 42 nos. 1 to 5"
+
+msgid "Type de devoir"
+msgstr "Homework type"
+
+msgid "Devoir classique (à faire pour la date)"
+msgstr "Standard homework (to do by the date)"
+
+msgid "À rendre (l'élève envoie une photo)"
+msgstr "To hand in (the student sends a photo)"
+
+msgid "Exercice interactif"
+msgstr "Interactive exercise"
+
+msgid "Date de rendu (prochains cours de la classe)"
+msgstr "Due date (the class's upcoming lessons)"
+
+msgid "Consignes (facultatif)"
+msgstr "Instructions (optional)"
+
+msgid "Précisions pour les élèves…"
+msgstr "Details for the students…"
+
+msgid "Document pour les élèves (facultatif)"
+msgstr "Document for the students (optional)"
+
+msgid "Modifier le devoir"
+msgstr "Edit homework"
+
+msgid "Document actuel : {name} — en choisir un nouveau le remplacera."
+msgstr "Current document: {name} — choosing a new one will replace it."
+
+msgid "fichier"
+msgstr "file"
+
+msgid "{date} (date actuelle)"
+msgstr "{date} (current date)"
+
+msgid "Aucune date de cours à venir"
+msgstr "No upcoming lesson dates"
+
+msgid "{title} (brouillon)"
+msgstr "{title} (draft)"
+
+msgid "Aucun exercice — créez-en un d'abord"
+msgstr "No exercises — create one first"
+
+msgid "Aucune classe pour ce cours."
+msgstr "No class for this lesson."
+
+msgid "Donnez un titre au devoir."
+msgstr "Give the homework a title."
+
+msgid "Choisissez une date de rendu."
+msgstr "Choose a due date."
+
+msgid "Choisissez un exercice interactif."
+msgstr "Choose an interactive exercise."
+
+msgid "Enregistré, mais document non joint : {error}"
+msgstr "Saved, but the document was not attached: {error}"
+
+msgid "Enregistré, mais document non joint (réseau)"
+msgstr "Saved, but the document was not attached (network error)"
+
+msgid "Devoir modifié"
+msgstr "Homework updated"
+
+msgid "Devoir créé"
+msgstr "Homework created"
+
+msgid "Horaire type"
+msgstr "Weekly timetable"
+
+msgid "Créez votre horaire type"
+msgstr "Create your weekly timetable"
+
+msgid "Cliquez sur les cases pour assigner vos classes à chaque période. Cet horaire sera utilisé comme modèle pour toute l'année."
+msgstr "Click the cells to assign your classes to each period. This timetable will be used as the template for the whole year."
+
+msgid "Dernière étape ! Une fois votre horaire type créé, cliquez sur « Valider l'horaire » pour accéder à votre calendrier complet."
+msgstr "Last step! Once your weekly timetable is set up, click “Confirm timetable” to access your full calendar."
+
+msgid "Tâches personnalisées"
+msgstr "Custom tasks"
+
+msgid "Heures de votre école"
+msgstr "Your school's hours"
+
+msgid "%(n)s périodes, de %(start)s à %(end)s"
+msgstr "%(n)s periods, from %(start)s to %(end)s"
+
+msgid "%(n)s périodes"
+msgstr "%(n)s periods"
+
+msgid "%(n)s min"
+msgstr "%(n)s min"
+
+msgid "%(n)s min entre deux périodes"
+msgstr "%(n)s min between periods"
+
+msgid "Modifier les heures"
+msgstr "Edit the hours"
+
+msgid "Ces heures sont proposées par défaut. Vérifiez qu'elles correspondent à votre école avant de placer vos classes."
+msgstr "These hours are suggested by default. Check that they match your school before placing your classes."
+
+msgid "Début des cours"
+msgstr "Start of lessons"
+
+msgid "Fin de la journée"
+msgstr "End of the day"
+
+msgid "Durée d'une période"
+msgstr "Period length"
+
+msgid "min"
+msgstr "min"
+
+msgid "Entre deux périodes"
+msgstr "Between two periods"
+
+msgid "Pauses (récréation, midi…)"
+msgstr "Breaks (recess, lunch…)"
+
+msgid "Ajouter une pause"
+msgstr "Add a break"
+
+msgid "Aperçu de vos périodes"
+msgstr "Preview of your periods"
+
+msgid "Enregistrer les heures"
+msgstr "Save the hours"
+
+msgid "Période %(n)s"
+msgstr "Period %(n)s"
+
+msgid "Valider l'horaire"
+msgstr "Confirm timetable"
+
+msgid "Sélectionner une classe"
+msgstr "Select a class"
+
+msgid "Salle (optionnel)"
+msgstr "Room (optional)"
+
+msgid "Ex : B204"
+msgstr "e.g. B204"
+
+msgid "Retirer la classe"
+msgstr "Remove the class"
+
+msgid "Ajouter une tâche personnalisée"
+msgstr "Add a custom task"
+
+msgid "Titre de la tâche :"
+msgstr "Task title:"
+
+msgid "Ex: Surveillance, Réunion, etc."
+msgstr "e.g. Supervision, Meeting, etc."
+
+msgid "Salle (optionnel) :"
+msgstr "Room (optional):"
+
+msgid "Horaire exact (optionnel) :"
+msgstr "Exact time (optional):"
+
+msgid "Sans horaire, la tâche occupe toute la période. Avec, elle s'affichera chaque semaine à ces heures précises dans le calendrier."
+msgstr "Without a time, the task takes up the whole period. With one, it will appear every week at those exact times in the calendar."
+
+msgid "Autre tâche"
+msgstr "Other task"
+
+msgid "Erreur : impossible de déterminer le créneau sélectionné"
+msgstr "Error: unable to determine the selected slot"
+
+msgid "Veuillez saisir un titre pour la tâche"
+msgstr "Please enter a title for the task"
+
+msgid "Erreur : informations de créneau manquantes"
+msgstr "Error: missing slot information"
+
+msgid "Erreur : impossible de trouver la cellule cible"
+msgstr "Error: unable to find the target cell"
+
+msgid "Cliquez pour séparer ces périodes"
+msgstr "Click to split these periods"
+
+msgid "Cliquez pour lier ces périodes"
+msgstr "Click to link these periods"
+
+msgid "impossible de modifier la liaison"
+msgstr "unable to change the link"
+
+msgid "Nom de la pause"
+msgstr "Break name"
+
+msgid "Récréation"
+msgstr "Recess"
+
+msgid "De"
+msgstr "From"
+
+msgid "À"
+msgstr "To"
+
+msgid "Supprimer cette pause"
+msgstr "Delete this break"
+
+msgid "Pause"
+msgstr "Break"
+
+msgid "Vérifiez le début et la fin de la journée."
+msgstr "Check the start and end of the day."
+
+msgid "Ces réglages ne donnent aucune période."
+msgstr "These settings produce no periods."
+
+msgid "Votre horaire contient des cours en période {used}, mais ces réglages n'en donnent que {n}. Ces cours ne seront plus affichés. Continuer ?"
+msgstr "Your timetable has lessons in period {used}, but these settings only produce {n}. Those lessons will no longer be shown. Continue?"
+
+msgid "Enregistrement impossible."
+msgstr "Unable to save."
+
+msgid "Uploader fichiers"
+msgstr "Upload files"
+
+msgid "Uploader dossier"
+msgstr "Upload folder"
+
+msgid "%(used)s / %(max)s GB utilisés (%(pct)s %%)"
+msgstr "%(used)s / %(max)s GB used (%(pct)s%%)"
+
+msgid "Les dossiers seront importés avec leur structure complète"
+msgstr "Folders will be imported with their full structure"
+
+msgid "Déposer ici pour déplacer à la racine"
+msgstr "Drop here to move to the root"
+
+msgid "Chargement…"
+msgstr "Loading…"
+
+msgid "Aucun fichier pour le moment"
+msgstr "No files yet"
+
+msgid "Créez un dossier ou glissez des fichiers ici pour commencer"
+msgstr "Create a folder or drag files here to get started"
+
+msgid "Mes classes"
+msgstr "My classes"
+
+msgid "Supprimer les %(n)s élément(s)"
+msgstr "Delete %(n)s item(s)"
+
+msgid "Ex: Cours de mathématiques"
+msgstr "e.g. Maths lessons"
+
+msgid "Couleur du dossier"
+msgstr "Folder colour"
+
+msgid "Déplacer vers…"
+msgstr "Move to…"
+
+msgid "réessayer"
+msgstr "try again"
+
+msgid "Confirmation"
+msgstr "Confirmation"
+
+msgid "Supprimer « {name} » ? Cette action est définitive."
+msgstr "Delete “{name}”? This action is permanent."
+
+msgid "Supprimer ce fichier ? Cette action est définitive."
+msgstr "Delete this file? This action is permanent."
+
+msgid "Supprimer le dossier « {name} » ? Cette action est définitive."
+msgstr "Delete the folder “{name}”? This action is permanent."
+
+msgid "Supprimer le dossier « {name} » et ses {n} fichier(s) ? Cette action est définitive."
+msgstr "Delete the folder “{name}” and its {n} file(s)? This action is permanent."
+
+msgid "Supprimer ce dossier ? Cette action est définitive."
+msgstr "Delete this folder? This action is permanent."
+
+msgid "Supprimer ce dossier et ses {n} fichier(s) ? Cette action est définitive."
+msgstr "Delete this folder and its {n} file(s)? This action is permanent."
+
+msgid "Supprimer {n} élément(s) ? Cette action est définitive."
+msgstr "Delete {n} item(s)? This action is permanent."
+
+msgid "Supprimer {n} fichier(s) ? Cette action est définitive."
+msgstr "Delete {n} file(s)? This action is permanent."
+
+msgid "Supprimer {n} dossier(s) et leur contenu ? Cette action est définitive."
+msgstr "Delete {n} folder(s) and their contents? This action is permanent."
+
+msgid "Supprimer {files} fichier(s) et {folders} dossier(s) et leur contenu ? Cette action est définitive."
+msgstr "Delete {files} file(s) and {folders} folder(s) with their contents? This action is permanent."
+
+msgid "Dossier supprimé"
+msgstr "Folder deleted"
+
+msgid "{n} élément(s) supprimé(s)"
+msgstr "{n} item(s) deleted"
+
+msgid "Renommé avec succès"
+msgstr "Renamed successfully"
+
+msgid "Couleur mise à jour"
+msgstr "Colour updated"
+
+msgid "Sera créé dans « {name} »"
+msgstr "Will be created in “{name}”"
+
+msgid "Sera créé à la racine"
+msgstr "Will be created at the root"
+
+msgid "Dossier créé"
+msgstr "Folder created"
+
+msgid "Déplacement impossible (un dossier ne peut pas aller dans lui-même)"
+msgstr "Cannot move (a folder cannot go inside itself)"
+
+msgid "Déplacé vers « {name} »"
+msgstr "Moved to “{name}”"
+
+msgid "Déplacé vers la racine"
+msgstr "Moved to the root"
+
+msgid "{n} éléments déplacés vers « {name} »"
+msgstr "{n} items moved to “{name}”"
+
+msgid "{n} éléments déplacés vers la racine"
+msgstr "{n} items moved to the root"
+
+msgid "{n} éléments"
+msgstr "{n} items"
+
+msgid "{name} uploadé avec succès"
+msgstr "{name} uploaded successfully"
+
+msgid "erreur serveur ({status})"
+msgstr "server error ({status})"
+
+msgid "connexion interrompue — réessayez"
+msgstr "connection interrupted — try again"
+
+msgid "{n} fichier(s) uploadé(s)"
+msgstr "{n} file(s) uploaded"
+
+msgid "{n} déjà présent(s), ignoré(s)"
+msgstr "{n} already present, skipped"
+
+msgid "• {name} : {reason}"
+msgstr "• {name}: {reason}"
+
+msgid "… et {n} autre(s)"
+msgstr "… and {n} more"
+
+msgid "{n} fichier(s) NON copié(s) :"
+msgstr "{n} file(s) NOT copied:"
+
+msgid "Déplacer les {n} éléments vers…"
+msgstr "Move the {n} items to…"
+
+msgid "Supprimer les {n} éléments"
+msgstr "Delete the {n} items"
+
+msgid "Tout désélectionner"
+msgstr "Deselect all"
+
+msgid "Réduire"
+msgstr "Collapse"
+
+msgid "Nouveau dossier ici"
+msgstr "New folder here"
+
+msgid "Ouvrir dans un onglet"
+msgstr "Open in a tab"
+
+msgid "Uploader des fichiers"
+msgstr "Upload files"
+
+msgid "Uploader un dossier"
+msgstr "Upload a folder"
+
+msgid "Compte"
+msgstr "Account"
+
+msgid "Affichage"
+msgstr "Display"
+
+msgid "Sécurité"
+msgstr "Security"
+
+msgid "Espace élèves et parents"
+msgstr "Students & parents area"
+
+msgid "Année et horaires"
+msgstr "Year & timetable"
+
+msgid "Vacances"
+msgstr "Holidays"
+
+msgid "Pauses"
+msgstr "Breaks"
+
+msgid "Supprimer mon compte"
+msgstr "Delete my account"
+
+msgid "Informations du compte"
+msgstr "Account information"
+
+msgid "Adresse email"
+msgstr "Email address"
+
+msgid "Changer le mot de passe"
+msgstr "Change password"
+
+msgid "Mot de passe actuel"
+msgstr "Current password"
+
+msgid "Au moins 8 caractères, avec une majuscule et un chiffre"
+msgstr "At least 8 characters, with one uppercase letter and one digit"
+
+msgid "Confirmer le nouveau mot de passe"
+msgstr "Confirm new password"
+
+msgid "Affichage des aménagements"
+msgstr "Accommodations display"
+
+msgid "Choisissez comment les aménagements des élèves doivent être affichés dans la vue des cours :"
+msgstr "Choose how students' accommodations are shown in the lesson view:"
+
+msgid "Ne pas afficher les aménagements"
+msgstr "Don't show accommodations"
+
+msgid "Afficher uniquement l'émoticône des aménagements"
+msgstr "Show only the accommodations emoji"
+
+msgid "Afficher le nom complet des aménagements"
+msgstr "Show the full name of accommodations"
+
+msgid "Enregistrer les paramètres"
+msgstr "Save settings"
+
+msgid "Préférences d'affichage"
+msgstr "Display preferences"
+
+msgid "Tri des élèves"
+msgstr "Student sorting"
+
+msgid "Choisissez comment les élèves doivent être triés dans les listes :"
+msgstr "Choose how students are sorted in lists:"
+
+msgid "Par nom de famille (Dupont, Martin, etc.)"
+msgstr "By last name (Smith, Brown, etc.)"
+
+msgid "Par prénom (Alice, Bob, etc.)"
+msgstr "By first name (Alice, Bob, etc.)"
+
+msgid "Permet d'annoter rapidement le travail des élèves (test formatif, devoir) pour voir d'un coup d'œil qui a bien fait son travail. Une fois activée, un onglet « Éval. formative » apparaît dans <em>Gérer les classes</em>, et les appréciations se retrouvent dans le rapport de l'élève."
+msgstr "Lets you quickly annotate students' work (formative test, homework) to see at a glance who did their work well. Once enabled, a “Formative assessment” tab appears in <em>Manage classes</em>, and the ratings show up in the student's report."
+
+msgid "Activer l'évaluation formative"
+msgstr "Enable formative assessment"
+
+msgid "Ce que vous voulez saisir"
+msgstr "What you want to record"
+
+msgid "Retirez ce dont vous ne vous servez pas : les colonnes décochées n'apparaîtront nulle part."
+msgstr "Remove what you don't use: unchecked columns won't appear anywhere."
+
+msgid "(selon votre échelle ci-dessous)"
+msgstr "(based on your scale below)"
+
+msgid "(texte libre, visible de vous seul)"
+msgstr "(free text, visible only to you)"
+
+msgid "Pastille de couleur"
+msgstr "Colour dot"
+
+msgid "(repère visuel rapide)"
+msgstr "(quick visual cue)"
+
+msgid "Échelle d'appréciation"
+msgstr "Rating scale"
+
+msgid "Les niveaux proposés quand vous annotez un élève, du plus élevé au plus bas. Supprimer un niveau ne supprime pas les commentaires ni les pastilles déjà posés."
+msgstr "The levels offered when you annotate a student, from highest to lowest. Deleting a level does not delete comments or colour dots already added."
+
+msgid "Nouveau niveau (ex. : Acquis)"
+msgstr "New level (e.g. Achieved)"
+
+msgid "Double authentification (2FA)"
+msgstr "Two-factor authentication (2FA)"
+
+msgid "La double authentification est activée"
+msgstr "Two-factor authentication is enabled"
+
+msgid "Un code de votre application d'authentification est requis à chaque connexion."
+msgstr "A code from your authenticator app is required each time you log in."
+
+msgid "Mot de passe pour désactiver :"
+msgstr "Password to disable:"
+
+msgid "Entrez votre mot de passe"
+msgstr "Enter your password"
+
+msgid "Désactiver la double authentification"
+msgstr "Disable two-factor authentication"
+
+msgid "Protégez votre compte avec une application d'authentification. Un code à 6 chiffres sera demandé à chaque connexion en plus de votre mot de passe."
+msgstr "Protect your account with an authenticator app. A 6-digit code will be requested each time you log in, in addition to your password."
+
+msgid "Comment ça marche ?"
+msgstr "How does it work?"
+
+msgid "Installez une app d'authentification"
+msgstr "Install an authenticator app"
+
+msgid "Téléchargez une de ces applications gratuites sur votre téléphone :"
+msgstr "Download one of these free apps on your phone:"
+
+msgid "Mots de passe (Apple)"
+msgstr "Passwords (Apple)"
+
+msgid "Scannez le QR code"
+msgstr "Scan the QR code"
+
+msgid "Cliquez sur \"Configurer\" ci-dessous, puis scannez le QR code avec votre application."
+msgstr "Click “Set up” below, then scan the QR code with your app."
+
+msgid "Entrez le code pour confirmer"
+msgstr "Enter the code to confirm"
+
+msgid "L'application génère un code à 6 chiffres qui change toutes les 30 secondes. Entrez-le pour activer la 2FA."
+msgstr "The app generates a 6-digit code that changes every 30 seconds. Enter it to enable 2FA."
+
+msgid "Lors de la connexion"
+msgstr "When you log in"
+
+msgid "Après votre mot de passe, le code sera demandé. Sur iPhone, il se remplit automatiquement via l'app Mots de passe !"
+msgstr "After your password, you'll be asked for the code. On iPhone, it fills in automatically via the Passwords app!"
+
+msgid "1. Scannez ce QR code avec votre application :"
+msgstr "1. Scan this QR code with your app:"
+
+msgid "QR Code"
+msgstr "QR code"
+
+msgid "Ou entrez ce code manuellement :"
+msgstr "Or enter this code manually:"
+
+msgid "2. Entrez le code affiché par l'application :"
+msgstr "2. Enter the code shown by the app:"
+
+msgid "Activer la double authentification"
+msgstr "Enable two-factor authentication"
+
+msgid "Configurer la double authentification"
+msgstr "Set up two-factor authentication"
+
+msgid "Vous avez un abonnement <strong>Premium</strong>"
+msgstr "You have a <strong>Premium</strong> subscription"
+
+msgid "Accès à vie, offert aux premiers inscrits. Merci d'avoir été là dès le début !"
+msgstr "Lifetime access, offered to our earliest members. Thank you for being here from the start!"
+
+msgid "Valide jusqu'au %(date)s"
+msgstr "Valid until %(date)s"
+
+msgid "Accès illimité"
+msgstr "Unlimited access"
+
+msgid "Gérer mon abonnement App Store"
+msgstr "Manage my App Store subscription"
+
+msgid "Ou sur l'iPad / l'iPhone : Réglages > [votre nom] > Abonnements."
+msgstr "Or on the iPad / iPhone: Settings > [your name] > Subscriptions."
+
+msgid "Choisissez un abonnement pour utiliser ProfCalendar."
+msgstr "Choose a subscription to use ProfCalendar."
+
+msgid "Utiliser un bon"
+msgstr "Use a voucher"
+
+msgid "Si vous avez reçu un code promotionnel, entrez-le ci-dessous pour activer votre accès Premium."
+msgstr "If you received a promo code, enter it below to activate your Premium access."
+
+msgid "Entrez votre code"
+msgstr "Enter your code"
+
+msgid "Appliquer"
+msgstr "Apply"
+
+msgid "Exporter mes données"
+msgstr "Export my data"
+
+msgid "Conformément à la nLPD et au RGPD, vous pouvez télécharger l'ensemble de vos données personnelles (compte, classes, élèves) au format JSON."
+msgstr "In accordance with the revFADP and the GDPR, you can download all your personal data (account, classes, students) in JSON format."
+
+msgid "Télécharger mes données"
+msgstr "Download my data"
+
+msgid "Cette action est irréversible !"
+msgstr "This action cannot be undone!"
+
+msgid "La suppression de votre compte entraînera la perte définitive de toutes vos données : classes, élèves, évaluations, notes, remarques, sanctions, planifications, et fichiers."
+msgstr "Deleting your account will permanently erase all your data: classes, students, assessments, grades, remarks, sanctions, lesson plans and files."
+
+msgid "<strong>Abonnement App Store :</strong> supprimer votre compte ne résilie pas l'abonnement pris sur l'App Store. Résiliez-le d'abord dans Réglages > [votre nom] > Abonnements > ProfCalendar, ou <a href=\"https://apps.apple.com/account/subscriptions\" target=\"_blank\" rel=\"noopener\">ouvrez vos abonnements Apple</a>."
+msgstr "<strong>App Store subscription:</strong> deleting your account does not cancel the subscription taken out on the App Store. Cancel it first in Settings > [your name] > Subscriptions > ProfCalendar, or <a href=\"https://apps.apple.com/account/subscriptions\" target=\"_blank\" rel=\"noopener\">open your Apple subscriptions</a>."
+
+msgid "Si vous êtes maître de classe et que des enseignants spécialisés sont liés à vos classes, un rapport PDF contenant les données des élèves (notes, remarques, sanctions) leur sera automatiquement envoyé avant la suppression."
+msgstr "If you are a class teacher and specialist teachers are linked to your classes, a PDF report containing the students' data (grades, remarks, sanctions) will be sent to them automatically before deletion."
+
+msgid "Confirmez avec votre mot de passe :"
+msgstr "Confirm with your password:"
+
+msgid "Supprimer définitivement mon compte"
+msgstr "Permanently delete my account"
+
+msgid "Erreur lors de la sauvegarde des paramètres : {error}"
+msgstr "Error while saving settings: {error}"
+
+msgid "Une erreur est survenue. Veuillez réessayer."
+msgstr "An error occurred. Please try again."
+
+msgid "Les nouveaux mots de passe ne correspondent pas."
+msgstr "The new passwords do not match."
+
+msgid "Le nouveau mot de passe doit contenir au moins 8 caractères."
+msgstr "The new password must be at least 8 characters long."
+
+msgid "Veuillez entrer votre mot de passe."
+msgstr "Please enter your password."
+
+msgid "Masquer le tutoriel"
+msgstr "Hide the tutorial"
+
+msgid "Veuillez entrer un code à 6 chiffres."
+msgstr "Please enter a 6-digit code."
+
+msgid "Voulez-vous vraiment désactiver la double authentification ?"
+msgstr "Do you really want to disable two-factor authentication?"
+
+msgid "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est IRRÉVERSIBLE."
+msgstr "Are you sure you want to delete your account? This action CANNOT BE UNDONE."
+
+msgid "DERNIÈRE CONFIRMATION : Toutes vos données seront définitivement supprimées. Continuer ?"
+msgstr "FINAL CONFIRMATION: All your data will be permanently deleted. Continue?"
+
+msgid "Suppression en cours..."
+msgstr "Deleting..."
+
+msgid "Aucun niveau. Enregistrez une première fois pour obtenir l'échelle par défaut, ou ajoutez les vôtres."
+msgstr "No levels. Save once to get the default scale, or add your own."
+
+msgid "Impossible de charger l'échelle."
+msgstr "Unable to load the scale."
+
+msgid "Supprimer ce niveau ? Les appréciations qui l'utilisaient repasseront à « aucune »."
+msgstr "Delete this level? Ratings that used it will revert to “none”."
 
 msgid "OK"
 msgstr "OK"
@@ -3237,10 +6396,10 @@ msgstr "Nothing to pay for 14 days, cancel anytime."
 msgid "puis dès CHF 4.90 par mois, sans engagement."
 msgstr "then from CHF 4.90 per month, cancel anytime."
 
-msgid "Rien à payer aujourd’hui. Annule avant la fin de l’essai (Réglages > ton nom > Abonnements) et tu ne paies rien. On t’envoie un rappel deux jours avant."
+msgid "Rien à payer aujourd’hui. Annulez avant la fin de l’essai (Réglages > votre nom > Abonnements) et vous ne payez rien. Nous vous envoyons un rappel deux jours avant."
 msgstr "Nothing to pay today. Cancel before the trial ends (Settings > your name > Subscriptions) and you pay nothing. We send you a reminder two days before."
 
-msgid "Tu reçois un rappel par e-mail avant la fin de l’essai."
+msgid "Vous recevez un rappel par e-mail avant la fin de l’essai."
 msgstr "You get a reminder by email before the trial ends."
 
 msgid "14 jours gratuits, puis facturé chaque mois"
@@ -3252,16 +6411,16 @@ msgstr "14 days free, then CHF 3.33/month"
 msgid "Essai gratuit de 14 jours"
 msgstr "14-day free trial"
 
-msgid "ta carte est demandée, mais rien n'est débité avant la fin de l'essai. Résilie avant cette date depuis Paramètres > Abonnement et tu ne paies rien."
+msgid "votre carte est demandée, mais rien n'est débité avant la fin de l'essai. Résiliez avant cette date depuis Paramètres > Abonnement et vous ne payez rien."
 msgstr "your card is requested, but nothing is charged before the trial ends. Cancel before that date in Settings > Subscription and you pay nothing."
 
-msgid "Commence par créer tes classes"
+msgid "Commencez par créer vos classes"
 msgstr "Start by creating your classes"
 
-msgid "Cette page se remplit dès que tes classes et ton horaire sont en place. Ça prend environ deux minutes."
+msgid "Cette page se remplit dès que vos classes et votre horaire sont en place. Cela prend environ deux minutes."
 msgstr "This page fills up as soon as your classes and timetable are set up. It takes about two minutes."
 
-msgid "Mode démonstration : rien n'est enregistré. Crée ton compte pour utiliser ProfCalendar avec tes classes."
+msgid "Mode démonstration : rien n'est enregistré. Créez votre compte pour utiliser ProfCalendar avec vos classes."
 msgstr "Demo mode: nothing is saved. Create your account to use ProfCalendar with your own classes."
 
 msgid "Voir comment faire en vidéo"
@@ -3306,13 +6465,13 @@ msgstr "See the sample account's timetable"
 msgid "Voir le tableau de bord du compte d’exemple"
 msgstr "See the sample account's dashboard"
 
-msgid "Avant de t’abonner, regarde comment ça marche sur un compte d’exemple déjà rempli : tu peux tout explorer, rien n’est enregistré."
+msgid "Avant de vous abonner, regardez comment cela fonctionne sur un compte d’exemple déjà rempli : vous pouvez tout explorer, rien n’est enregistré."
 msgstr "Before subscribing, see how it works on a ready-filled sample account: explore everything, nothing is saved."
 
-msgid "Envie de voir l’app avant de t’abonner ?"
+msgid "Envie de voir l’app avant de vous abonner ?"
 msgstr "Want to see the app before subscribing?"
 
-msgid "Explore un compte d’exemple déjà rempli : calendrier, page du cours, notes et plan de classe. Rien n’est enregistré."
+msgid "Explorez un compte d’exemple déjà rempli : calendrier, page du cours, notes et plan de classe. Rien n’est enregistré."
 msgstr "Explore a ready-filled sample account: calendar, lesson page, marks and seating plan. Nothing is saved."
 
 msgid "14 jours d’essai gratuit pour un premier abonnement"
@@ -3330,8 +6489,8 @@ msgstr "%(days)s days free, then"
 msgid "Voix de synthèse"
 msgstr "Synthetic voice"
 
-msgid "Ton essai Premium se termine dans %(num)d jour."
-msgid_plural "Ton essai Premium se termine dans %(num)d jours."
+msgid "Votre essai Premium se termine dans %(num)d jour."
+msgid_plural "Votre essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."
 msgstr[1] "Your Premium trial ends in %(num)d days."
 

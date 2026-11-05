@@ -129,7 +129,7 @@ def update_formative():
         fields = [f for f in fields if f in FIELD_KEYS]
         if enabled and not fields:
             return jsonify({'success': False,
-                            'message': 'Garde au moins une colonne (appréciation, '
+                            'message': 'Gardez au moins une colonne (appréciation, '
                                        'commentaire ou pastille).'}), 400
 
     try:

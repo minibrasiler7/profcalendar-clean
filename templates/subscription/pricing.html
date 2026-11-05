@@ -14,10 +14,10 @@
 <div class="pricing-page">
     <div class="pricing-hero">
         {% if needs_subscription %}
-        <h1><i class="fas fa-crown"></i> {{ _('Choisis ton abonnement pour commencer') }}</h1>
-        <p>{{ _('ProfCalendar est un outil payant, sans engagement : choisis la formule qui te convient. Tu peux résilier à tout moment.') }}</p>
+        <h1><i class="fas fa-crown"></i> {{ _('Choisissez votre abonnement pour commencer') }}</h1>
+        <p>{{ _('ProfCalendar est un outil payant, sans engagement : choisissez la formule qui vous convient. Vous pouvez résilier à tout moment.') }}</p>
         {% if trial_days %}<p class="pricing-trial-pill"><i class="fas fa-gift"></i> {{ _('14 jours d’essai gratuit pour un premier abonnement') }}</p>{% endif %}
-        <p style="margin-top:0.75rem;"><a href="#apercu" style="color:inherit; font-weight:700; text-decoration:underline;"><i class="fas fa-play-circle"></i> {{ _('Pas encore sûr ? Regarde la vidéo, les écrans ou explore un compte d’exemple') }}</a></p>
+        <p style="margin-top:0.75rem;"><a href="#apercu" style="color:inherit; font-weight:700; text-decoration:underline;"><i class="fas fa-play-circle"></i> {{ _('Pas encore convaincu ? Regardez la vidéo, les écrans ou explorez un compte d’exemple') }}</a></p>
         <p style="margin-top:0.5rem; font-size:0.9rem; opacity:0.85;"><a href="{{ url_for('auth.logout') }}" style="color:inherit;">{{ _('Déconnexion') }}</a></p>
         {% else %}
         <h1><i class="fas fa-crown"></i> {{ _('Passez à Premium') }}</h1>
@@ -110,8 +110,8 @@
     <p style="text-align:center; margin:1.25rem auto 0; max-width:640px; color:#4B5563; line-height:1.5;">
         <i class="fas fa-gift" style="color:#4F46E5;"></i>
         <strong>{{ _('Essai gratuit de 14 jours') }}</strong> :
-        {{ _("ta carte est demandée, mais rien n'est débité avant la fin de l'essai. Résilie avant cette date depuis Paramètres > Abonnement et tu ne paies rien.") }}
-        {{ _('Tu reçois un rappel par e-mail avant la fin de l’essai.') }}
+        {{ _("votre carte est demandée, mais rien n'est débité avant la fin de l'essai. Résiliez avant cette date depuis Paramètres > Abonnement et vous ne payez rien.") }}
+        {{ _('Vous recevez un rappel par e-mail avant la fin de l’essai.') }}
     </p>
     {% endif %}
     {% if needs_subscription and not locked_section %}<div style="margin-top:1.5rem;">{% include 'includes/demo_invite.html' %}</div>{% endif %}

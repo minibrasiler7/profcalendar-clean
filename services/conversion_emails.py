@@ -41,6 +41,10 @@ MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août
         'septembre', 'octobre', 'novembre', 'décembre']
 
 
+def _hello(name):
+    return f'Bonjour {name},' if name else 'Bonjour,'
+
+
 def _frame(title, body_html, button_label=None, button_url=None):
     button = ''
     if button_label:
@@ -59,41 +63,41 @@ def _frame(title, body_html, button_label=None, button_url=None):
             {body_html}
             {button}
             <p style="color:#6B7280; font-size:0.9rem; margin-top:1.5rem;">
-                Une question ou un blocage&nbsp;? Réponds simplement à cet e-mail&nbsp;: je te réponds personnellement.<br>
+                Une question ou un blocage&nbsp;? Répondez simplement à cet e-mail&nbsp;: je vous réponds personnellement.<br>
                 Loïc, ProfCalendar
             </p>
         </div>
         <p style="color:#A0AEC0; font-size:0.72rem; text-align:center; margin-top:1.5rem;">
-            Tu reçois cet e-mail parce que tu as créé un compte ProfCalendar. Réponds «&nbsp;stop&nbsp;» pour ne plus en recevoir.
+            Vous recevez cet e-mail parce que vous avez créé un compte ProfCalendar. Répondez «&nbsp;stop&nbsp;» pour ne plus en recevoir.
         </p>
     </div>"""
 
 
 def _relance_j1(name):
     body = f"""
-        <p>Bonjour {name},</p>
-        <p>Ton compte ProfCalendar est prêt. Il ne manque qu'une étape&nbsp;: démarrer ton
+        <p>{_hello(name)}</p>
+        <p>Votre compte ProfCalendar est prêt. Il ne manque qu'une étape&nbsp;: démarrer votre
            <strong>essai gratuit de 14 jours</strong>. Tout est débloqué pendant l'essai&nbsp;:
            calendrier, page du cours, notes, présences, plan de classe et PDF annotés au stylet.</p>
-        <p><strong>Rien n'est débité pendant 14 jours.</strong> Tu peux arrêter à tout moment avant la fin
-           et tu ne paies rien. Sur iPad et iPhone, l'essai passe par ton compte App Store&nbsp;; sur le site,
-           ta carte est demandée mais rien n'est prélevé avant la fin, et tu reçois un rappel par e-mail.</p>
-        <p>Pas encore sûr&nbsp;? Regarde la présentation en 2 minutes&nbsp;: <a href="{VIDEO_PRESENTATION}">{VIDEO_PRESENTATION}</a>,
-           ou explore un compte d'exemple déjà rempli&nbsp;: <a href="{DEMO_URL}">{DEMO_URL}</a></p>"""
-    return 'Ton essai gratuit de 14 jours t’attend', _frame(
-        'Ton essai gratuit t’attend', body, 'Démarrer mon essai gratuit', PRICING_URL)
+        <p><strong>Rien n'est débité pendant 14 jours.</strong> Vous pouvez arrêter à tout moment avant la fin
+           et vous ne payez rien. Sur iPad et iPhone, l'essai passe par votre compte App Store&nbsp;; sur le site,
+           votre carte est demandée mais rien n'est prélevé avant la fin, et vous recevez un rappel par e-mail.</p>
+        <p>Pas encore convaincu&nbsp;? Regardez la présentation en 2 minutes&nbsp;: <a href="{VIDEO_PRESENTATION}">{VIDEO_PRESENTATION}</a>,
+           ou explorez un compte d'exemple déjà rempli&nbsp;: <a href="{DEMO_URL}">{DEMO_URL}</a></p>"""
+    return 'Votre essai gratuit de 14 jours vous attend', _frame(
+        'Votre essai gratuit vous attend', body, 'Démarrer mon essai gratuit', PRICING_URL)
 
 
 def _relance_j5(name):
     body = f"""
-        <p>Bonjour {name},</p>
-        <p>Tu as créé ton compte ProfCalendar il y a quelques jours. La mise en route prend environ deux minutes&nbsp;:
-           tes classes, les heures de ton école, puis les vacances de ton canton. Cette vidéo la montre pas à pas&nbsp;:
+        <p>{_hello(name)}</p>
+        <p>Vous avez créé votre compte ProfCalendar il y a quelques jours. La mise en route prend environ deux minutes&nbsp;:
+           vos classes, les heures de votre école, puis les vacances de votre canton. Cette vidéo la montre pas à pas&nbsp;:
            <a href="{VIDEO_BIEN_DEMARRER}">{VIDEO_BIEN_DEMARRER}</a></p>
-        <p>Ton <strong>essai gratuit de 14 jours</strong> est toujours disponible&nbsp;: rien n'est débité pendant l'essai,
-           et tu peux arrêter à tout moment avant la fin.</p>
-        <p>Si quelque chose t'a freiné (une fonction qui manque, une question sur le prix, un souci technique),
-           dis-le-moi en répondant à ce message&nbsp;: c'est précieux pour améliorer l'outil.</p>"""
+        <p>Votre <strong>essai gratuit de 14 jours</strong> est toujours disponible&nbsp;: rien n'est débité pendant l'essai,
+           et vous pouvez arrêter à tout moment avant la fin.</p>
+        <p>Si quelque chose vous a freiné (une fonction qui manque, une question sur le prix, un souci technique),
+           dites-le-moi en répondant à ce message&nbsp;: c'est précieux pour améliorer l'outil.</p>"""
     return 'Besoin d’un coup de main pour démarrer ?', _frame(
         'Besoin d’un coup de main&nbsp;?', body, 'Démarrer mon essai gratuit', PRICING_URL)
 
@@ -101,14 +105,14 @@ def _relance_j5(name):
 def _fin_essai_apple(name, end):
     date = f"{end.day} {MOIS[end.month - 1]}"
     body = f"""
-        <p>Bonjour {name},</p>
-        <p>Ton essai gratuit de ProfCalendar se termine le <strong>{date}</strong>.</p>
-        <p>Si l'outil te convient, tu n'as rien à faire&nbsp;: ton abonnement démarre automatiquement
-           par l'App Store et tu gardes toutes tes données.</p>
-        <p>Si tu préfères arrêter, annule avant cette date sur ton iPad ou ton iPhone&nbsp;:
-           <strong>Réglages &gt; [ton nom] &gt; Abonnements &gt; ProfCalendar &gt; Annuler l'essai gratuit</strong>.
-           Tu ne paieras rien.</p>"""
-    return f'Ton essai ProfCalendar se termine le {date}', _frame('Ton essai se termine bientôt', body)
+        <p>{_hello(name)}</p>
+        <p>Votre essai gratuit de ProfCalendar se termine le <strong>{date}</strong>.</p>
+        <p>Si l'outil vous convient, vous n'avez rien à faire&nbsp;: votre abonnement démarre automatiquement
+           par l'App Store et vous gardez toutes vos données.</p>
+        <p>Si vous préférez arrêter, annulez avant cette date sur votre iPad ou votre iPhone&nbsp;:
+           <strong>Réglages &gt; [votre nom] &gt; Abonnements &gt; ProfCalendar &gt; Annuler l'essai gratuit</strong>.
+           Vous ne paierez rien.</p>"""
+    return f'Votre essai ProfCalendar se termine le {date}', _frame('Votre essai se termine bientôt', body)
 
 
 def _never_subscribed(user):

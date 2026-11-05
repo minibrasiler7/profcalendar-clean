@@ -61,7 +61,7 @@
             <div class="form-group">
                 {{ form.username.label(class="form-label") }}
                 <small style="color: var(--gray-color, #6B7280); display: block; margin: -0.15rem 0 0.4rem;">
-                    {{ _("Facultatif — c'est le nom affiché dans l'app. Laisse vide pour en générer un depuis ton email.") }}
+                    {{ _("Facultatif : c'est le nom affiché dans l'app. Laissez vide pour en générer un depuis votre e-mail.") }}
                 </small>
                 <div class="input-group">
                     <i class="fas fa-user input-icon"></i>
@@ -95,7 +95,7 @@
         
         <div class="auth-footer">
             <p>{{ _('Déjà inscrit ?') }} <a href="{{ url_for('auth.login') }}">{{ _('Connectez-vous') }}</a></p>
-            <p style="margin-top:0.5rem;"><a href="{{ url_for('demo.start') }}" rel="nofollow"><i class="fas fa-eye"></i> {{ _('Pas encore décidé ? Explore un compte d’exemple') }}</a></p>
+            <p style="margin-top:0.5rem;"><a href="{{ url_for('demo.start') }}" rel="nofollow"><i class="fas fa-eye"></i> {{ _('Pas encore décidé ? Explorez un compte d’exemple') }}</a></p>
         </div>
     </div>
 </div>

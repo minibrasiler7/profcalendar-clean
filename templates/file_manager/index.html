@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Gestionnaire de fichiers - ProfCalendar{% endblock %}
+{% block title %}{{ _('Gestionnaire de fichiers') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/file_manager.css') }}?v={{ range(1000,9999) | random }}">
@@ -11,19 +11,19 @@
     <!-- En-tête -->
     <div class="file-manager-header">
         <div class="header-top">
-            <h1><i class="fas fa-folder-open"></i> Gestionnaire de fichiers</h1>
+            <h1><i class="fas fa-folder-open"></i> {{ _('Gestionnaire de fichiers') }}</h1>
             <div class="header-actions">
                 <button class="btn btn-primary" onclick="showNewFolderModal()">
-                    <i class="fas fa-folder-plus"></i> Nouveau dossier
+                    <i class="fas fa-folder-plus"></i> {{ _('Nouveau dossier') }}
                 </button>
                 <button class="btn btn-success" onclick="document.getElementById('fileInputSingle').click()">
-                    <i class="fas fa-upload"></i> Uploader fichiers
+                    <i class="fas fa-upload"></i> {{ _('Uploader fichiers') }}
                 </button>
                 <button class="btn btn-info" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-folder-open"></i> Uploader dossier
+                    <i class="fas fa-folder-open"></i> {{ _('Uploader dossier') }}
                 </button>
                 <button class="btn btn-outline delete-mode-btn" onclick="toggleDeleteMode()" id="deleteModeBtn">
-                    <i class="fas fa-trash"></i> Supprimer
+                    <i class="fas fa-trash"></i> {{ _('Supprimer') }}
                 </button>
                 {# Pas d'accept ici : combiné à webkitdirectory, Safari peut renvoyer
                    une sélection VIDE (« Transférer » ne fait alors rien). Le tri par
@@ -38,15 +38,14 @@
         {% set _used_gb = total_size / (1024*1024*1024) %}
         {% set _used_mb = total_size / (1024*1024) %}
         {% set _percent = (total_size / max_storage * 100) if max_storage else 0 %}
+        {% set _used_str = ("%.2f"|format(_used_gb) ~ ' GB') if _used_gb >= 1 else ("%.1f"|format(_used_mb) ~ ' MB') %}
         <div class="storage-info">
             <div class="storage-bar">
                 <div class="storage-used"
                      style="width: {{ '%.1f'|format(_percent) }}%;{% if _percent >= 90 %} background: linear-gradient(90deg, #DC2626, #B91C1C);{% elif _percent >= 70 %} background: linear-gradient(90deg, #F59E0B, #D97706);{% endif %}"></div>
             </div>
             <span class="storage-text">
-                {% if _used_gb >= 1 %}{{ "%.2f"|format(_used_gb) }} GB{% else %}{{ "%.1f"|format(_used_mb) }} MB{% endif %}
-                / {{ "%.0f"|format(_max_gb) }} GB utilisés
-                ({{ "%.1f"|format(_percent) }} %)
+                {{ _('%(used)s / %(max)s GB utilisés (%(pct)s %%)', used=_used_str, max="%.0f"|format(_max_gb), pct="%.1f"|format(_percent)) }}
             </span>
         </div>
     </div>
@@ -57,32 +56,32 @@
             <!-- Zone de drop (upload depuis l'ordinateur) -->
             <div class="drop-zone" id="dropZone">
                 <i class="fas fa-cloud-upload-alt"></i>
-                <p>Glissez vos fichiers ou dossiers ici</p>
-                <p class="text-muted" style="font-size: 0.875rem;">Les dossiers seront importés avec leur structure complète</p>
+                <p>{{ _('Glissez vos fichiers ou dossiers ici') }}</p>
+                <p class="text-muted" style="font-size: 0.875rem;">{{ _('Les dossiers seront importés avec leur structure complète') }}</p>
             </div>
 
             <!-- Cible « déplacer à la racine » (visible pendant un glisser interne) -->
             <div id="fmRootDrop" class="fm-root-drop">
-                <i class="fas fa-home"></i> Déposer ici pour déplacer à la racine
+                <i class="fas fa-home"></i> {{ _('Déposer ici pour déplacer à la racine') }}
             </div>
 
             <!-- Arborescence (rendue côté client) -->
             <div class="file-tree" id="fileGrid">
-                <div class="tree-loading"><i class="fas fa-spinner fa-spin"></i> Chargement…</div>
+                <div class="tree-loading"><i class="fas fa-spinner fa-spin"></i> {{ _('Chargement…') }}</div>
             </div>
 
             <!-- État vide -->
             <div class="empty-state" id="fmEmptyState" style="display: none;">
                 <i class="fas fa-folder-open"></i>
-                <p>Aucun fichier pour le moment</p>
-                <p class="text-muted">Créez un dossier ou glissez des fichiers ici pour commencer</p>
+                <p>{{ _('Aucun fichier pour le moment') }}</p>
+                <p class="text-muted">{{ _('Créez un dossier ou glissez des fichiers ici pour commencer') }}</p>
             </div>
         </div>
 
         <!-- Section des classes -->
         <div class="classes-section" id="classesSection">
             <div class="classes-header">
-                <h3><i class="fas fa-chalkboard"></i> Mes classes</h3>
+                <h3><i class="fas fa-chalkboard"></i> {{ _('Mes classes') }}</h3>
             </div>
             <div class="classes-list" id="classesList">
                 <!-- Les classes seront chargées dynamiquement -->
@@ -94,10 +93,10 @@
     <div class="delete-actions" id="deleteActions" style="display: none;">
         <div class="delete-actions-content">
             <button class="btn btn-outline" onclick="cancelDeleteMode()">
-                <i class="fas fa-times"></i> Annuler
+                <i class="fas fa-times"></i> {{ _('Annuler') }}
             </button>
             <button class="btn btn-danger" onclick="deleteSelectedItems()" id="deleteSelectedBtn">
-                <i class="fas fa-trash"></i> Supprimer les 0 élément(s)
+                <i class="fas fa-trash"></i> {{ _('Supprimer les %(n)s élément(s)', n=0) }}
             </button>
         </div>
     </div>
@@ -107,7 +106,7 @@
 <div class="modal" id="newFolderModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3><i class="fas fa-folder-plus"></i> Nouveau dossier</h3>
+            <h3><i class="fas fa-folder-plus"></i> {{ _('Nouveau dossier') }}</h3>
             <button class="modal-close" onclick="closeModal('newFolderModal')">
                 <i class="fas fa-times"></i>
             </button>
@@ -117,12 +116,12 @@
                 <input type="hidden" id="newFolderParent" value="">
                 <p id="newFolderLocation" style="font-size: 0.85rem; color: #6B7280; margin-bottom: 0.75rem;"></p>
                 <div class="form-group">
-                    <label class="form-label">Nom du dossier</label>
+                    <label class="form-label">{{ _('Nom du dossier') }}</label>
                     <input type="text" id="folderName" class="form-control" required
-                           placeholder="Ex: Cours de mathématiques">
+                           placeholder="{{ _('Ex: Cours de mathématiques') }}">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Couleur</label>
+                    <label class="form-label">{{ _('Couleur') }}</label>
                     <div class="color-picker-grid">
                         <input type="radio" name="folderColor" value="#4F46E5" id="color1" checked>
                         <label for="color1" style="background-color: #4F46E5;"></label>
@@ -153,10 +152,10 @@
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-outline" onclick="closeModal('newFolderModal')">
-                Annuler
+                {{ _('Annuler') }}
             </button>
             <button type="submit" form="newFolderForm" class="btn btn-primary">
-                <i class="fas fa-check"></i> Créer
+                <i class="fas fa-check"></i> {{ _('Créer') }}
             </button>
         </div>
     </div>
@@ -166,7 +165,7 @@
 <div class="modal" id="previewModal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h3 id="previewTitle">Aperçu</h3>
+            <h3 id="previewTitle">{{ _('Aperçu') }}</h3>
             <button class="modal-close" onclick="closeModal('previewModal')">
                 <i class="fas fa-times"></i>
             </button>
@@ -181,7 +180,7 @@
 <div class="modal" id="renameModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3><i class="fas fa-edit"></i> Renommer</h3>
+            <h3><i class="fas fa-edit"></i> {{ _('Renommer') }}</h3>
             <button class="modal-close" onclick="closeModal('renameModal')">
                 <i class="fas fa-times"></i>
             </button>
@@ -191,17 +190,17 @@
                 <input type="hidden" id="renameType">
                 <input type="hidden" id="renameId">
                 <div class="form-group">
-                    <label class="form-label">Nouveau nom</label>
+                    <label class="form-label">{{ _('Nouveau nom') }}</label>
                     <input type="text" id="renameName" class="form-control" required>
                 </div>
             </form>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-outline" onclick="closeModal('renameModal')">
-                Annuler
+                {{ _('Annuler') }}
             </button>
             <button type="submit" form="renameForm" class="btn btn-primary">
-                <i class="fas fa-check"></i> Renommer
+                <i class="fas fa-check"></i> {{ _('Renommer') }}
             </button>
         </div>
     </div>
@@ -211,7 +210,7 @@
 <div class="modal" id="colorModal">
     <div class="modal-content" style="max-width: 340px;">
         <div class="modal-header">
-            <h3><i class="fas fa-palette"></i> Couleur du dossier</h3>
+            <h3><i class="fas fa-palette"></i> {{ _('Couleur du dossier') }}</h3>
             <button class="modal-close" onclick="closeModal('colorModal')">
                 <i class="fas fa-times"></i>
             </button>
@@ -227,7 +226,7 @@
 <div class="modal" id="moveModal">
     <div class="modal-content" style="max-width: 420px;">
         <div class="modal-header">
-            <h3><i class="fas fa-folder-open" style="color:#6366F1;"></i> Déplacer vers…</h3>
+            <h3><i class="fas fa-folder-open" style="color:#6366F1;"></i> {{ _('Déplacer vers…') }}</h3>
             <button class="modal-close" onclick="closeMoveModal()">
                 <i class="fas fa-times"></i>
             </button>
@@ -241,7 +240,7 @@
 <!-- Indicateur de progression -->
 <div class="upload-progress" id="uploadProgress">
     <div class="progress-header">
-        <span>Upload en cours...</span>
+        <span>{{ _('Upload en cours...') }}</span>
         <span id="progressPercent">0%</span>
     </div>
     <div class="progress-bar">
@@ -364,6 +363,81 @@ body.fm-dragging .class-item {
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/file_manager.js') }}?v={{ range(100000, 999999) | random }}"></script>
 <script>
+// Chaînes traduites pour le JS (échappées via |tojson). Les jetons {n}, {name},
+// {error}… sont remplacés en JS via fmT() (pas de % : pas de printf côté JS).
+const FILES_I18N = {
+    loadError: {{ _('Erreur de chargement')|tojson }},
+    retry: {{ _('réessayer')|tojson }},
+    filesCount: {{ _('{n} fichier(s)')|tojson }},
+    color: {{ _('Couleur')|tojson }},
+    moveTo: {{ _('Déplacer vers…')|tojson }},
+    rename: {{ _('Renommer')|tojson }},
+    delete: {{ _('Supprimer')|tojson }},
+    download: {{ _('Télécharger')|tojson }},
+    confirmation: {{ _('Confirmation')|tojson }},
+    cancel: {{ _('Annuler')|tojson }},
+    confirmDeleteFileNamed: {{ _('Supprimer « {name} » ? Cette action est définitive.')|tojson }},
+    confirmDeleteThisFile: {{ _('Supprimer ce fichier ? Cette action est définitive.')|tojson }},
+    confirmDeleteFolderNamed: {{ _('Supprimer le dossier « {name} » ? Cette action est définitive.')|tojson }},
+    confirmDeleteFolderNamedFiles: {{ _('Supprimer le dossier « {name} » et ses {n} fichier(s) ? Cette action est définitive.')|tojson }},
+    confirmDeleteThisFolder: {{ _('Supprimer ce dossier ? Cette action est définitive.')|tojson }},
+    confirmDeleteThisFolderFiles: {{ _('Supprimer ce dossier et ses {n} fichier(s) ? Cette action est définitive.')|tojson }},
+    confirmDeleteItems: {{ _('Supprimer {n} élément(s) ? Cette action est définitive.')|tojson }},
+    confirmDeleteFiles: {{ _('Supprimer {n} fichier(s) ? Cette action est définitive.')|tojson }},
+    confirmDeleteFolders: {{ _('Supprimer {n} dossier(s) et leur contenu ? Cette action est définitive.')|tojson }},
+    confirmDeleteFilesFolders: {{ _('Supprimer {files} fichier(s) et {folders} dossier(s) et leur contenu ? Cette action est définitive.')|tojson }},
+    fileDeleted: {{ _('Fichier supprimé')|tojson }},
+    folderDeleted: {{ _('Dossier supprimé')|tojson }},
+    itemsDeleted: {{ _('{n} élément(s) supprimé(s)')|tojson }},
+    deleteError: {{ _('Erreur lors de la suppression')|tojson }},
+    connectionError: {{ _('Erreur de connexion')|tojson }},
+    renamed: {{ _('Renommé avec succès')|tojson }},
+    renameError: {{ _('Erreur lors du renommage')|tojson }},
+    colorUpdated: {{ _('Couleur mise à jour')|tojson }},
+    updateError: {{ _('Erreur lors de la mise à jour')|tojson }},
+    willBeCreatedIn: {{ _('Sera créé dans « {name} »')|tojson }},
+    willBeCreatedAtRoot: {{ _('Sera créé à la racine')|tojson }},
+    folderCreated: {{ _('Dossier créé')|tojson }},
+    createFolderError: {{ _('Erreur lors de la création du dossier')|tojson }},
+    root: {{ _('Racine')|tojson }},
+    moveImpossible: {{ _('Déplacement impossible (un dossier ne peut pas aller dans lui-même)')|tojson }},
+    movedToNamed: {{ _('Déplacé vers « {name} »')|tojson }},
+    movedToRoot: {{ _('Déplacé vers la racine')|tojson }},
+    nMovedToNamed: {{ _('{n} éléments déplacés vers « {name} »')|tojson }},
+    nMovedToRoot: {{ _('{n} éléments déplacés vers la racine')|tojson }},
+    nItems: {{ _('{n} éléments')|tojson }},
+    uploaded: {{ _('{name} uploadé avec succès')|tojson }},
+    uploadError: {{ _("Erreur lors de l'upload de {name}")|tojson }},
+    serverError: {{ _('erreur serveur ({status})')|tojson }},
+    connectionLost: {{ _('connexion interrompue — réessayez')|tojson }},
+    nUploaded: {{ _('{n} fichier(s) uploadé(s)')|tojson }},
+    nSkipped: {{ _('{n} déjà présent(s), ignoré(s)')|tojson }},
+    failureLine: {{ _('• {name} : {reason}')|tojson }},
+    failureMore: {{ _('… et {n} autre(s)')|tojson }},
+    nNotCopied: {{ _('{n} fichier(s) NON copié(s) :')|tojson }},
+    moveNItems: {{ _('Déplacer les {n} éléments vers…')|tojson }},
+    deleteNItems: {{ _('Supprimer les {n} éléments')|tojson }},
+    deselectAll: {{ _('Tout désélectionner')|tojson }},
+    collapse: {{ _('Réduire')|tojson }},
+    open: {{ _('Ouvrir')|tojson }},
+    newFolderHere: {{ _('Nouveau dossier ici')|tojson }},
+    preview: {{ _('Aperçu')|tojson }},
+    openInTab: {{ _('Ouvrir dans un onglet')|tojson }},
+    newFolder: {{ _('Nouveau dossier')|tojson }},
+    uploadFiles: {{ _('Uploader des fichiers')|tojson }},
+    uploadFolder: {{ _('Uploader un dossier')|tojson }}
+};
+// Remplace les jetons {clé} d'une chaîne FILES_I18N
+function fmT(key, vars) {
+    let s = FILES_I18N[key];
+    for (const k in (vars || {})) s = s.split('{' + k + '}').join(String(vars[k]));
+    return s;
+}
+// Échappement pour les chaînes insérées via innerHTML
+function fmEsc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // ============================================================================
 // EXPLORATEUR DE FICHIERS — arbre rendu côté client, actions sans rechargement
 // ----------------------------------------------------------------------------
@@ -428,7 +502,7 @@ async function refreshTree() {
         console.error('Erreur chargement arborescence:', e);
         const grid = document.getElementById('fileGrid');
         if (!FM.loaded && grid) {
-            grid.innerHTML = '<div class="tree-loading">Erreur de chargement — <a href="#" onclick="refreshTree(); return false;">réessayer</a></div>';
+            grid.innerHTML = '<div class="tree-loading">' + fmEsc(FILES_I18N.loadError) + ' — <a href="#" onclick="refreshTree(); return false;">' + fmEsc(FILES_I18N.retry) + '</a></div>';
         }
     }
 }
@@ -529,12 +603,12 @@ function fmFolderNode(folder, depth) {
             <i class="fas fa-folder${isOpen ? '-open' : ''}"></i>
         </div>
         <div class="item-name"></div>
-        <div class="item-info">${fmCountFiles(folder.id)} fichier(s)</div>
+        <div class="item-info">${fmEsc(fmT('filesCount', { n: fmCountFiles(folder.id) }))}</div>
         <div class="item-actions">
-            <button class="action-btn" data-action="color" title="Couleur"><i class="fas fa-palette"></i></button>
-            <button class="action-btn" data-action="move" title="Déplacer vers…"><i class="fas fa-folder-open"></i></button>
-            <button class="action-btn" data-action="rename" title="Renommer"><i class="fas fa-edit"></i></button>
-            <button class="action-btn danger" data-action="delete" title="Supprimer"><i class="fas fa-trash"></i></button>
+            <button class="action-btn" data-action="color" title="${fmEsc(FILES_I18N.color)}"><i class="fas fa-palette"></i></button>
+            <button class="action-btn" data-action="move" title="${fmEsc(FILES_I18N.moveTo)}"><i class="fas fa-folder-open"></i></button>
+            <button class="action-btn" data-action="rename" title="${fmEsc(FILES_I18N.rename)}"><i class="fas fa-edit"></i></button>
+            <button class="action-btn danger" data-action="delete" title="${fmEsc(FILES_I18N.delete)}"><i class="fas fa-trash"></i></button>
         </div>`;
     const nameEl = row.querySelector('.item-name');
     nameEl.textContent = folder.name;
@@ -591,10 +665,10 @@ function fmFileRow(file, depth) {
         <div class="item-name"></div>
         <div class="item-info">${fmHumanSize(file.size)}</div>
         <div class="item-actions">
-            <a href="/file_manager/download-file/${file.id}" class="action-btn" title="Télécharger"><i class="fas fa-download"></i></a>
-            <button class="action-btn" data-action="move" title="Déplacer vers…"><i class="fas fa-folder-open"></i></button>
-            <button class="action-btn" data-action="rename" title="Renommer"><i class="fas fa-edit"></i></button>
-            <button class="action-btn danger" data-action="delete" title="Supprimer"><i class="fas fa-trash"></i></button>
+            <a href="/file_manager/download-file/${file.id}" class="action-btn" title="${fmEsc(FILES_I18N.download)}"><i class="fas fa-download"></i></a>
+            <button class="action-btn" data-action="move" title="${fmEsc(FILES_I18N.moveTo)}"><i class="fas fa-folder-open"></i></button>
+            <button class="action-btn" data-action="rename" title="${fmEsc(FILES_I18N.rename)}"><i class="fas fa-edit"></i></button>
+            <button class="action-btn danger" data-action="delete" title="${fmEsc(FILES_I18N.delete)}"><i class="fas fa-trash"></i></button>
         </div>`;
     const nameEl = row.querySelector('.item-name');
     nameEl.textContent = file.name;
@@ -685,12 +759,12 @@ function fmConfirm(message, onOk, okLabel) {
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 420px;">
             <div class="modal-header">
-                <h3><i class="fas fa-exclamation-triangle" style="color: #F59E0B;"></i> Confirmation</h3>
+                <h3><i class="fas fa-exclamation-triangle" style="color: #F59E0B;"></i> ${fmEsc(FILES_I18N.confirmation)}</h3>
             </div>
             <div class="modal-body"><p></p></div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline" data-role="cancel"><i class="fas fa-times"></i> Annuler</button>
-                <button type="button" class="btn btn-danger" data-role="ok"><i class="fas fa-trash"></i> ${okLabel || 'Supprimer'}</button>
+                <button type="button" class="btn btn-outline" data-role="cancel"><i class="fas fa-times"></i> ${fmEsc(FILES_I18N.cancel)}</button>
+                <button type="button" class="btn btn-danger" data-role="ok"><i class="fas fa-trash"></i> ${fmEsc(okLabel || FILES_I18N.delete)}</button>
             </div>
         </div>`;
     modal.querySelector('.modal-body p').textContent = message;
@@ -704,8 +778,8 @@ function fmConfirm(message, onOk, okLabel) {
 async function deleteFile(fileId) {
     fileId = parseInt(fileId);
     const file = FM.files.find(f => f.id === fileId);
-    const label = file ? `« ${file.name} »` : 'ce fichier';
-    fmConfirm(`Supprimer ${label} ? Cette action est définitive.`, async () => {
+    const msg = file ? fmT('confirmDeleteFileNamed', { name: file.name }) : FILES_I18N.confirmDeleteThisFile;
+    fmConfirm(msg, async () => {
         const row = document.querySelector(`#fileGrid .file-item.file[data-id="${fileId}"]`);
         if (row) row.classList.add('fm-removing');
         try {
@@ -715,14 +789,14 @@ async function deleteFile(fileId) {
                 FM.files = FM.files.filter(f => f.id !== fileId);
                 fmIndex();
                 fmRender();
-                showNotification('success', 'Fichier supprimé');
+                showNotification('success', FILES_I18N.fileDeleted);
             } else {
                 if (row) row.classList.remove('fm-removing');
-                showNotification('error', result.message || 'Erreur lors de la suppression');
+                showNotification('error', result.message || FILES_I18N.deleteError);
             }
         } catch (e) {
             if (row) row.classList.remove('fm-removing');
-            showNotification('error', 'Erreur de connexion');
+            showNotification('error', FILES_I18N.connectionError);
         }
     });
 }
@@ -730,20 +804,22 @@ async function deleteFile(fileId) {
 async function deleteFolder(folderId) {
     folderId = parseInt(folderId);
     const folder = FM.folderById.get(folderId);
-    const label = folder ? `le dossier « ${folder.name} »` : 'ce dossier';
     const n = fmCountFiles(folderId);
-    fmConfirm(`Supprimer ${label}${n ? ` et ses ${n} fichier(s)` : ''} ? Cette action est définitive.`, async () => {
+    const msg = folder
+        ? (n ? fmT('confirmDeleteFolderNamedFiles', { name: folder.name, n }) : fmT('confirmDeleteFolderNamed', { name: folder.name }))
+        : (n ? fmT('confirmDeleteThisFolderFiles', { n }) : FILES_I18N.confirmDeleteThisFolder);
+    fmConfirm(msg, async () => {
         try {
             const response = await fetch(`/file_manager/delete-folder/${folderId}`, { method: 'DELETE' });
             const result = await response.json();
             if (result.success) {
-                showNotification('success', 'Dossier supprimé');
+                showNotification('success', FILES_I18N.folderDeleted);
                 await refreshTree();
             } else {
-                showNotification('error', result.message || 'Erreur lors de la suppression');
+                showNotification('error', result.message || FILES_I18N.deleteError);
             }
         } catch (e) {
-            showNotification('error', 'Erreur de connexion');
+            showNotification('error', FILES_I18N.connectionError);
         }
     });
 }
@@ -762,13 +838,13 @@ async function saveRename(e) {
         const result = await response.json();
         if (result.success) {
             closeModal('renameModal');
-            showNotification('success', 'Renommé avec succès');
+            showNotification('success', FILES_I18N.renamed);
             await refreshTree();
         } else {
-            showNotification('error', result.message || 'Erreur lors du renommage');
+            showNotification('error', result.message || FILES_I18N.renameError);
         }
     } catch (err) {
-        showNotification('error', 'Erreur de connexion');
+        showNotification('error', FILES_I18N.connectionError);
     }
 }
 
@@ -800,12 +876,12 @@ async function updateFolderColor(folderId, color) {
             if (folder) folder.color = color;
             closeModal('colorModal');
             fmRender();
-            showNotification('success', 'Couleur mise à jour');
+            showNotification('success', FILES_I18N.colorUpdated);
         } else {
-            showNotification('error', result.message || 'Erreur lors de la mise à jour');
+            showNotification('error', result.message || FILES_I18N.updateError);
         }
     } catch (e) {
-        showNotification('error', 'Erreur de connexion');
+        showNotification('error', FILES_I18N.connectionError);
     }
 }
 
@@ -813,7 +889,7 @@ async function deleteSelectedItems() {
     const selectedCheckboxes = document.querySelectorAll('.delete-checkbox:checked');
     if (selectedCheckboxes.length === 0) return;
     const items = Array.from(selectedCheckboxes).map(cb => ({ id: cb.dataset.id, type: cb.dataset.type }));
-    fmConfirm(`Supprimer ${items.length} élément(s) ? Cette action est définitive.`, async () => {
+    fmConfirm(fmT('confirmDeleteItems', { n: items.length }), async () => {
         try {
             const response = await fetch('/file_manager/delete-multiple', {
                 method: 'DELETE',
@@ -822,14 +898,14 @@ async function deleteSelectedItems() {
             });
             const result = await response.json();
             if (result.success) {
-                showNotification('success', `${items.length} élément(s) supprimé(s)`);
+                showNotification('success', fmT('itemsDeleted', { n: items.length }));
                 cancelDeleteMode();
                 await refreshTree();
             } else {
-                showNotification('error', result.message || 'Erreur lors de la suppression');
+                showNotification('error', result.message || FILES_I18N.deleteError);
             }
         } catch (e) {
-            showNotification('error', 'Erreur lors de la suppression');
+            showNotification('error', FILES_I18N.deleteError);
         }
     });
 }
@@ -839,7 +915,7 @@ function showNewFolderModal(parentId = null) {
     document.getElementById('newFolderParent').value = parentId || '';
     const parent = parentId ? FM.folderById.get(parseInt(parentId)) : null;
     document.getElementById('newFolderLocation').textContent =
-        parent ? `Sera créé dans « ${parent.name} »` : 'Sera créé à la racine';
+        parent ? fmT('willBeCreatedIn', { name: parent.name }) : FILES_I18N.willBeCreatedAtRoot;
     document.getElementById('newFolderModal').classList.add('show');
     document.getElementById('folderName').value = '';
     document.getElementById('folderName').focus();
@@ -861,13 +937,13 @@ async function createFolder(e) {
         if (result.success) {
             closeModal('newFolderModal');
             if (parent_id) FM.expanded.add(parent_id);
-            showNotification('success', 'Dossier créé');
+            showNotification('success', FILES_I18N.folderCreated);
             await refreshTree();
         } else {
-            showNotification('error', result.message || 'Erreur lors de la création du dossier');
+            showNotification('error', result.message || FILES_I18N.createFolderError);
         }
     } catch (err) {
-        showNotification('error', 'Erreur lors de la création du dossier');
+        showNotification('error', FILES_I18N.createFolderError);
     }
 }
 
@@ -905,7 +981,7 @@ function openMoveModal(itemType, itemId) {
         list.appendChild(opt);
     };
 
-    mkOption('Racine', '<i class="fas fa-home" style="color:#6B7280;"></i>', null, 0);
+    mkOption(FILES_I18N.root, '<i class="fas fa-home" style="color:#6B7280;"></i>', null, 0);
     const walk = (parentId, depth) => {
         for (const f of (FM.byParent.get(parentId) || [])) {
             if (forbidden.has(f.id)) continue;
@@ -959,7 +1035,7 @@ async function fmMoveItems(items, folderId) {
         !(it.type === 'folder' && folderId && (it.id === folderId || fmIsDescendantOf(folderId, it.id)))
     );
     if (!valid.length) {
-        showNotification('error', 'Déplacement impossible (un dossier ne peut pas aller dans lui-même)');
+        showNotification('error', FILES_I18N.moveImpossible);
         return;
     }
     let ok = 0;
@@ -980,7 +1056,7 @@ async function fmMoveItems(items, folderId) {
                 firstError = data.error;
             }
         } catch (e) {
-            if (!firstError) firstError = 'Erreur de connexion';
+            if (!firstError) firstError = FILES_I18N.connectionError;
         }
     }
     if (folderId) FM.expanded.add(folderId);
@@ -988,8 +1064,10 @@ async function fmMoveItems(items, folderId) {
     fmRender();
     fmSaveExpanded();
     if (ok) {
-        const destName = folderId ? `« ${(FM.folderById.get(folderId) || {}).name} »` : 'la racine';
-        showNotification('success', ok === 1 ? `Déplacé vers ${destName}` : `${ok} éléments déplacés vers ${destName}`);
+        const destName = folderId ? (FM.folderById.get(folderId) || {}).name : null;
+        showNotification('success', folderId
+            ? (ok === 1 ? fmT('movedToNamed', { name: destName }) : fmT('nMovedToNamed', { n: ok, name: destName }))
+            : (ok === 1 ? FILES_I18N.movedToRoot : fmT('nMovedToRoot', { n: ok })));
         for (const it of valid) {
             const moved = document.querySelector(`#fileGrid .file-item[data-type="${it.type}"][data-id="${it.id}"]`);
             if (moved) {
@@ -1027,7 +1105,7 @@ function fmDragStartCommon(e, type, id) {
     if (items.length > 1) {
         const ghost = document.getElementById('fmDragGhost');
         if (ghost) {
-            ghost.textContent = `${items.length} éléments`;
+            ghost.textContent = fmT('nItems', { n: items.length });
             try { e.dataTransfer.setDragImage(ghost, 20, 15); } catch (err) {}
         }
     }
@@ -1180,13 +1258,13 @@ async function uploadFile(file) {
             xhr.send(formData);
         });
         if (response.success) {
-            showNotification('success', `${file.name} uploadé avec succès`);
+            showNotification('success', fmT('uploaded', { name: file.name }));
         } else {
-            showNotification('error', response.message || `Erreur lors de l'upload de ${file.name}`);
+            showNotification('error', response.message || fmT('uploadError', { name: file.name }));
         }
     } catch (error) {
         console.error('Erreur upload:', error);
-        showNotification('error', `Erreur lors de l'upload de ${file.name}`);
+        showNotification('error', fmT('uploadError', { name: file.name }));
     }
 }
 
@@ -1239,12 +1317,12 @@ async function uploadFilesWithStructure(filesData, preErrors = []) {
                         resolve();
                     }
                     else {
-                        let msg = `erreur serveur (${xhr.status})`;
+                        let msg = fmT('serverError', { status: xhr.status });
                         try { msg = JSON.parse(xhr.responseText).message || msg; } catch (e) {}
                         reject(new Error(msg));
                     }
                 };
-                xhr.onerror = () => reject(new Error('connexion interrompue — réessayez'));
+                xhr.onerror = () => reject(new Error(FILES_I18N.connectionLost));
                 xhr.open('POST', '/file_manager/upload-with-structure');
                 xhr.send(formData);
             });
@@ -1257,8 +1335,8 @@ async function uploadFilesWithStructure(filesData, preErrors = []) {
     hideUploadProgress();
     if (uploadedCount > 0 || skippedCount > 0) {
         const parts = [];
-        if (uploadedCount > 0) parts.push(`${uploadedCount} fichier(s) uploadé(s)`);
-        if (skippedCount > 0) parts.push(`${skippedCount} déjà présent(s), ignoré(s)`);
+        if (uploadedCount > 0) parts.push(fmT('nUploaded', { n: uploadedCount }));
+        if (skippedCount > 0) parts.push(fmT('nSkipped', { n: skippedCount }));
         showNotification('success', parts.join(' — '));
     }
     reportUploadFailures(failures);
@@ -1270,11 +1348,11 @@ async function uploadFilesWithStructure(filesData, preErrors = []) {
 function reportUploadFailures(failures) {
     if (!failures || failures.length === 0) return;
     const details = failures.slice(0, 6)
-        .map(f => `• ${f.name} : ${f.reason}`)
+        .map(f => fmT('failureLine', { name: f.name, reason: f.reason }))
         .join('\n');
-    const extra = failures.length > 6 ? `\n… et ${failures.length - 6} autre(s)` : '';
+    const extra = failures.length > 6 ? '\n' + fmT('failureMore', { n: failures.length - 6 }) : '';
     showNotification('error',
-        `${failures.length} fichier(s) NON copié(s) :\n${details}${extra}`, 15000);
+        fmT('nNotCopied', { n: failures.length }) + '\n' + details + extra, 15000);
 }
 
 // -------------------------------------------------- notifications visibles
@@ -1369,10 +1447,10 @@ function fmDeleteSelection() {
     if (!items.length) return;
     const nFiles = items.filter(i => i.type === 'file').length;
     const nFolders = items.length - nFiles;
-    const parts = [];
-    if (nFiles) parts.push(`${nFiles} fichier(s)`);
-    if (nFolders) parts.push(`${nFolders} dossier(s) et leur contenu`);
-    fmConfirm(`Supprimer ${parts.join(' et ')} ? Cette action est définitive.`, async () => {
+    const msg = nFiles && nFolders
+        ? fmT('confirmDeleteFilesFolders', { files: nFiles, folders: nFolders })
+        : (nFiles ? fmT('confirmDeleteFiles', { n: nFiles }) : fmT('confirmDeleteFolders', { n: nFolders }));
+    fmConfirm(msg, async () => {
         try {
             const response = await fetch('/file_manager/delete-multiple', {
                 method: 'DELETE',
@@ -1381,14 +1459,14 @@ function fmDeleteSelection() {
             });
             const result = await response.json();
             if (result.success) {
-                showNotification('success', `${items.length} élément(s) supprimé(s)`);
+                showNotification('success', fmT('itemsDeleted', { n: items.length }));
                 fmClearSelection();
                 await refreshTree();
             } else {
-                showNotification('error', result.message || 'Erreur lors de la suppression');
+                showNotification('error', result.message || FILES_I18N.deleteError);
             }
         } catch (e) {
-            showNotification('error', 'Erreur lors de la suppression');
+            showNotification('error', FILES_I18N.deleteError);
         }
     });
 }
@@ -1659,43 +1737,43 @@ function showContextMenu(e, item) {
     // Sélection multiple : menu groupé
     if (FM.selection.size > 1) {
         const n = FM.selection.size;
-        fmMenuItem(menu, 'fas fa-arrows-alt', `Déplacer les ${n} éléments vers…`, () => openMoveModal('selection'));
+        fmMenuItem(menu, 'fas fa-arrows-alt', fmT('moveNItems', { n }), () => openMoveModal('selection'));
         fmMenuSeparator(menu);
-        fmMenuItem(menu, 'fas fa-trash', `Supprimer les ${n} éléments`, () => fmDeleteSelection(), true);
+        fmMenuItem(menu, 'fas fa-trash', fmT('deleteNItems', { n }), () => fmDeleteSelection(), true);
         fmMenuSeparator(menu);
-        fmMenuItem(menu, 'fas fa-times', 'Tout désélectionner', () => fmClearSelection());
+        fmMenuItem(menu, 'fas fa-times', FILES_I18N.deselectAll, () => fmClearSelection());
         return;
     }
 
     if (type === 'folder') {
         const folder = FM.folderById.get(id) || { name: '' };
         const isOpen = FM.expanded.has(id);
-        fmMenuItem(menu, 'fas fa-folder-open', isOpen ? 'Réduire' : 'Ouvrir', () => fmToggleFolder(id));
-        fmMenuItem(menu, 'fas fa-folder-plus', 'Nouveau dossier ici', () => showNewFolderModal(id));
+        fmMenuItem(menu, 'fas fa-folder-open', isOpen ? FILES_I18N.collapse : FILES_I18N.open, () => fmToggleFolder(id));
+        fmMenuItem(menu, 'fas fa-folder-plus', FILES_I18N.newFolderHere, () => showNewFolderModal(id));
         fmMenuSeparator(menu);
-        fmMenuItem(menu, 'fas fa-palette', 'Couleur', () => showColorPicker(id));
-        fmMenuItem(menu, 'fas fa-arrows-alt', 'Déplacer vers…', () => openMoveModal('folder', id));
-        fmMenuItem(menu, 'fas fa-edit', 'Renommer', () => renameItem('folder', id, folder.name));
+        fmMenuItem(menu, 'fas fa-palette', FILES_I18N.color, () => showColorPicker(id));
+        fmMenuItem(menu, 'fas fa-arrows-alt', FILES_I18N.moveTo, () => openMoveModal('folder', id));
+        fmMenuItem(menu, 'fas fa-edit', FILES_I18N.rename, () => renameItem('folder', id, folder.name));
         fmMenuSeparator(menu);
-        fmMenuItem(menu, 'fas fa-trash', 'Supprimer', () => deleteFolder(id), true);
+        fmMenuItem(menu, 'fas fa-trash', FILES_I18N.delete, () => deleteFolder(id), true);
     } else {
         const file = FM.files.find(f => f.id === id) || { name: '', type: '' };
-        fmMenuItem(menu, 'fas fa-eye', 'Aperçu', () => previewFile(id, file.type));
-        fmMenuItem(menu, 'fas fa-external-link-alt', 'Ouvrir dans un onglet', () => window.open(`/file_manager/preview/${id}`, '_blank'));
-        fmMenuItem(menu, 'fas fa-download', 'Télécharger', () => { window.location.href = `/file_manager/download-file/${id}`; });
+        fmMenuItem(menu, 'fas fa-eye', FILES_I18N.preview, () => previewFile(id, file.type));
+        fmMenuItem(menu, 'fas fa-external-link-alt', FILES_I18N.openInTab, () => window.open(`/file_manager/preview/${id}`, '_blank'));
+        fmMenuItem(menu, 'fas fa-download', FILES_I18N.download, () => { window.location.href = `/file_manager/download-file/${id}`; });
         fmMenuSeparator(menu);
-        fmMenuItem(menu, 'fas fa-arrows-alt', 'Déplacer vers…', () => openMoveModal('file', id));
-        fmMenuItem(menu, 'fas fa-edit', 'Renommer', () => renameItem('file', id, file.name));
+        fmMenuItem(menu, 'fas fa-arrows-alt', FILES_I18N.moveTo, () => openMoveModal('file', id));
+        fmMenuItem(menu, 'fas fa-edit', FILES_I18N.rename, () => renameItem('file', id, file.name));
         fmMenuSeparator(menu);
-        fmMenuItem(menu, 'fas fa-trash', 'Supprimer', () => deleteFile(id), true);
+        fmMenuItem(menu, 'fas fa-trash', FILES_I18N.delete, () => deleteFile(id), true);
     }
 }
 
 function showEmptySpaceContextMenu(e) {
     const menu = fmShowMenu(e);
-    fmMenuItem(menu, 'fas fa-folder-plus', 'Nouveau dossier', () => showNewFolderModal());
-    fmMenuItem(menu, 'fas fa-upload', 'Uploader des fichiers', () => document.getElementById('fileInputSingle').click());
-    fmMenuItem(menu, 'fas fa-folder-open', 'Uploader un dossier', () => document.getElementById('fileInput').click());
+    fmMenuItem(menu, 'fas fa-folder-plus', FILES_I18N.newFolder, () => showNewFolderModal());
+    fmMenuItem(menu, 'fas fa-upload', FILES_I18N.uploadFiles, () => document.getElementById('fileInputSingle').click());
+    fmMenuItem(menu, 'fas fa-folder-open', FILES_I18N.uploadFolder, () => document.getElementById('fileInput').click());
 }
 
 // ---------------------------------------------------------------- démarrage
