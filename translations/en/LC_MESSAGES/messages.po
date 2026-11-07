@@ -13908,6 +13908,9 @@ msgstr "your card is requested, but nothing is charged before the trial ends. Ca
 msgid "Commencez par créer vos classes"
 msgstr "Start by creating your classes"
 
+msgid "Vous ajouterez ensuite vos élèves sur cette page."
+msgstr "You will then add your students on this page."
+
 msgid "Cette page se remplit dès que vos classes et votre horaire sont en place. Cela prend environ deux minutes."
 msgstr "This page fills up as soon as your classes and timetable are set up. It takes about two minutes."
 

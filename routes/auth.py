@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
 from extensions import db
@@ -141,7 +141,12 @@ def login():
                 session['pending_totp_next'] = request.args.get('next', '')
                 return redirect(url_for('auth.verify_totp'))
 
+            # Langue choisie avant la connexion, sinon celle du compte : sans ça,
+            # session.clear() ramenait l'interface à la langue du navigateur.
+            lang = session.get('lang') or user.locale
             session.clear()  # Nettoyer la session pour éviter les conflits
+            if lang in current_app.config.get('LANGUAGES', {}):
+                session['lang'] = lang
             session['user_type'] = 'teacher'  # Marquer comme enseignant dans la session
             login_user(user, remember=True)
             _remember_locale(user)

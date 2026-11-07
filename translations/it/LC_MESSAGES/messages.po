@@ -13908,6 +13908,9 @@ msgstr "ti viene chiesta la carta, ma non viene addebitato nulla prima della fin
 msgid "Commencez par créer vos classes"
 msgstr "Inizia creando le tue classi"
 
+msgid "Vous ajouterez ensuite vos élèves sur cette page."
+msgstr "Poi aggiungerai i tuoi allievi in questa pagina."
+
 msgid "Cette page se remplit dès que vos classes et votre horaire sont en place. Cela prend environ deux minutes."
 msgstr "Questa pagina si riempie non appena le tue classi e il tuo orario sono pronti. Ci vogliono circa due minuti."
 

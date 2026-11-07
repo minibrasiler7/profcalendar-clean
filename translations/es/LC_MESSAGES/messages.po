@@ -13908,6 +13908,9 @@ msgstr "se pide tu tarjeta, pero no se cobra nada antes de que termine la prueba
 msgid "Commencez par créer vos classes"
 msgstr "Empieza creando tus clases"
 
+msgid "Vous ajouterez ensuite vos élèves sur cette page."
+msgstr "Después añadirás a tus alumnos en esta página."
+
 msgid "Cette page se remplit dès que vos classes et votre horaire sont en place. Cela prend environ deux minutes."
 msgstr "Esta página se llena en cuanto tus clases y tu horario están listos. Tarda unos dos minutos."
 

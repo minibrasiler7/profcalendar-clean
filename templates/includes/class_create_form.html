@@ -1,0 +1,68 @@
+{# Création de plusieurs classes d'un coup (nom, matière, couleur) : POST JSON
+   vers /setup/api/classrooms/bulk-create, puis rechargement de la page.
+   Inclus par le démarrage guidé du tableau de bord et par la gestion de classe
+   tant qu'aucune classe n'existe (novembre 2026 : un abonné en essai a touché
+   quatre fois « Gestion de classe », renvoyé chaque fois au tableau de bord).
+   Les styles .onb-* viennent de la page qui l'inclut. #}
+<form id="onbClassesForm" class="onb-form" onsubmit="return onbCreateClasses(event)">
+    <div id="onbClassRows">
+        <div class="onb-row">
+            <input type="text" name="name" placeholder="{{ _('Nom (ex. 9VP2)') }}" required maxlength="100" autocomplete="off">
+            <input type="text" name="subject" placeholder="{{ _('Matière (ex. Maths)') }}" required maxlength="100" autocomplete="off">
+            <input type="color" name="color" value="#4F46E5" title="{{ _('Couleur') }}">
+        </div>
+    </div>
+    <div class="onb-form-actions">
+        <button type="submit" class="onb-cta" id="onboarding-primary-cta" style="margin-top:0;">
+            <i class="fas fa-check"></i> {{ _('Créer mes classes') }}
+        </button>
+        <button type="button" class="onb-link" onclick="onbAddClassRow()">
+            <i class="fas fa-plus"></i> {{ _('Une autre classe') }}
+        </button>
+    </div>
+    <p id="onbClassesError" style="display:none; margin-top:0.5rem; color:#B91C1C; font-size:0.85rem;"></p>
+</form>
+<script>
+function onbAddClassRow() {
+    var rows = document.getElementById('onbClassRows');
+    if (!rows || !rows.firstElementChild) return;
+    var clone = rows.firstElementChild.cloneNode(true);
+    clone.querySelectorAll('input').forEach(function (i) { if (i.type !== 'color') i.value = ''; });
+    // Une couleur différente par classe (sinon toutes les classes sont indigo).
+    var palette = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#8B5CF6', '#EC4899', '#84CC16'];
+    var color = clone.querySelector('input[type=color]');
+    if (color) color.value = palette[rows.children.length % palette.length];
+    rows.appendChild(clone);
+    var first = clone.querySelector('input'); if (first) first.focus();
+}
+async function onbCreateClasses(e) {
+    e.preventDefault();
+    var err = document.getElementById('onbClassesError');
+    var classrooms = Array.from(document.querySelectorAll('#onbClassRows .onb-row')).map(function (r) {
+        return { name: r.querySelector('[name=name]').value.trim(),
+                 subject: r.querySelector('[name=subject]').value.trim(),
+                 color: r.querySelector('[name=color]').value };
+    }).filter(function (c) { return c.name && c.subject; });
+    if (!classrooms.length) {
+        err.textContent = {{ _('Indiquez au moins un nom de classe et une matière.')|tojson }};
+        err.style.display = 'block'; return false;
+    }
+    var btn = document.getElementById('onboarding-primary-cta');
+    if (btn) btn.disabled = true;
+    try {
+        var r = await fetch('/setup/api/classrooms/bulk-create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ classrooms: classrooms })
+        });
+        var j = await r.json();
+        if (j.success) { window.location.reload(); return false; }
+        err.textContent = j.message || {{ _('Erreur lors de la création des classes.')|tojson }};
+    } catch (ex) {
+        err.textContent = {{ _('Erreur lors de la création des classes.')|tojson }};
+    }
+    err.style.display = 'block';
+    if (btn) btn.disabled = false;
+    return false;
+}
+</script>

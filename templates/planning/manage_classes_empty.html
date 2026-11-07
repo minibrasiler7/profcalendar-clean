@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{# Gestion de classe sans aucune classe : le formulaire de création est sur la
+   page même, au lieu d'un renvoi vers le tableau de bord. Une fois les classes
+   créées, la page se recharge sur la gestion de classe habituelle. #}
+
+{% block title %}{{ _('Gestion des classes') }} - ProfCalendar{% endblock %}
+
+{% block extra_css %}
+<style>
+.mce-card { max-width: 640px; margin: 2.5rem auto; background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            border: 1px solid #A5B4FC; border-radius: 16px; padding: 2rem 1.75rem; }
+.mce-icon { width: 56px; height: 56px; border-radius: 50%; background: #4F46E5; color: #fff; display: flex;
+            align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 1rem; }
+.mce-card h1 { margin: 0 0 0.4rem; color: #312E81; font-size: 1.4rem; }
+.mce-card > p { margin: 0 0 0.3rem; color: #4B5563; line-height: 1.5; }
+.mce-video { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 1.25rem; color: #4F46E5; font-weight: 600; text-decoration: none; font-size: 0.95rem; }
+.onb-form { margin-top: 1rem; }
+.onb-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.45rem; }
+.onb-row input[type="text"] { flex: 1; min-width: 140px; padding: 0.6rem 0.75rem; border: 1px solid #C7D2FE; border-radius: 0.5rem; font-size: 1rem; background: #fff; }
+.onb-row input[type="color"] { width: 44px; height: 40px; padding: 2px; border: 1px solid #C7D2FE; border-radius: 0.5rem; background: #fff; cursor: pointer; }
+.onb-form-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-top: 0.6rem; }
+.onb-cta { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--primary-color, #6366F1); color: #fff; padding: 0.65rem 1.2rem; border: none; border-radius: 0.5rem; font-weight: 600; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 6px rgba(99,102,241,0.25); }
+.onb-cta[disabled] { opacity: 0.6; cursor: wait; }
+.onb-link { background: none; border: none; color: #4F46E5; font-weight: 600; cursor: pointer; padding: 0.4rem 0; font-size: 0.95rem; }
+.onb-link:hover { text-decoration: underline; }
+@media (max-width: 600px) {
+    .mce-card { margin: 1rem 0; padding: 1.5rem 1.1rem; border-radius: 12px; }
+    /* Téléphone : le nom sur toute la largeur, matière et couleur dessous. */
+    .onb-row { padding-bottom: 0.6rem; border-bottom: 1px solid rgba(99,102,241,0.15); }
+    .onb-row input[name="name"] { flex-basis: 100%; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set _vsfx = '' if current_locale not in ['en', 'de', 'it', 'es'] else '_' ~ current_locale %}
+<div class="mce-card">
+    <div class="mce-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+    <h1>{{ _('Créez vos classes') }}</h1>
+    <p>{{ _("Un nom, une matière, une couleur. Ajoutez-les toutes d'un coup.") }}</p>
+    <p>{{ _('Vous ajouterez ensuite vos élèves sur cette page.') }}</p>
+    {% include 'includes/class_create_form.html' %}
+    <a href="{{ url_for('static', filename='videos/bien_demarrer' ~ _vsfx ~ '.mp4') }}" target="_blank" rel="noopener" class="mce-video"><i class="fas fa-play-circle"></i> {{ _('Voir comment faire en vidéo') }}</a>
+</div>
+{% endblock %}

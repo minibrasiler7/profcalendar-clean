@@ -2687,9 +2687,9 @@ def manage_classes():
         temp_classrooms = current_user.classrooms.filter_by(is_temporary=True).all()
         if temp_classrooms:
             flash(_gettext('Vos classes sont en attente d\'approbation par le maître de classe. Vous ne pouvez pas encore accéder à la gestion.'), 'warning')
-        else:
-            flash(_gettext("Créez d'abord une classe : c'est la première étape du tableau de bord."), 'warning')
-        return redirect(url_for('planning.dashboard'))
+            return redirect(url_for('planning.dashboard'))
+        # Aucune classe : le formulaire de création s'affiche ici même.
+        return render_template('planning/manage_classes_empty.html')
     
     # Regrouper les classes par class_group
     from collections import defaultdict

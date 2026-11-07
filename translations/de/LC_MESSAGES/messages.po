@@ -13908,6 +13908,9 @@ msgstr "Ihre Karte wird abgefragt, aber vor Ende des Tests wird nichts abgebucht
 msgid "Commencez par créer vos classes"
 msgstr "Legen Sie zuerst Ihre Klassen an"
 
+msgid "Vous ajouterez ensuite vos élèves sur cette page."
+msgstr "Anschließend fügen Sie auf dieser Seite Ihre Schülerinnen und Schüler hinzu."
+
 msgid "Cette page se remplit dès que vos classes et votre horaire sont en place. Cela prend environ deux minutes."
 msgstr "Diese Seite füllt sich, sobald Ihre Klassen und Ihr Stundenplan eingerichtet sind. Das dauert etwa zwei Minuten."
 
