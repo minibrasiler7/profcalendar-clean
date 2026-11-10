@@ -1,12 +1,13 @@
 """Interrupteurs de fonctionnalités.
 
-Trois fonctions globales sont masquées (code conservé, réactivables par
+Deux fonctions globales sont masquées (code conservé, réactivables par
 variable d'environnement sur Render) et un module par enseignant, « Espace
 élèves et parents », est désactivé par défaut et s'active dans Paramètres.
 
     FEATURE_TEACHER_COLLABORATION=1  → collaboration entre enseignants
     FEATURE_RPG_COMBAT=1             → combat RPG en classe
-    FEATURE_DASHBOARD_LAYOUTS=1      → barre des 7 dispositions du tableau de bord
+    FEATURE_DASHBOARD_LAYOUTS=0      → masque la barre des dispositions du
+                                       tableau de bord (affichée par défaut)
 """
 import os
 
@@ -15,8 +16,8 @@ from flask_login import current_user
 from flask_babel import gettext as _gettext
 
 
-def _on(name):
-    return os.environ.get(name, '0').strip().lower() in ('1', 'true', 'yes', 'on')
+def _on(name, default='0'):
+    return os.environ.get(name, default).strip().lower() in ('1', 'true', 'yes', 'on')
 
 
 # Maître de classe, code enseignant, invitations, classes dérivées, groupes
@@ -24,8 +25,10 @@ def _on(name):
 TEACHER_COLLABORATION = _on('FEATURE_TEACHER_COLLABORATION')
 # Combat RPG (Phaser + SocketIO), profils, badges, objets.
 RPG_COMBAT = _on('FEATURE_RPG_COMBAT')
-# Barre des dispositions du tableau de bord (7 modes).
-DASHBOARD_LAYOUTS = _on('FEATURE_DASHBOARD_LAYOUTS')
+# Barre des dispositions du tableau de bord (7 modes, dont le mode manuel).
+# Masquée le 09.10.2026, rétablie le 10.11.2026 : des enseignantes s'en
+# servaient (disposition manuelle verrouillée) et l'ont réclamée.
+DASHBOARD_LAYOUTS = _on('FEATURE_DASHBOARD_LAYOUTS', '1')
 # Exercices interactifs (atelier, publication, lancement en classe, QR).
 # Masqués partout, même avec l'espace élèves et parents activé.
 EXERCISES = _on('FEATURE_EXERCISES')

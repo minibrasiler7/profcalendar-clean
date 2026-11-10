@@ -190,7 +190,7 @@
     }
 }
 
-/* ---- Disposition du tableau de bord (mémos / tâches) ---- */
+/* ---- Disposition du tableau de bord (actions / tâches / liens) ---- */
 .dashboard-layout-bar {
     display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap;
 }
@@ -209,31 +209,31 @@
 .dashboard-main {
     display: grid; gap: 0 2rem; align-items: start;
     grid-template-columns: 1fr;
-    grid-template-areas: "a" "m" "t";
+    grid-template-areas: "a" "t" "l";
 }
 .dashboard-main .dashboard-card { min-width: 0; }
 .dashboard-main .actions-card { grid-area: a; }
-.dashboard-main .memos-section { grid-area: m; }
 .dashboard-main .tasks-section { grid-area: t; }
-/* Trois colonnes : actions | mémos | tâches */
-.dashboard-main.layout-side-by-side { grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "a m t"; }
+.dashboard-main .links-section { grid-area: l; }
+/* Trois colonnes : actions | tâches | liens */
+.dashboard-main.layout-side-by-side { grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "a t l"; }
 /* Focus : la section mise en avant prend 2/3, les deux autres s'empilent dans le tiers restant */
-.dashboard-main.layout-actions-focus { grid-template-columns: 2fr 1fr; grid-template-areas: "a m" "a t"; }
-.dashboard-main.layout-memos-focus  { grid-template-columns: 1fr 2fr; grid-template-areas: "a m" "t m"; }
-.dashboard-main.layout-tasks-focus  { grid-template-columns: 1fr 2fr; grid-template-areas: "a t" "m t"; }
-.dashboard-main.layout-compact { grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "a m t"; gap: 0 1.25rem; }
+.dashboard-main.layout-actions-focus { grid-template-columns: 2fr 1fr; grid-template-areas: "a t" "a l"; }
+.dashboard-main.layout-tasks-focus  { grid-template-columns: 1fr 2fr; grid-template-areas: "a t" "l t"; }
+.dashboard-main.layout-links-focus  { grid-template-columns: 1fr 2fr; grid-template-areas: "a l" "t l"; }
+.dashboard-main.layout-compact { grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "a t l"; gap: 0 1.25rem; }
 .dashboard-main.layout-compact .dashboard-card,
 .dashboard-main.layout-compact .quick-actions { padding: 1.25rem !important; margin-bottom: 1.25rem !important; }
-.dashboard-main.layout-compact .memos-list, .dashboard-main.layout-compact .tasks-list,
+.dashboard-main.layout-compact .links-list, .dashboard-main.layout-compact .tasks-list,
 .dashboard-main.layout-compact .action-buttons-grid { max-height: 360px; overflow-y: auto; }
 /* Actions rapides dans une colonne étroite : boutons plus petits, sur 1–2 colonnes */
-.dashboard-main.layout-side-by-side .action-buttons-grid, .dashboard-main.layout-memos-focus .action-buttons-grid,
+.dashboard-main.layout-side-by-side .action-buttons-grid, .dashboard-main.layout-links-focus .action-buttons-grid,
 .dashboard-main.layout-tasks-focus .action-buttons-grid, .dashboard-main.layout-compact .action-buttons-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.6rem; }
-.dashboard-main.layout-side-by-side .action-button, .dashboard-main.layout-memos-focus .action-button,
+.dashboard-main.layout-side-by-side .action-button, .dashboard-main.layout-links-focus .action-button,
 .dashboard-main.layout-tasks-focus .action-button, .dashboard-main.layout-compact .action-button { padding: 0.9rem 0.6rem; }
 .dashboard-main.layout-actions-focus .action-buttons-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
 @media (max-width: 900px) {
-    .dashboard-main { grid-template-columns: 1fr !important; grid-template-areas: "a" "m" "t" !important; }
+    .dashboard-main { grid-template-columns: 1fr !important; grid-template-areas: "a" "t" "l" !important; }
     .dashboard-layout-bar { display: none; }
 }
 
@@ -561,16 +561,16 @@
         </div>
     </div>
 
-    <!-- Barre de disposition du tableau de bord (masquée : FEATURE_DASHBOARD_LAYOUTS) -->
+    <!-- Barre de disposition du tableau de bord (FEATURE_DASHBOARD_LAYOUTS=0 la masque) -->
     {% if FEATURE_LAYOUTS %}
     <div class="dashboard-layout-bar">
         <span class="dashboard-layout-label"><i class="fas fa-th-large"></i> {{ _('Disposition') }} :</span>
         <div class="dashboard-layout-buttons" role="group" aria-label="{{ _('Disposition du tableau de bord') }}">
             <button type="button" class="dash-layout-btn" data-layout="default" title="{{ _('Empilé (1 colonne)') }}"><i class="fas fa-bars"></i></button>
-            <button type="button" class="dash-layout-btn" data-layout="side-by-side" title="{{ _('Trois colonnes (actions, mémos, tâches)') }}"><i class="fas fa-columns"></i></button>
+            <button type="button" class="dash-layout-btn" data-layout="side-by-side" title="{{ _('Trois colonnes (actions, tâches, liens)') }}"><i class="fas fa-columns"></i></button>
             <button type="button" class="dash-layout-btn" data-layout="actions-focus" title="{{ _('Focus actions rapides (actions larges)') }}"><i class="fas fa-bolt"></i></button>
-            <button type="button" class="dash-layout-btn" data-layout="memos-focus" title="{{ _('Focus mémos (mémos larges)') }}"><i class="fas fa-sticky-note"></i></button>
             <button type="button" class="dash-layout-btn" data-layout="tasks-focus" title="{{ _('Focus tâches (tâches larges)') }}"><i class="fas fa-tasks"></i></button>
+            <button type="button" class="dash-layout-btn" data-layout="links-focus" title="{{ _('Focus liens rapides (liens larges)') }}"><i class="fas fa-link"></i></button>
             <button type="button" class="dash-layout-btn" data-layout="compact" title="{{ _('Compact (cartes réduites, défilement interne)') }}"><i class="fas fa-compress-alt"></i></button>
             <button type="button" class="dash-layout-btn" data-layout="manual" title="{{ _('Manuel : déplacer et redimensionner les sections') }}"><i class="fas fa-arrows-alt"></i></button>
         </div>
@@ -1040,7 +1040,7 @@ function dismissOnboarding() {
 // ===================== Disposition du tableau de bord =====================
 // Mémorisée en localStorage (immédiat) ET côté serveur (retrouvée sur tous
 // les appareils au prochain chargement). Le serveur fait foi au chargement.
-const DASH_LAYOUTS = ['default', 'side-by-side', 'actions-focus', 'memos-focus', 'tasks-focus', 'compact', 'manual'];
+const DASH_LAYOUTS = ['default', 'side-by-side', 'actions-focus', 'tasks-focus', 'links-focus', 'compact', 'manual'];
 let dashCurrentLayout = 'default';
 
 // Disposition manuelle, modèle en COLONNES :
@@ -1066,6 +1066,8 @@ let dashOriginalOrder = [];   // ordre initial des widgets (pour revenir aux pr�
     try {
         dashCurrentLayout = serverLayout || localStorage.getItem('dashboardLayout') || 'default';
     } catch (e) { dashCurrentLayout = serverLayout || 'default'; }
+    // Les mémos ont quitté le tableau de bord : leur focus devient celui des liens.
+    if (dashCurrentLayout === 'memos-focus') dashCurrentLayout = 'links-focus';
     if (!DASH_LAYOUTS.includes(dashCurrentLayout)) dashCurrentLayout = 'default';
 
     // Le serveur fait foi ; repli sur le stockage local

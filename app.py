@@ -1788,7 +1788,9 @@ def create_app(config_name='development'):
         import json as _json
         data = request.get_json(silent=True) or {}
         layout = (data.get('layout') or 'default').strip()
-        if layout not in ('default', 'side-by-side', 'actions-focus', 'memos-focus',
+        if layout == 'memos-focus':      # les mémos ont quitté le tableau de bord
+            layout = 'links-focus'
+        if layout not in ('default', 'side-by-side', 'actions-focus', 'links-focus',
                           'tasks-focus', 'compact', 'manual'):
             return jsonify({'success': False, 'error': _gettext('Disposition inconnue')}), 400
         prefs = UserPreferences.get_or_create_for_user(current_user.id)
