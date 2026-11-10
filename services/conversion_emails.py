@@ -117,14 +117,33 @@ def _relance_j1(name, locale=None):
             _gettext('Démarrer mon essai gratuit'), PRICING_URL)
 
 
-def _relance_j5(name, locale=None):
+def _in_switzerland(user):
+    """Compte dont on SAIT qu'il enseigne en Suisse : pays enregistré, ou, tant
+    qu'il n'a pas été deviné, adresse e-mail en .ch. Dans le doute, la relance
+    ne parle pas de canton."""
+    region = getattr(user, 'region', None)
+    if region:
+        return region == 'ch'
+    return (getattr(user, 'email', None) or '').strip().lower().endswith('.ch')
+
+
+def _relance_j5(name, locale=None, swiss=False):
     with email_language(locale):
+        if swiss:
+            mise_en_route = _gettext(
+                "Vous avez créé votre compte ProfCalendar il y a quelques jours. La mise en route prend "
+                "environ deux minutes&nbsp;: vos classes, les heures de votre école, puis les vacances de "
+                "votre canton. Cette vidéo la montre pas à pas&nbsp;: "
+                "<a href=\"%(video_url)s\">%(video_url)s</a>", video_url=VIDEO_BIEN_DEMARRER)
+        else:
+            mise_en_route = _gettext(
+                "Vous avez créé votre compte ProfCalendar il y a quelques jours. La mise en route prend "
+                "environ deux minutes&nbsp;: vous créez vos classes, puis vous les placez dans votre "
+                "horaire de la semaine. Cette vidéo la montre pas à pas&nbsp;: "
+                "<a href=\"%(video_url)s\">%(video_url)s</a>", video_url=VIDEO_BIEN_DEMARRER)
         body = _paragraphs(
             _hello(name),
-            _gettext("Vous avez créé votre compte ProfCalendar il y a quelques jours. La mise en route prend "
-                     "environ deux minutes&nbsp;: vos classes, les heures de votre école, puis les vacances de "
-                     "votre canton. Cette vidéo la montre pas à pas&nbsp;: "
-                     "<a href=\"%(video_url)s\">%(video_url)s</a>", video_url=VIDEO_BIEN_DEMARRER),
+            mise_en_route,
             _gettext("Votre <strong>essai gratuit de 14 jours</strong> est toujours disponible&nbsp;: rien "
                      "n'est débité pendant l'essai, et vous pouvez arrêter à tout moment avant la fin."),
             _gettext("Si quelque chose vous a freiné (une fonction qui manque, une question sur le prix, un "
@@ -199,7 +218,9 @@ def send_due_conversion_emails(dry_run=False, now=None):
         elif ('relance_j5' not in done and user.created_at >= j5_since
               and timedelta(days=5) <= age <= timedelta(days=21)
               and now - done['relance_j1'] >= timedelta(days=4)):
-            kind, build = 'relance_j5', _relance_j5
+            # Les vacances « de votre canton » ne se disent qu'aux comptes suisses.
+            swiss = _in_switzerland(user)
+            kind, build = 'relance_j5', (lambda n, swiss=swiss: _relance_j5(n, swiss=swiss))
         else:
             continue
         # Langue du destinataire : imposée pour la construction ET l'envoi

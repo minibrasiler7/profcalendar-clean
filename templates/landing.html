@@ -703,9 +703,7 @@
     <div class="container">
         <p>&copy; 2024-2026 ProfCalendar. {{ _('Tous droits réservés.') }} {{ _('Conçu avec') }} <span style="color:#EF4444;">&hearts;</span> {{ _('pour les enseignants.') }}</p>
         <p style="margin-top: 0.5rem;">
-            <a href="{{ url_for('auth.login') }}">{{ _('Espace Enseignant') }}</a> &middot;
-            <a href="{{ url_for('student_auth.login') }}">{{ _('Espace Élève') }}</a> &middot;
-            <a href="{{ url_for('parent_auth.login') }}">{{ _('Espace Parent') }}</a>
+            <a href="{{ url_for('auth.login') }}">{{ _('Espace Enseignant') }}</a>
         </p>
         <p style="margin-top: 0.5rem;">
             <a href="{{ url_for('resources.calendar_index') }}">{{ _('Calendriers scolaires') }}</a> &middot;

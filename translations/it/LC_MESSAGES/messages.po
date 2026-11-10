@@ -10662,6 +10662,9 @@ msgstr "La tua prova gratuita ti aspetta"
 msgid "Vous avez créé votre compte ProfCalendar il y a quelques jours. La mise en route prend environ deux minutes&nbsp;: vos classes, les heures de votre école, puis les vacances de votre canton. Cette vidéo la montre pas à pas&nbsp;: <a href=\"%(video_url)s\">%(video_url)s</a>"
 msgstr "Hai creato il tuo account ProfCalendar qualche giorno fa. La configurazione richiede circa due minuti: le tue classi, gli orari della tua scuola, poi le vacanze del tuo cantone. Questo video la mostra passo dopo passo: <a href=\"%(video_url)s\">%(video_url)s</a>"
 
+msgid "Vous avez créé votre compte ProfCalendar il y a quelques jours. La mise en route prend environ deux minutes&nbsp;: vous créez vos classes, puis vous les placez dans votre horaire de la semaine. Cette vidéo la montre pas à pas&nbsp;: <a href=\"%(video_url)s\">%(video_url)s</a>"
+msgstr "Hai creato il tuo account ProfCalendar qualche giorno fa. La configurazione richiede circa due minuti: crei le tue classi, poi le inserisci nel tuo orario settimanale. Questo video la mostra passo dopo passo: <a href=\"%(video_url)s\">%(video_url)s</a>"
+
 msgid "Votre <strong>essai gratuit de 14 jours</strong> est toujours disponible&nbsp;: rien n'est débité pendant l'essai, et vous pouvez arrêter à tout moment avant la fin."
 msgstr "La tua <strong>prova gratuita di 14 giorni</strong> è ancora disponibile: non viene addebitato nulla durante la prova e puoi interrompere in qualsiasi momento prima della fine."
 
