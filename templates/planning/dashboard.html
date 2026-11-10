@@ -402,6 +402,14 @@
 .task-colors button.none { background: #fff; color: #9CA3AF; font-size: 0.7rem; }
 .task-add-form .task-class-select { flex: 0 0 auto; max-width: 11rem; padding: 0.55rem 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.5rem; font-size: 0.85rem; background: #fff; color: #374151; }
 @media (max-width: 480px) { .task-add-form { flex-wrap: wrap; } .task-add-form .task-class-select { max-width: none; flex: 1 1 100%; order: 3; } }
+/* Carte « Tâches » étroite (colonne d'une disposition) : même repli que sur
+   téléphone, sinon le choix de la classe dépassait de la carte. */
+.dashboard-main .tasks-section { container-type: inline-size; }
+@container (max-width: 480px) {
+    .task-add-form { flex-wrap: wrap; }
+    .task-add-form input[type="text"] { min-width: 0; }
+    .task-add-form .task-class-select { max-width: none; flex: 1 1 100%; order: 3; }
+}
 </style>
 {% endblock %}
 
