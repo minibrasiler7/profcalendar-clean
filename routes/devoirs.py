@@ -55,10 +55,14 @@ def get_upcoming_class_dates(user, classroom, count=8, from_date=None):
 
     start = from_date or user.get_local_datetime().date()
     end = user.school_year_end or (start + timedelta(days=365))
+    # Vacances saisies ou importées par l'enseignant (les seules connues pour
+    # un compte hors de Suisse).
+    own = [(h.start_date, h.end_date) for h in user.holidays.all()]
     d = start + timedelta(days=1)
     out = []
     while len(out) < count and d <= end:
-        if d.weekday() in weekdays and not is_holiday(d, user):
+        if (d.weekday() in weekdays and not is_holiday(d, user)
+                and not any(a <= d <= b for a, b in own)):
             out.append(d)
         d += timedelta(days=1)
     return out

@@ -192,6 +192,13 @@ def register():
         # l'app au lieu de buter sur l'assistant de configuration qui faisait
         # fuir 100% des inscrits. Tout reste éditable ensuite dans les réglages.
         user.apply_smart_defaults()
+        # Pays d'enseignement deviné (fuseau et langues de l'appareil, adresse
+        # e-mail) : hors de Suisse, l'app masque ce qui est propre à la Suisse.
+        try:
+            from utils.region import apply_detected_region, request_signals
+            apply_detected_region(user, **request_signals())
+        except Exception:
+            pass
         db.session.add(user)
         db.session.commit()
         # Récréation et pause de midi par défaut (il faut l'id du compte).

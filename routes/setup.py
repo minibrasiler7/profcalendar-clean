@@ -504,6 +504,10 @@ def initial_setup():
     form = InitialSetupForm()
 
     if form.validate_on_submit():
+        # Pays d'enseignement (Suisse / autre pays) et fuseau de l'appareil.
+        from utils.region import set_region
+        set_region(current_user, request.form.get('region'), request.form.get('tz_name'))
+
         # Vérifier s'il faut copier la configuration d'un collège
         if form.college_name.data:
             college_name = form.college_name.data.strip()
@@ -3192,6 +3196,44 @@ def import_vaud_holidays():
     return redirect(url_for('setup.manage_holidays'))
 
 
+def add_canton_holidays(user, canton, school_year, include_feries=True):
+    """Ajoute au compte les vacances (et jours fériés isolés) d'un canton pour
+    une année scolaire, sans doublon. NE COMMITTE PAS. Retourne le nombre de
+    périodes ajoutées, ou None si la sélection est inconnue."""
+    if canton not in VACATIONS or school_year not in VACATIONS.get(canton, {}):
+        return None
+    periods = get_import_periods(canton, school_year, include_feries)
+    if not periods:
+        return None
+
+    college = None
+    if user.college_name:
+        college = College.query.filter_by(name=user.college_name).first()
+
+    added = 0
+    for p in periods:
+        existing = Holiday.query.filter_by(
+            user_id=user.id, name=p['name'], start_date=p['start']
+        ).first()
+        if existing:
+            continue
+        db.session.add(Holiday(
+            user_id=user.id, name=p['name'],
+            start_date=p['start'], end_date=p['end']
+        ))
+        added += 1
+        if college and user.id == college.created_by_id:
+            ch_existing = CollegeHoliday.query.filter_by(
+                college_id=college.id, name=p['name'], start_date=p['start']
+            ).first()
+            if not ch_existing:
+                db.session.add(CollegeHoliday(
+                    college_id=college.id, name=p['name'],
+                    start_date=p['start'], end_date=p['end']
+                ))
+    return added
+
+
 @setup_bp.route('/holidays/import', methods=['POST'])
 @login_required
 def import_holidays():
@@ -3216,31 +3258,7 @@ def import_holidays():
         Holiday.query.filter_by(user_id=current_user.id).delete()
         db.session.flush()
 
-    college = None
-    if current_user.college_name:
-        college = College.query.filter_by(name=current_user.college_name).first()
-
-    added = 0
-    for p in periods:
-        existing = Holiday.query.filter_by(
-            user_id=current_user.id, name=p['name'], start_date=p['start']
-        ).first()
-        if existing:
-            continue
-        db.session.add(Holiday(
-            user_id=current_user.id, name=p['name'],
-            start_date=p['start'], end_date=p['end']
-        ))
-        added += 1
-        if college and current_user.id == college.created_by_id:
-            ch_existing = CollegeHoliday.query.filter_by(
-                college_id=college.id, name=p['name'], start_date=p['start']
-            ).first()
-            if not ch_existing:
-                db.session.add(CollegeHoliday(
-                    college_id=college.id, name=p['name'],
-                    start_date=p['start'], end_date=p['end']
-                ))
+    added = add_canton_holidays(current_user, canton, school_year, include_feries) or 0
 
     try:
         db.session.commit()
@@ -3250,6 +3268,17 @@ def import_holidays():
         flash(_gettext("Erreur lors de l'import : %(error)s", error=str(e)), 'error')
 
     return redirect(back)
+
+@setup_bp.route('/region', methods=['POST'])
+@login_required
+def set_teaching_region():
+    """Pays d'enseignement choisi par l'enseignant (Suisse / autre pays) :
+    affiche ou masque ce qui est propre à la Suisse, dont l'import par canton."""
+    from utils.region import set_region
+    if set_region(current_user, request.form.get('region'), request.form.get('tz_name')):
+        db.session.commit()
+    return redirect(url_for('setup.manage_holidays'))
+
 
 @setup_bp.route('/breaks/<int:id>/delete', methods=['POST'])
 @login_required

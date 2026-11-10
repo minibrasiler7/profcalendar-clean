@@ -13983,6 +13983,81 @@ msgstr "%(days)s Tage gratis, danach"
 msgid "Voix de synthèse"
 msgstr "Synthetische Stimme"
 
+msgid "Pays d'enseignement"
+msgstr "Land, in dem Sie unterrichten"
+
+msgid "En Suisse, ProfCalendar propose l'import des vacances scolaires par canton. Ailleurs, ces options sont masquées et vous saisissez vos vacances vous-même."
+msgstr "In der Schweiz bietet ProfCalendar den Import der Schulferien nach Kanton. Anderswo sind diese Optionen ausgeblendet, und Sie tragen Ihre Ferien selbst ein."
+
+msgid "J'enseigne"
+msgstr "Ich unterrichte"
+
+msgid "en Suisse"
+msgstr "in der Schweiz"
+
+msgid "dans un autre pays"
+msgstr "in einem anderen Land"
+
+msgid "Fuseau horaire de cet appareil :"
+msgstr "Zeitzone dieses Geräts:"
+
+msgid "Vous enseignez en Suisse ?"
+msgstr "Unterrichten Sie in der Schweiz?"
+
+msgid "Afficher l'import des vacances par canton"
+msgstr "Ferienimport nach Kanton anzeigen"
+
+msgid "Sélectionnez une classe, puis cliquez sur ses périodes dans la semaine. Validez : votre calendrier s'ouvre."
+msgstr "Wählen Sie eine Klasse und klicken Sie auf ihre Lektionen in der Woche. Bestätigen, und Ihr Kalender öffnet sich."
+
+msgid "Canton absent de la liste ? Saisir les vacances à la main"
+msgstr "Kanton nicht in der Liste? Ferien von Hand eingeben"
+
+msgid "Vos premières étapes"
+msgstr "Ihre ersten Schritte"
+
+msgid "Suivez cette petite liste : créez vos classes, puis composez votre horaire."
+msgstr "Folgen Sie dieser kurzen Liste: Klassen anlegen, dann Stundenplan zusammenstellen."
+
+msgid "Ajoutez vos périodes de vacances (Toussaint, Noël, etc.). Les périodes en vacances sont grisées dans le calendrier."
+msgstr "Fügen Sie Ihre Ferien hinzu (Herbstferien, Weihnachten usw.). Ferienzeiten sind im Kalender ausgegraut."
+
+msgid "Chaque période aux couleurs de vos classes, vos vacances grisées."
+msgstr "Jede Lektion in den Farben Ihrer Klassen, Ihre Ferien ausgegraut."
+
+msgid "votre semaine période par période, aux couleurs de vos classes."
+msgstr "Ihre Woche Lektion für Lektion, in den Farben Ihrer Klassen."
+
+msgid "Nom (ex. 3A)"
+msgstr "Name (z. B. 3A)"
+
+msgid "Sélectionnez une classe, puis cliquez sur ses périodes dans la grille. Cet horaire sert de modèle pour toute l'année."
+msgstr "Wählen Sie eine Klasse und klicken Sie im Raster auf ihre Lektionen. Dieser Stundenplan dient als Vorlage für das ganze Jahr."
+
+msgid "Quand votre semaine est complète, validez en bas de la page : votre calendrier s'ouvre avec vos classes."
+msgstr "Wenn Ihre Woche vollständig ist, bestätigen Sie unten auf der Seite: Ihr Kalender öffnet sich mit Ihren Klassen."
+
+msgid "Classe à placer"
+msgstr "Zu platzierende Klasse"
+
+msgid "Vos vacances scolaires (facultatif) :"
+msgstr "Ihre Schulferien (optional):"
+
+msgid "Choisir mon canton"
+msgstr "Meinen Kanton wählen"
+
+msgid "Valider et ouvrir mon calendrier"
+msgstr "Bestätigen und Kalender öffnen"
+
+msgid "{name} : cliquez sur ses périodes dans la grille ; un second clic les vide. Recliquez sur la classe pour retrouver le menu (salle, autre tâche)."
+msgstr "{name}: Klicken Sie im Raster auf ihre Lektionen; ein zweiter Klick leert sie. Klicken Sie erneut auf die Klasse, um das Menü (Raum, andere Aufgabe) wieder zu erhalten."
+
+msgid "Sélectionnez une classe ci-dessus pour la placer d'un seul clic. Sans sélection, un clic sur une période ouvre le menu complet (salle, tâche personnalisée)."
+msgstr "Wählen Sie oben eine Klasse, um sie mit einem einzigen Klick zu platzieren. Ohne Auswahl öffnet ein Klick auf eine Lektion das vollständige Menü (Raum, eigene Aufgabe)."
+
+msgid "Votre semaine est en place : voici votre calendrier. Cliquez sur une période pour préparer votre première leçon."
+msgstr "Ihre Woche steht: Hier ist Ihr Kalender. Klicken Sie auf eine Lektion, um Ihre erste Stunde vorzubereiten."
+
 msgid "Votre essai Premium se termine dans %(num)d jour."
 msgid_plural "Votre essai Premium se termine dans %(num)d jours."
 msgstr[0] "Ihre Premium-Testphase endet in %(num)d Tag."

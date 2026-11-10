@@ -23,7 +23,17 @@
         
         <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form">
             {{ form.hidden_tag() }}
-            
+            {# Fuseau et langues de l'appareil : devinent le pays d'enseignement
+               (hors de Suisse, l'app masque l'import des vacances par canton). #}
+            <input type="hidden" name="tz_name" id="regTz">
+            <input type="hidden" name="browser_langs" id="regLangs">
+            <script>
+            (function () {
+                try { document.getElementById('regTz').value = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+                try { document.getElementById('regLangs').value = (navigator.languages || [navigator.language || '']).join(','); } catch (e) {}
+            })();
+            </script>
+
             <div class="form-group">
                 {{ form.email.label(class="form-label") }}
                 <div class="input-group">

@@ -78,9 +78,14 @@ def weekly_schedule():
     if current_user.upgrade_untouched_time_defaults():
         db.session.commit()
 
+    # Démarrage guidé (?onboarding=1, depuis le tableau de bord) : la validation
+    # ouvre le calendrier, et un compte suisse peut importer ses vacances au passage.
+    onboarding = request.args.get('onboarding') == '1'
+
     # Si déjà complété, le signaler — seulement s'il existe vraiment des périodes
     # (un nouveau compte a schedule_completed=True par défaut mais un horaire vide).
-    if current_user.schedule_completed and Schedule.query.filter_by(user_id=current_user.id).first():
+    if (not onboarding and current_user.schedule_completed
+            and Schedule.query.filter_by(user_id=current_user.id).first()):
         flash(_gettext('Votre horaire type est déjà configuré. Vous pouvez le modifier ici.'), 'info')
 
     # Récupérer les groupes mixtes d'abord pour filtrer les classes auto-créées
@@ -145,6 +150,14 @@ def weekly_schedule():
                     'end': b.end_time.strftime('%H:%M')} for b in major_breaks],
     }
 
+    # Import des vacances proposé à la validation : compte suisse sans vacances.
+    import_cantons, import_years, import_default_year = [], {}, None
+    if onboarding and current_user.is_swiss and current_user.holidays.count() == 0:
+        from data.cantonal_holidays import available_cantons, years_by_canton, default_school_year
+        import_cantons = available_cantons()
+        import_years = years_by_canton()
+        import_default_year = default_school_year(current_user.school_year_start)
+
     return render_template('setup/weekly_schedule.html',
                          classrooms=classrooms,
                          classrooms_json=classrooms_dict,
@@ -153,7 +166,11 @@ def weekly_schedule():
                          schedule_grid=schedule_grid,
                          days=days,
                          time_settings=time_settings,
-                         has_schedule_entries=bool(schedules))
+                         has_schedule_entries=bool(schedules),
+                         onboarding=onboarding,
+                         import_cantons=import_cantons,
+                         import_years_by_canton=import_years,
+                         import_default_year=import_default_year)
 
 
 def _parse_hhmm(value):
@@ -348,19 +365,40 @@ def save_schedule():
 @schedule_bp.route('/validate', methods=['POST'])
 @login_required
 def validate_schedule():
+    onboarding = request.form.get('onboarding') == '1'
+
     # Vérifier qu'il y a au moins un cours dans l'horaire
     schedules_count = current_user.schedules.count()
     if schedules_count == 0:
         flash(_gettext('Veuillez ajouter au moins un cours dans votre horaire type.'), 'warning')
-        return redirect(url_for('schedule.weekly_schedule'))
+        return redirect(url_for('schedule.weekly_schedule', onboarding=1 if onboarding else None))
 
     # Marquer l'horaire comme complété et s'assurer que le setup de base est aussi marqué comme complété
     current_user.schedule_completed = True
     current_user.setup_completed = True
+
+    if not onboarding:
+        db.session.commit()
+        flash(_gettext('Horaire type validé avec succès ! Vous pouvez maintenant accéder à votre calendrier.'), 'success')
+        return redirect(url_for('planning.dashboard'))
+
+    # Démarrage guidé : vacances du canton importées au passage (compte suisse,
+    # canton choisi dans le formulaire), puis on ouvre le calendrier — le
+    # premier résultat visible : la semaine avec ses vraies classes.
+    canton = (request.form.get('canton') or '').strip()
+    school_year = (request.form.get('school_year') or '').strip()
+    if canton and current_user.is_swiss:
+        try:
+            from routes.setup import add_canton_holidays
+            add_canton_holidays(current_user, canton, school_year, include_feries=True)
+        except Exception:
+            db.session.rollback()
+            current_user.schedule_completed = True
+            current_user.setup_completed = True
     db.session.commit()
 
-    flash(_gettext('Horaire type validé avec succès ! Vous pouvez maintenant accéder à votre calendrier.'), 'success')
-    return redirect(url_for('planning.dashboard'))
+    flash(_gettext('Votre semaine est en place : voici votre calendrier. Cliquez sur une période pour préparer votre première leçon.'), 'success')
+    return redirect(url_for('planning.calendar_view'))
 
 @schedule_bp.route('/view')
 @login_required

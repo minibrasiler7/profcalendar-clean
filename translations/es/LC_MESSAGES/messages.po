@@ -13983,6 +13983,81 @@ msgstr "%(days)s días gratis, luego"
 msgid "Voix de synthèse"
 msgstr "Voz sintética"
 
+msgid "Pays d'enseignement"
+msgstr "País donde enseñas"
+
+msgid "En Suisse, ProfCalendar propose l'import des vacances scolaires par canton. Ailleurs, ces options sont masquées et vous saisissez vos vacances vous-même."
+msgstr "En Suiza, ProfCalendar ofrece la importación de las vacaciones escolares por cantón. En otros países, estas opciones se ocultan e introduces tus vacaciones tú mismo."
+
+msgid "J'enseigne"
+msgstr "Enseño"
+
+msgid "en Suisse"
+msgstr "en Suiza"
+
+msgid "dans un autre pays"
+msgstr "en otro país"
+
+msgid "Fuseau horaire de cet appareil :"
+msgstr "Zona horaria de este dispositivo:"
+
+msgid "Vous enseignez en Suisse ?"
+msgstr "¿Enseñas en Suiza?"
+
+msgid "Afficher l'import des vacances par canton"
+msgstr "Mostrar la importación de vacaciones por cantón"
+
+msgid "Sélectionnez une classe, puis cliquez sur ses périodes dans la semaine. Validez : votre calendrier s'ouvre."
+msgstr "Selecciona una clase y haz clic en sus periodos de la semana. Confirma y se abre tu calendario."
+
+msgid "Canton absent de la liste ? Saisir les vacances à la main"
+msgstr "¿Tu cantón no está en la lista? Introduce las vacaciones a mano"
+
+msgid "Vos premières étapes"
+msgstr "Tus primeros pasos"
+
+msgid "Suivez cette petite liste : créez vos classes, puis composez votre horaire."
+msgstr "Sigue esta pequeña lista: crea tus clases y luego compón tu horario."
+
+msgid "Ajoutez vos périodes de vacances (Toussaint, Noël, etc.). Les périodes en vacances sont grisées dans le calendrier."
+msgstr "Añade tus períodos de vacaciones (otoño, Navidad, etc.). Los períodos de vacaciones aparecen en gris en el calendario."
+
+msgid "Chaque période aux couleurs de vos classes, vos vacances grisées."
+msgstr "Cada periodo con los colores de tus clases, tus vacaciones en gris."
+
+msgid "votre semaine période par période, aux couleurs de vos classes."
+msgstr "tu semana periodo a periodo, con los colores de tus clases."
+
+msgid "Nom (ex. 3A)"
+msgstr "Nombre (ej. 3A)"
+
+msgid "Sélectionnez une classe, puis cliquez sur ses périodes dans la grille. Cet horaire sert de modèle pour toute l'année."
+msgstr "Selecciona una clase y haz clic en sus periodos en la cuadrícula. Este horario sirve de modelo para todo el año."
+
+msgid "Quand votre semaine est complète, validez en bas de la page : votre calendrier s'ouvre avec vos classes."
+msgstr "Cuando tu semana esté completa, confirma al final de la página: tu calendario se abre con tus clases."
+
+msgid "Classe à placer"
+msgstr "Clase para colocar"
+
+msgid "Vos vacances scolaires (facultatif) :"
+msgstr "Tus vacaciones escolares (opcional):"
+
+msgid "Choisir mon canton"
+msgstr "Elegir mi cantón"
+
+msgid "Valider et ouvrir mon calendrier"
+msgstr "Validar y abrir mi calendario"
+
+msgid "{name} : cliquez sur ses périodes dans la grille ; un second clic les vide. Recliquez sur la classe pour retrouver le menu (salle, autre tâche)."
+msgstr "{name}: haz clic en sus periodos en la cuadrícula; un segundo clic los vacía. Vuelve a hacer clic en la clase para recuperar el menú (aula, otra tarea)."
+
+msgid "Sélectionnez une classe ci-dessus pour la placer d'un seul clic. Sans sélection, un clic sur une période ouvre le menu complet (salle, tâche personnalisée)."
+msgstr "Selecciona una clase arriba para colocarla con un solo clic. Sin selección, un clic en un periodo abre el menú completo (aula, tarea personalizada)."
+
+msgid "Votre semaine est en place : voici votre calendrier. Cliquez sur une période pour préparer votre première leçon."
+msgstr "Tu semana está lista: aquí tienes tu calendario. Haz clic en un periodo para preparar tu primera clase."
+
 msgid "Votre essai Premium se termine dans %(num)d jour."
 msgid_plural "Votre essai Premium se termine dans %(num)d jours."
 msgstr[0] "Tu prueba Premium termina en %(num)d día."

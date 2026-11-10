@@ -116,7 +116,10 @@ def get_vaud_holidays(school_year_start):
     return VAUD_HOLIDAYS.get(school_year, [])
 
 def is_holiday(check_date, user):
-    """Vérifie si une date est un jour de vacances scolaires"""
+    """Vérifie si une date est un jour de vacances scolaires vaudoises.
+    Sans objet pour un compte hors de Suisse (ses vacances sont les siennes)."""
+    if user is not None and getattr(user, 'region', None) == 'intl':
+        return False
     holidays = get_vaud_holidays(check_date)
     
     for holiday in holidays:

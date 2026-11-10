@@ -180,6 +180,15 @@
         <p>{{ _('Les périodes de vacances seront automatiquement exclues de votre planification. Vous pouvez ajouter toutes les vacances scolaires et jours fériés.') }}</p>
     </div>
 
+    {# Import par canton : propre à la Suisse. Hors de Suisse, il est masqué
+       (un lien discret permet de le retrouver si le pays a été mal deviné). #}
+    {% if not is_swiss %}
+    <form method="POST" action="{{ url_for('setup.set_teaching_region') }}" style="margin: -0.5rem 0 1.25rem; font-size: 0.85rem; color: var(--gray-color);">
+        <input type="hidden" name="region" value="ch">
+        {{ _('Vous enseignez en Suisse ?') }}
+        <button type="submit" style="background: none; border: none; padding: 0; color: var(--primary-color); cursor: pointer; font: inherit; text-decoration: underline;">{{ _("Afficher l'import des vacances par canton") }}</button>
+    </form>
+    {% else %}
     <!-- Import automatique par canton et année scolaire -->
     <div class="import-section">
         <h3><i class="fas fa-download"></i> {{ _('Import rapide par canton') }}</h3>
@@ -237,6 +246,7 @@
         .import-field { flex: 1; min-width: 160px; }
         .import-field .form-label { display: block; margin-bottom: 0.35rem; }
     </style>
+    {% endif %}
 
     <!-- Formulaire d'ajout de vacances -->
     <div class="add-classroom-section">

@@ -608,11 +608,15 @@
        trois étapes faites. --#}
     {% set onb_step1 = classrooms_count > 0 %}
     {% set onb_step2 = schedules_count > 0 %}
-    {% set onb_step3 = holidays_count > 0 %}
-    {% set onb_done = (1 if onb_step1 else 0) + (1 if onb_step2 else 0) + (1 if onb_step3 else 0) %}
+    {# L'étape 3 (import des vacances par canton) n'existe que pour un compte
+       suisse : ailleurs, deux étapes suffisent, les vacances se saisissent
+       plus tard dans les paramètres. #}
+    {% set onb_total = 3 if is_swiss else 2 %}
+    {% set onb_step3 = holidays_count > 0 or not is_swiss %}
+    {% set onb_done = (1 if onb_step1 else 0) + (1 if onb_step2 else 0) + (1 if (onb_step3 and is_swiss) else 0) %}
     {# Fermable seulement une fois une classe créée : sans classe, calendrier et
        page du cours restent vides (et le guide revient même s'il avait été fermé). #}
-    {% if onb_done < 3 and (not onboarding_dismissed or not onb_step1) %}
+    {% if onb_done < onb_total and (not onboarding_dismissed or not onb_step1) %}
     {% set onb_current = 1 if not onb_step1 else (2 if not onb_step2 else 3) %}
     <style>
         .onb-form { margin-top: 0.6rem; }
@@ -651,7 +655,7 @@
             <h2><i class="fas fa-rocket" style="color: var(--primary-color, #6366F1);"></i> {{ _('Prêt à commencer ?') }}
                 <a href="{{ url_for('static', filename='videos/bien_demarrer' ~ ('' if current_locale not in ['en', 'de', 'it', 'es'] else '_' ~ current_locale) ~ '.mp4') }}" target="_blank" rel="noopener" style="margin-left:0.6rem; font-size:0.85rem; font-weight:600; color:#4F46E5;"><i class="fas fa-play-circle"></i> {{ _('Voir comment faire en vidéo') }}</a></h2>
             <div class="onb-head-right">
-                <span class="onb-progress">{{ onb_done }}/3 {{ _('étapes') }}</span>
+                <span class="onb-progress">{{ onb_done }}/{{ onb_total }} {{ _('étapes') }}</span>
                 {% if onb_step1 %}<button type="button" class="onb-close" onclick="dismissOnboarding()" title="{{ _('Fermer') }}" aria-label="{{ _('Fermer') }}">&times;</button>{% endif %}
             </div>
         </div>
@@ -664,6 +668,7 @@
                 <h3 class="{{ 'is-done' if onb_step1 else '' }}">{{ _('Créez vos classes') }}</h3>
                 <p>{{ _("Un nom, une matière, une couleur. Ajoutez-les toutes d'un coup.") }}</p>
                 {% if onb_current == 1 %}
+                {% set onb_after_create = url_for('schedule.weekly_schedule', onboarding=1) %}
                 {% include 'includes/class_create_form.html' %}
                 {% endif %}
             </div>
@@ -675,15 +680,16 @@
             </div>
             <div class="onb-body">
                 <h3 class="{{ 'is-done' if onb_step2 else '' }}">{{ _('Composez votre horaire') }}</h3>
-                <p>{{ _('Cliquez sur les périodes de votre semaine et choisissez la classe. Validez : vous revenez ici.') }}</p>
+                <p>{{ _("Sélectionnez une classe, puis cliquez sur ses périodes dans la semaine. Validez : votre calendrier s'ouvre.") }}</p>
                 {% if onb_current == 2 %}
-                <a class="onb-cta" id="onboarding-primary-cta" href="{{ url_for('schedule.weekly_schedule') }}">
+                <a class="onb-cta" id="onboarding-primary-cta" href="{{ url_for('schedule.weekly_schedule', onboarding=1) }}">
                     <i class="fas fa-calendar-week"></i> {{ _("Ouvrir l'horaire") }}
                 </a>
                 {% endif %}
             </div>
         </div>
 
+        {% if is_swiss %}
         <div class="onb-step" id="onboarding-step-3">
             <div class="onb-num {{ 'done' if onb_step3 else ('current' if onb_current == 3 else 'todo') }}">
                 {% if onb_step3 %}<i class="fas fa-check"></i>{% else %}3{% endif %}
@@ -706,11 +712,12 @@
                             <i class="fas fa-download"></i> {{ _('Importer') }}
                         </button>
                     </div>
-                    <p class="onb-small"><a href="{{ url_for('setup.manage_holidays') }}">{{ _('Pas en Suisse romande ? Saisir les vacances à la main') }}</a></p>
+                    <p class="onb-small"><a href="{{ url_for('setup.manage_holidays') }}">{{ _('Canton absent de la liste ? Saisir les vacances à la main') }}</a></p>
                 </form>
                 {% endif %}
             </div>
         </div>
+        {% endif %}
     </div>
     <script>
     // Étape 3 : années disponibles selon le canton choisi.
@@ -1044,6 +1051,25 @@ function dismissOnboarding() {
     if (card) card.style.display = 'none';
     try { fetch('/api/onboarding/dismiss', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } }); } catch (e) {}
 }
+
+{% if region_unknown and not is_demo_session %}
+// Compte créé avant le réglage « Pays d'enseignement » : on le devine une
+// fois (fuseau de l'appareil, langues du navigateur). Hors de Suisse, la page
+// est rechargée pour masquer ce qui est propre à la Suisse.
+(function () {
+    try {
+        var tz = '';
+        try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+        fetch('/api/region/detect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ tz_name: tz, browser_langs: (navigator.languages || []).join(',') })
+        }).then(function (r) { return r.json(); })
+          .then(function (j) { if (j && j.region === 'intl') window.location.reload(); })
+          .catch(function () {});
+    } catch (e) {}
+})();
+{% endif %}
 
 // ===================== Disposition du tableau de bord =====================
 // Mémorisée en localStorage (immédiat) ET côté serveur (retrouvée sur tous
@@ -1826,7 +1852,7 @@ renderDashboardTasks();
 
     var STEPS = [
         { sel: null, title: {{ _("Bienvenue sur ProfCalendar !")|tojson }}, text: {{ _("Faisons un tour rapide pour bien démarrer. Vous pouvez le passer à tout moment.")|tojson }} },
-        { sel: '#onboarding-steps', title: {{ _("Vos 3 étapes pour démarrer")|tojson }}, text: {{ _("Suivez cette petite liste : créez vos classes, composez votre horaire, puis importez vos vacances.")|tojson }} },
+        { sel: '#onboarding-steps', title: {{ _("Vos premières étapes")|tojson }}, text: {% if is_swiss %}{{ _("Suivez cette petite liste : créez vos classes, composez votre horaire, puis importez vos vacances.")|tojson }}{% else %}{{ _("Suivez cette petite liste : créez vos classes, puis composez votre horaire.")|tojson }}{% endif %} },
         { sel: '#onboarding-primary-cta', title: {{ _("Commencez ici")|tojson }}, text: {{ _("Cliquez sur ce bouton pour créer votre première classe : cela prend 30 secondes.")|tojson }} },
         { sel: '.help-fab', title: {{ _("Besoin d'aide ?")|tojson }}, text: {{ _("Ce bouton ouvre l'aide contextuelle sur chaque page. Il est toujours disponible.")|tojson }} }
     ].filter(function (s) { return !s.sel || document.querySelector(s.sel); });

@@ -51,6 +51,12 @@ class User(UserMixin, db.Model):
     school_year_start = db.Column(db.Date)
     school_year_end = db.Column(db.Date)
     timezone_offset = db.Column(db.Integer, default=0)  # Décalage horaire en heures par rapport à UTC
+    # Pays d'enseignement, deviné à l'inscription (utils/region.py) :
+    # 'ch' = Suisse, 'intl' = autre pays. NULL = compte d'avant, traité comme
+    # suisse. Hors de Suisse, tout ce qui est propre à la Suisse est masqué
+    # (import des vacances par canton, fériés vaudois, heure de Zurich).
+    region = db.Column(db.String(8), nullable=True)
+    tz_name = db.Column(db.String(64), nullable=True)  # Fuseau IANA (« Europe/Paris »)
 
     # Préférences d'affichage
     student_sort_pref = db.Column(db.String(20), default='last_name')  # 'first_name' ou 'last_name'
@@ -293,29 +299,37 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
     
-    def get_local_datetime(self):
-        """Retourne la datetime actuelle ajustée selon le fuseau horaire de l'utilisateur
+    @property
+    def is_swiss(self):
+        """Compte suisse (ou d'avant la détection du pays) : affichage complet,
+        import des vacances par canton compris."""
+        return (self.region or 'ch') != 'intl'
 
-        IMPORTANT: Utilise pytz pour gérer correctement l'heure d'été (DST)
-        La Suisse passe de UTC+1 (hiver) à UTC+2 (été) automatiquement
+    def get_local_datetime(self):
+        """Date et heure actuelles dans le fuseau de l'enseignant (naïve).
+
+        Fuseau mémorisé à l'inscription pour un compte hors de Suisse, sinon
+        Europe/Zurich. pytz gère l'heure d'été.
         """
         try:
             import pytz
-            # Utiliser le fuseau horaire Europe/Zurich qui gère automatiquement DST
-            swiss_tz = pytz.timezone('Europe/Zurich')
-            # Obtenir l'heure UTC actuelle (aware)
-            utc_now = datetime.now(pytz.UTC)
-            # Convertir en heure suisse (gère automatiquement UTC+1 ou UTC+2)
-            swiss_time = utc_now.astimezone(swiss_tz)
-            # Retourner datetime naive pour compatibilité avec le code existant
-            return swiss_time.replace(tzinfo=None)
+            tz = None
+            if self.tz_name and not self.is_swiss:
+                try:
+                    tz = pytz.timezone(self.tz_name)
+                except Exception:
+                    tz = None
+            if tz is None:
+                tz = pytz.timezone('Europe/Zurich')
+            # Datetime naïve, pour rester compatible avec le code existant
+            return datetime.now(pytz.UTC).astimezone(tz).replace(tzinfo=None)
         except ImportError:
             # Fallback si pytz n'est pas installé (ne devrait pas arriver)
             from datetime import timedelta
             utc_now = datetime.utcnow()
             # Fallback basique avec offset (ne gère pas DST correctement)
             return utc_now + timedelta(hours=self.timezone_offset or 1)
-    
+
     def get_local_time(self):
         """Retourne l'heure actuelle ajustée selon le fuseau horaire de l'utilisateur"""
         return self.get_local_datetime().time()

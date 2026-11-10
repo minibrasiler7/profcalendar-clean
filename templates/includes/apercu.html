@@ -3,7 +3,7 @@
    de l'app iOS. Les vidéos ne citent ni prix ni garantie (autorisées dans l'app).
    Variables facultatives : apercu_compact (bool) masque la seconde vidéo. #}
 {% set apercu_slides = [
-    ('calendrier', _('Le calendrier de la semaine'), _('Chaque période aux couleurs de vos classes, les vacances du canton déjà placées.')),
+    ('calendrier', _('Le calendrier de la semaine'), (_('Chaque période aux couleurs de vos classes, les vacances du canton déjà placées.') if is_swiss else _('Chaque période aux couleurs de vos classes, vos vacances grisées.'))),
     ('planification', _("La planification d'un cours"), _('Un titre, le déroulement avec des cases à cocher et les documents joints.')),
     ('cours', _('La page du cours'), _('Votre planification, les documents épinglés et les présences sur un seul écran.')),
     ('pdf', _('Le lecteur PDF'), _('Annotez vos documents : stylo, surligneur, règle et compas en vrais centimètres.')),

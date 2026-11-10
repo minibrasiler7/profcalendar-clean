@@ -327,14 +327,105 @@
     margin-top: 2rem;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
 }
+/* Démarrage guidé : la validation reste visible en bas de l'écran */
+.action-buttons.is-sticky {
+    position: sticky;
+    /* au-dessus du bandeau cookies tant qu'il est affiché */
+    bottom: var(--cookie-banner-h, 0px);
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
+}
+.validate-form { margin: 0; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end; }
+.validate-holidays { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.875rem; color: #374151; }
+.validate-holidays select { padding: 0.45rem 0.6rem; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem; background: #fff; }
+.validate-holidays select { max-width: 13rem; }
+.action-buttons.is-sticky .validate-form { flex: 1 1 auto; }
+@media (max-width: 640px) {
+    /* Téléphone : barre compacte. Le retour au tableau de bord reste dans la
+       navigation ; on laisse la place du bouton d'aide à droite. */
+    .action-buttons.is-sticky { padding: 0.55rem 0.7rem; gap: 0.45rem; }
+    .action-buttons.is-sticky > a.btn { display: none; }
+    .action-buttons.is-sticky .validate-form { justify-content: flex-start; gap: 0.45rem; }
+    .action-buttons.is-sticky .validate-holidays { flex-wrap: nowrap; width: 100%; font-size: 0.8rem; line-height: 1.25; }
+    .action-buttons.is-sticky .validate-holidays span { flex: 1 1 auto; }
+    .action-buttons.is-sticky .validate-holidays select { flex: 0 1 auto; min-width: 0; max-width: 9.5rem; font-size: 0.85rem; }
+    .action-buttons.is-sticky .validate-form .btn { flex: 1 1 auto; margin-right: 3.4rem; }
+}
+
+.onb-guide {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    margin-top: 1rem;
+    background: #EEF2FF;
+    border: 1px solid #C7D2FE;
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+    color: #312E81;
+    font-size: 0.95rem;
+}
+.onb-guide i { color: #4F46E5; margin-top: 0.2rem; }
+.onb-guide p { margin: 0; }
 
 .legend {
     display: flex;
-    gap: 2rem;
+    gap: 0.6rem 0.75rem;
     margin-top: 1rem;
     flex-wrap: wrap;
+    align-items: center;
 }
+
+/* Pinceau : une classe sélectionnée ici se place d'un clic dans la grille */
+.legend-brush {
+    border: 1.5px solid #E5E7EB;
+    background: #fff;
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem 0.4rem 0.5rem;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.875rem;
+    color: #1F2937;
+    min-height: 40px;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.legend-brush:hover { border-color: var(--brush-color, #6366F1); }
+.legend-brush .legend-color { border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.65rem; flex: 0 0 auto; }
+.legend-brush .legend-color i { display: none; }
+.legend-brush.active {
+    border-color: var(--brush-color, #6366F1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brush-color, #6366F1) 28%, transparent);
+    font-weight: 600;
+}
+.legend-brush.active .legend-color i { display: inline; }
+/* Bandeau des classes : collé sous la barre de navigation (hauteur posée en JS) */
+.brush-dock {
+    position: sticky;
+    top: var(--pc-nav-h, 0px);
+    z-index: 15;
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    padding: 0.6rem 0.9rem;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+.brush-dock .legend { margin-top: 0; }
+.brush-hint { margin: 0.5rem 0.25rem 0.9rem; font-size: 0.875rem; color: #4B5563; min-height: 1.3em; }
+@media (max-width: 640px) {
+    /* une seule ligne qui défile : le bandeau ne mange pas l'écran */
+    .brush-dock .legend { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+    .brush-dock .legend-item { flex: 0 0 auto; white-space: nowrap; }
+}
+.schedule-table.brush-on { -webkit-user-select: none; user-select: none; }
+.schedule-table.brush-on .schedule-cell { cursor: copy; }
 
 .legend-item {
     display: flex;
@@ -359,37 +450,22 @@
             <i class="fas fa-calendar-week"></i>
             <h1>{{ _('Créez votre horaire type') }}</h1>
         </div>
-        <p>{{ _("Cliquez sur les cases pour assigner vos classes à chaque période. Cet horaire sera utilisé comme modèle pour toute l'année.") }}</p>
+        <p>{{ _("Sélectionnez une classe, puis cliquez sur ses périodes dans la grille. Cet horaire sert de modèle pour toute l'année.") }}</p>
 
-        {% if not current_user.schedule_completed %}
+        {% if onboarding %}
+        <div class="onb-guide">
+            <i class="fas fa-rocket"></i>
+            <p>{{ _("Quand votre semaine est complète, validez en bas de la page : votre calendrier s'ouvre avec vos classes.") }}</p>
+        </div>
+        {% endif %}
+
+        {% if not current_user.schedule_completed and not onboarding %}
         <div class="info-box" style="margin-top: 1rem; background-color: #FEF3C7; border-color: #FDE68A;">
             <i class="fas fa-info-circle" style="color: #D97706;"></i>
             <p style="color: #92400E;">{{ _("Dernière étape ! Une fois votre horaire type créé, cliquez sur « Valider l'horaire » pour accéder à votre calendrier complet.") }}</p>
         </div>
         {% endif %}
 
-        <!-- Légende des classes -->
-        <div class="legend">
-            {% for item in classrooms_json %}
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: {{ item.color }};"></div>
-                <span>
-                    {% if item.type == 'mixed_group' %}
-                        <i class="fas fa-users" style="margin-right: 0.25rem;"></i>
-                    {% endif %}
-                    {{ item.name }} - {{ item.subject }}
-                </span>
-            </div>
-            {% endfor %}
-            <!-- Légende pour les tâches personnalisées -->
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #6B7280;"></div>
-                <span>
-                    <i class="fas fa-tasks" style="margin-right: 0.25rem;"></i>
-                    {{ _('Tâches personnalisées') }}
-                </span>
-            </div>
-        </div>
     </div>
 
     <!-- Heures de l'école : modifiables ici, sans passer par les Paramètres -->
@@ -432,6 +508,36 @@
             </div>
         </div>
     </div>
+
+    <!-- Classes à placer : le bandeau reste visible pendant qu'on parcourt la grille -->
+    <div class="brush-dock" id="brushDock">
+        <!-- Légende des classes -->
+        <div class="legend" id="brushBar" role="group" aria-label="{{ _('Classe à placer') }}">
+            {% for item in classrooms_json %}
+            <button type="button" class="legend-item legend-brush"
+                    data-key="{{ 'm' if item.type == 'mixed_group' else 'c' }}{{ item.id }}"
+                    style="--brush-color: {{ item.color }};" aria-pressed="false"
+                    onclick="toggleBrush(this.dataset.key)">
+                <span class="legend-color" style="background-color: {{ item.color }};"><i class="fas fa-check"></i></span>
+                <span>
+                    {% if item.type == 'mixed_group' %}
+                        <i class="fas fa-users" style="margin-right: 0.25rem;"></i>
+                    {% endif %}
+                    {{ item.name }} - {{ item.subject }}
+                </span>
+            </button>
+            {% endfor %}
+            <!-- Légende pour les tâches personnalisées -->
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #6B7280;"></div>
+                <span>
+                    <i class="fas fa-tasks" style="margin-right: 0.25rem;"></i>
+                    {{ _('Tâches personnalisées') }}
+                </span>
+            </div>
+        </div>
+    </div>
+    <p class="brush-hint" id="brushHint" aria-live="polite"></p>
 
     <!-- Grille horaire -->
     <div class="schedule-grid">
@@ -491,15 +597,35 @@
     </div>
 
     <!-- Boutons d'action -->
-    <div class="action-buttons">
+    <div class="action-buttons{% if onboarding %} is-sticky{% endif %}">
         <a href="{{ url_for('planning.dashboard') }}" class="btn btn-outline">
             <i class="fas fa-arrow-left"></i> {{ _('Retour au tableau de bord') }}
         </a>
 
-        <form method="POST" action="{{ url_for('schedule.validate_schedule') }}" style="margin: 0;">
+        <form method="POST" action="{{ url_for('schedule.validate_schedule') }}" class="validate-form">
+            {% if onboarding %}
+            <input type="hidden" name="onboarding" value="1">
+            {% if import_cantons %}
+            {# Compte suisse sans vacances : import du canton au passage (facultatif). #}
+            <label class="validate-holidays">
+                <span><i class="fas fa-umbrella-beach"></i> {{ _('Vos vacances scolaires (facultatif) :') }}</span>
+                <select name="canton" id="valCanton" aria-label="{{ _('Canton') }}">
+                    <option value="">{{ _('Choisir mon canton') }}</option>
+                    {% for c in import_cantons %}
+                    <option value="{{ c.slug }}">{{ c.label }}</option>
+                    {% endfor %}
+                </select>
+                <select name="school_year" id="valYear" aria-label="{{ _('Année scolaire') }}" hidden></select>
+            </label>
+            {% endif %}
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-check"></i> {{ _('Valider et ouvrir mon calendrier') }}
+            </button>
+            {% else %}
             <button type="submit" class="btn btn-success">
                 <i class="fas fa-check"></i> {{ _("Valider l'horaire") }}
             </button>
+            {% endif %}
         </form>
     </div>
 </div>
@@ -605,7 +731,10 @@ const SCHEDULE_I18N = {
     checkDay: {{ _('Vérifiez le début et la fin de la journée.')|tojson }},
     noPeriods: {{ _('Ces réglages ne donnent aucune période.')|tojson }},
     confirmFewerPeriods: {{ _("Votre horaire contient des cours en période {used}, mais ces réglages n'en donnent que {n}. Ces cours ne seront plus affichés. Continuer ?")|tojson }},
-    saveImpossible: {{ _('Enregistrement impossible.')|tojson }}
+    saveImpossible: {{ _('Enregistrement impossible.')|tojson }},
+    // Pinceau (classe sélectionnée dans la légende)
+    brushOn: {{ _('{name} : cliquez sur ses périodes dans la grille ; un second clic les vide. Recliquez sur la classe pour retrouver le menu (salle, autre tâche).')|tojson }},
+    brushOff: {{ _("Sélectionnez une classe ci-dessus pour la placer d'un seul clic. Sans sélection, un clic sur une période ouvre le menu complet (salle, tâche personnalisée).")|tojson }}
 };
 const schedEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const classrooms = {{ classrooms_json | tojson }};
@@ -626,6 +755,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function openClassSelector(cell, event) {
     event.stopPropagation();
+    // Pinceau actif : la classe sélectionnée se place (ou s'enlève) directement.
+    if (activeBrush) {
+        if (suppressBrushClick) { suppressBrushClick = false; return; }
+        paintCell(cell, 'toggle');
+        return;
+    }
     currentCell = cell;
     pendingItem = null;
 
@@ -948,6 +1083,133 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.class-selector') && !e.target.closest('.schedule-cell')) {
         closeClassSelector();
+    }
+});
+
+
+// ============================================================
+// Pinceau : une classe sélectionnée dans la légende se place d'un seul clic
+// (ou en glissant à la souris). Sans sélection, le menu classique s'ouvre.
+// ============================================================
+let activeBrush = null;            // 'c12' | 'm3' | null
+let suppressBrushClick = false;    // clic qui suit un glisser : déjà traité
+let brushDrag = null;              // { start, mode: 'add'|'remove', moved }
+const brushKey = item => (item.type === 'mixed_group' ? 'm' : 'c') + item.id;
+const brushItem = key => classrooms.find(c => brushKey(c) === key) || null;
+
+function toggleBrush(key) { setBrush(activeBrush === key ? null : key); }
+
+function setBrush(key) {
+    activeBrush = key && brushItem(key) ? key : null;
+    document.querySelectorAll('.legend-brush').forEach(b => {
+        const on = b.dataset.key === activeBrush;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    const table = document.querySelector('.schedule-table');
+    if (table) table.classList.toggle('brush-on', !!activeBrush);
+    const hint = document.getElementById('brushHint');
+    if (hint) {
+        const it = activeBrush ? brushItem(activeBrush) : null;
+        hint.textContent = it ? SCHEDULE_I18N.brushOn.replace('{name}', it.name) : SCHEDULE_I18N.brushOff;
+    }
+    if (activeBrush) closeClassSelector();
+}
+
+function renderCellItem(cell, item, room) {
+    const iconHtml = item.type === 'mixed_group' ? '<i class="fas fa-users"></i> ' : '';
+    const roomHtml = room ? '<div class="class-room"><i class="fas fa-door-open"></i> ' + schedEsc(room) + '</div>' : '';
+    cell.innerHTML = '<div class="class-block" style="background-color: ' + schedEsc(item.color) + ';">'
+        + '<div class="class-name">' + iconHtml + schedEsc(item.name) + '</div>'
+        + '<div class="class-subject">' + schedEsc(item.subject) + '</div>' + roomHtml + '</div>';
+}
+
+// mode : 'toggle' (clic), 'add' ou 'remove' (glisser). Affichage immédiat,
+// rétabli si l'enregistrement échoue.
+function paintCell(cell, mode) {
+    const key = activeBrush;
+    const item = brushItem(key);
+    if (!item || cell.dataset.saving === '1') return;
+    const same = cell.dataset.item === key;
+    if ((mode === 'add' && same) || (mode === 'remove' && !same)) return;
+    const remove = same;
+    const before = { item: cell.dataset.item || '', room: cell.dataset.room || '' };
+    cell.querySelectorAll('.merge-connector').forEach(el => el.remove());
+    before.html = cell.innerHTML;
+    const room = remove ? '' : (lastRoomByItem[key] || '');
+    if (remove) {
+        cell.innerHTML = '';
+        delete mergedState[cell.dataset.weekday + '_' + cell.dataset.period];
+    } else {
+        renderCellItem(cell, item, room);
+    }
+    cell.dataset.item = remove ? '' : key;
+    cell.dataset.room = room;
+    cell.dataset.saving = '1';
+    refreshMergeConnectors();
+    saveSchedule(cell.dataset.weekday, cell.dataset.period, remove ? null : item.id,
+                 remove ? 'classroom' : item.type, null, room).then(result => {
+        cell.dataset.saving = '';
+        if (result.success) return;
+        cell.innerHTML = before.html;
+        cell.dataset.item = before.item;
+        cell.dataset.room = before.room;
+        refreshMergeConnectors();
+        alert(SCHEDULE_I18N.saveError.replace('{error}', result.message || SCHEDULE_I18N.unknownError));
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Le bandeau des classes se colle juste sous la barre de navigation.
+    const nav = document.querySelector('.navbar');
+    const setNavH = function () {
+        const pos = nav ? getComputedStyle(nav).position : '';
+        const h = (pos === 'sticky' || pos === 'fixed') ? nav.offsetHeight : 0;
+        document.documentElement.style.setProperty('--pc-nav-h', h + 'px');
+    };
+    setNavH();
+    window.addEventListener('resize', setNavH);
+
+    // Horaire encore vide : la première classe est déjà sélectionnée.
+    const empty = !document.querySelector('.schedule-cell[data-item]:not([data-item=""])');
+    setBrush(empty && classrooms.length ? brushKey(classrooms[0]) : null);
+
+    // Glisser à la souris : la classe se place (ou s'enlève) sur chaque case survolée.
+    const table = document.querySelector('.schedule-table');
+    if (!table) return;
+    table.addEventListener('pointerdown', function (e) {
+        if (!activeBrush || e.pointerType !== 'mouse' || e.button !== 0) return;
+        const cell = e.target.closest('.schedule-cell');
+        if (!cell || e.target.closest('.merge-connector')) return;
+        brushDrag = { start: cell, mode: cell.dataset.item === activeBrush ? 'remove' : 'add', moved: false };
+    });
+    table.addEventListener('pointerover', function (e) {
+        if (!brushDrag || !activeBrush) return;
+        if (!(e.buttons & 1)) { brushDrag = null; return; }
+        const cell = e.target.closest('.schedule-cell');
+        if (!cell || (cell === brushDrag.start && !brushDrag.moved)) return;
+        if (!brushDrag.moved) { brushDrag.moved = true; paintCell(brushDrag.start, brushDrag.mode); }
+        paintCell(cell, brushDrag.mode);
+    });
+    document.addEventListener('pointerup', function () {
+        if (brushDrag && brushDrag.moved) {
+            suppressBrushClick = true;
+            setTimeout(function () { suppressBrushClick = false; }, 80);
+        }
+        brushDrag = null;
+    });
+
+    // Démarrage guidé (compte suisse) : années proposées selon le canton choisi.
+    const vc = document.getElementById('valCanton'), vy = document.getElementById('valYear');
+    if (vc && vy) {
+        const YBC = {{ (import_years_by_canton or {})|tojson }};
+        const def = {{ (import_default_year or '')|tojson }};
+        vc.addEventListener('change', function () {
+            const ys = YBC[vc.value] || [];
+            const pick = ys.indexOf(def) >= 0 ? def : (ys[ys.length - 1] || '');
+            vy.innerHTML = ys.map(v => '<option value="' + v + '"' + (v === pick ? ' selected' : '') + '>' + v + '</option>').join('');
+            vy.hidden = !ys.length;
+        });
     }
 });
 

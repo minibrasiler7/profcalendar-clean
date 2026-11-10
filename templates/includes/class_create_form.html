@@ -1,5 +1,7 @@
 {# Création de plusieurs classes d'un coup (nom, matière, couleur) : POST JSON
-   vers /setup/api/classrooms/bulk-create, puis rechargement de la page.
+   vers /setup/api/classrooms/bulk-create, puis rechargement de la page — ou
+   passage à l'adresse ``onb_after_create`` si la page qui l'inclut la définit
+   (démarrage guidé : on enchaîne sur l'horaire).
    Inclus par le démarrage guidé du tableau de bord et par la gestion de classe
    tant qu'aucune classe n'existe (novembre 2026 : un abonné en essai a touché
    quatre fois « Gestion de classe », renvoyé chaque fois au tableau de bord).
@@ -7,7 +9,7 @@
 <form id="onbClassesForm" class="onb-form" onsubmit="return onbCreateClasses(event)">
     <div id="onbClassRows">
         <div class="onb-row">
-            <input type="text" name="name" placeholder="{{ _('Nom (ex. 9VP2)') }}" required maxlength="100" autocomplete="off">
+            <input type="text" name="name" placeholder="{{ _('Nom (ex. 9VP2)') if is_swiss else _('Nom (ex. 3A)') }}" required maxlength="100" autocomplete="off">
             <input type="text" name="subject" placeholder="{{ _('Matière (ex. Maths)') }}" required maxlength="100" autocomplete="off">
             <input type="color" name="color" value="#4F46E5" title="{{ _('Couleur') }}">
         </div>
@@ -56,7 +58,12 @@ async function onbCreateClasses(e) {
             body: JSON.stringify({ classrooms: classrooms })
         });
         var j = await r.json();
-        if (j.success) { window.location.reload(); return false; }
+        if (j.success) {
+            // Démarrage guidé : on enchaîne sur l'horaire ; ailleurs, on recharge.
+            var after = {{ (onb_after_create or '')|tojson }};
+            if (after) window.location.href = after; else window.location.reload();
+            return false;
+        }
         err.textContent = j.message || {{ _('Erreur lors de la création des classes.')|tojson }};
     } catch (ex) {
         err.textContent = {{ _('Erreur lors de la création des classes.')|tojson }};

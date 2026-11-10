@@ -13983,6 +13983,81 @@ msgstr "%(days)s days free, then"
 msgid "Voix de synthèse"
 msgstr "Synthetic voice"
 
+msgid "Pays d'enseignement"
+msgstr "Country where you teach"
+
+msgid "En Suisse, ProfCalendar propose l'import des vacances scolaires par canton. Ailleurs, ces options sont masquées et vous saisissez vos vacances vous-même."
+msgstr "In Switzerland, ProfCalendar offers school holiday import by canton. Elsewhere, these options are hidden and you enter your holidays yourself."
+
+msgid "J'enseigne"
+msgstr "I teach"
+
+msgid "en Suisse"
+msgstr "in Switzerland"
+
+msgid "dans un autre pays"
+msgstr "in another country"
+
+msgid "Fuseau horaire de cet appareil :"
+msgstr "This device's time zone:"
+
+msgid "Vous enseignez en Suisse ?"
+msgstr "Do you teach in Switzerland?"
+
+msgid "Afficher l'import des vacances par canton"
+msgstr "Show holiday import by canton"
+
+msgid "Sélectionnez une classe, puis cliquez sur ses périodes dans la semaine. Validez : votre calendrier s'ouvre."
+msgstr "Select a class, then click its periods in the week. Confirm, and your calendar opens."
+
+msgid "Canton absent de la liste ? Saisir les vacances à la main"
+msgstr "Canton not in the list? Enter holidays by hand"
+
+msgid "Vos premières étapes"
+msgstr "Your first steps"
+
+msgid "Suivez cette petite liste : créez vos classes, puis composez votre horaire."
+msgstr "Follow this short list: create your classes, then build your timetable."
+
+msgid "Ajoutez vos périodes de vacances (Toussaint, Noël, etc.). Les périodes en vacances sont grisées dans le calendrier."
+msgstr "Add your holiday periods (autumn break, Christmas, etc.). Holiday periods are greyed out in the calendar."
+
+msgid "Chaque période aux couleurs de vos classes, vos vacances grisées."
+msgstr "Every period in your classes' colours, your holidays greyed out."
+
+msgid "votre semaine période par période, aux couleurs de vos classes."
+msgstr "your week period by period, in your classes' colours."
+
+msgid "Nom (ex. 3A)"
+msgstr "Name (e.g. 3A)"
+
+msgid "Sélectionnez une classe, puis cliquez sur ses périodes dans la grille. Cet horaire sert de modèle pour toute l'année."
+msgstr "Select a class, then click its periods in the grid. This timetable is the template for the whole year."
+
+msgid "Quand votre semaine est complète, validez en bas de la page : votre calendrier s'ouvre avec vos classes."
+msgstr "When your week is complete, confirm at the bottom of the page: your calendar opens with your classes."
+
+msgid "Classe à placer"
+msgstr "Class to place"
+
+msgid "Vos vacances scolaires (facultatif) :"
+msgstr "Your school holidays (optional):"
+
+msgid "Choisir mon canton"
+msgstr "Choose my canton"
+
+msgid "Valider et ouvrir mon calendrier"
+msgstr "Confirm and open my calendar"
+
+msgid "{name} : cliquez sur ses périodes dans la grille ; un second clic les vide. Recliquez sur la classe pour retrouver le menu (salle, autre tâche)."
+msgstr "{name}: click its periods in the grid; a second click clears them. Click the class again to get the menu back (room, other task)."
+
+msgid "Sélectionnez une classe ci-dessus pour la placer d'un seul clic. Sans sélection, un clic sur une période ouvre le menu complet (salle, tâche personnalisée)."
+msgstr "Select a class above to place it with a single click. With nothing selected, clicking a period opens the full menu (room, custom task)."
+
+msgid "Votre semaine est en place : voici votre calendrier. Cliquez sur une période pour préparer votre première leçon."
+msgstr "Your week is set up: here is your calendar. Click a period to prepare your first lesson."
+
 msgid "Votre essai Premium se termine dans %(num)d jour."
 msgid_plural "Votre essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."

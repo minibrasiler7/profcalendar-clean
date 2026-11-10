@@ -36,7 +36,7 @@
         {% if not is_premium %}<p class="iosp-small" style="margin:-10px 0 18px;"><a href="#apercu" style="color:#4F46E5; font-weight:600;"><i class="fas fa-play-circle"></i> {{ _('Voir la vidéo et les écrans') }}</a></p>{% endif %}
         <h2 class="iosp-h2">{{ _('Ce que vous obtenez') }}</h2>
         <ul class="iosp-features">
-            <li><i class="fas fa-calendar-week"></i><span><strong>{{ _('Planification et calendrier') }}</strong> — {{ _('votre semaine période par période, les vacances de votre canton déjà placées.') }}</span></li>
+            <li><i class="fas fa-calendar-week"></i><span><strong>{{ _('Planification et calendrier') }}</strong> — {% if is_swiss %}{{ _('votre semaine période par période, les vacances de votre canton déjà placées.') }}{% else %}{{ _('votre semaine période par période, aux couleurs de vos classes.') }}{% endif %}</span></li>
             <li><i class="fas fa-chalkboard-teacher"></i><span><strong>{{ _('Page du cours') }}</strong> — {{ _('présences en un clic, remarques dictées, documents épinglés.') }}</span></li>
             <li><i class="fas fa-users"></i><span><strong>{{ _('Gestion de classe') }}</strong> — {{ _('notes et moyennes automatiques, absences, coches, plan de classe.') }}</span></li>
             <li><i class="fas fa-pen-nib"></i><span><strong>{{ _('Lecteur PDF avec Apple Pencil') }}</strong> — {{ _('stylo, surligneur, règle, compas et équerre en vrais centimètres.') }}</span></li>

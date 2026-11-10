@@ -643,7 +643,9 @@ const PAGE_TUTORIALS = {
             {
                 target: 'main',
                 title: pcT('Vacances et jours fériés'),
-                text: pcT('Ajoutez vos périodes de vacances (Toussaint, Noël, etc.). Les jours fériés cantonaux sont déjà pré-remplis. Les périodes en vacances sont grisées dans le calendrier.')
+                text: window.PC_SWISS === false
+                    ? pcT('Ajoutez vos périodes de vacances (Toussaint, Noël, etc.). Les périodes en vacances sont grisées dans le calendrier.')
+                    : pcT('Ajoutez vos périodes de vacances (Toussaint, Noël, etc.). Les jours fériés cantonaux sont déjà pré-remplis. Les périodes en vacances sont grisées dans le calendrier.')
             },
             {
                 target: 'main',

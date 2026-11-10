@@ -323,6 +323,11 @@ def create_app(config_name='development'):
     except ImportError as e:
         print(f"❌ platform_context processor non chargé: {e}")
 
+    # Pays d'enseignement : `is_swiss` dans tous les gabarits (hors de Suisse,
+    # on masque l'import des vacances par canton et le reste du spécifique).
+    from utils.region import region_context
+    app.context_processor(region_context)
+
     # Blueprint exercices interactifs
     try:
         from routes.exercises import exercises_bp
@@ -496,6 +501,17 @@ def create_app(config_name='development'):
                 db.session.commit()
             except Exception:
                 db.session.rollback()
+        # Pays d'enseignement et fuseau (comptes hors de Suisse : affichage
+        # simplifié, voir utils/region.py). Bilingue PostgreSQL / SQLite.
+        for _col in ('region VARCHAR(8)', 'tz_name VARCHAR(64)'):
+            for _ddl in (f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {_col}",
+                         f"ALTER TABLE users ADD COLUMN {_col}"):
+                try:
+                    db.session.execute(db.text(_ddl))
+                    db.session.commit()
+                    break
+                except Exception:
+                    db.session.rollback()
         # Module « Espace élèves et parents » : préférence par enseignant,
         # NULL = pas encore décidé (déduit des données au premier affichage).
         for _ddl in ("ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS students_space_enabled BOOLEAN",
@@ -1544,6 +1560,28 @@ def create_app(config_name='development'):
             current_user.has_seen_tour = False
             db.session.commit()
         return jsonify({'success': True})
+
+    @app.route('/api/region/detect', methods=['POST'])
+    @login_required
+    def region_detect():
+        """Compte d'avant la détection du pays : on le devine UNE fois, au
+        premier passage sur le tableau de bord (fuseau et langues du
+        navigateur). Un compte qui a déjà ses vacances est suisse d'office :
+        rien ne change pour lui."""
+        from flask import jsonify
+        from models.user import User, Holiday
+        from utils.region import apply_detected_region, request_signals, SWISS
+        if not isinstance(current_user, User):
+            return jsonify({'success': False}), 403
+        if current_user.region is None:
+            sig = request_signals()
+            if Holiday.query.filter_by(user_id=current_user.id).first() is not None:
+                current_user.region = SWISS
+                apply_detected_region(current_user, tz_name=sig['tz_name'])
+            else:
+                apply_detected_region(current_user, **sig)
+            db.session.commit()
+        return jsonify({'success': True, 'region': current_user.region})
 
     @app.route('/api/onboarding/dismiss', methods=['POST'])
     @login_required
