@@ -119,6 +119,7 @@ const CAL_I18N = {
     customTask: {{ _('Tâche personnalisée')|tojson }},
     other: {{ _('Autre')|tojson }},
     confirmClearPlanning: {{ _('Effacer la planification de cette période ?')|tojson }},
+    confirmShiftPlanning: {{ _("Décaler ce cours et les suivants ?\n\n{count} planification(s) de cette classe avancent d'un cours.\nCe cours passe au {first}. Le dernier cours déplacé arrive le {last}.\n\nLes modifications non enregistrées de cette fenêtre seront perdues.")|tojson }},
     // Présences et devoirs
     attendanceLoadError: {{ _('Erreur lors du chargement des présences')|tojson }},
     lateMinutes: {{ _('{n} min')|tojson }},
@@ -2467,6 +2468,13 @@ html.fm-modal-lock #annualCalendarContainer {
             <button type="button" class="btn-devoir-create" id="planningDevoirBtn"
                     style="margin-right: auto; display: none;" onclick="openDevoirFromPlanningModal()">
                 <i class="fas fa-plus"></i> {{ _('Créer un devoir') }}
+            </button>
+            {# Décaler ce cours et tous les suivants de la même classe d'un cours
+               (jusqu'au premier cours vide). Visible comme « Effacer » : seulement
+               quand une planification existe déjà sur la période. #}
+            <button type="button" class="btn btn-outline" id="planningShiftBtn" onclick="shiftPlanningFromModal()" style="display: none;"
+                    title="{{ _("Cette planification et les suivantes de la même classe avancent d'un cours") }}">
+                <i class="fas fa-forward"></i> {{ _('Décaler au cours suivant') }}
             </button>
             <button class="btn btn-outline" onclick="closePlanningModal()">{{ _('Annuler') }}</button>
             {# Bouton "Effacer" : visible seulement quand une planification existe
@@ -5110,6 +5118,8 @@ async function prefillPlanningModalFromSlot(date, periodNumber) {
         if (slot.has_planning || slot.title || slot.description) {
             const clearBtn = document.getElementById('planningClearBtn');
             if (clearBtn) clearBtn.style.display = '';
+            const shiftBtn = document.getElementById('planningShiftBtn');
+            if (shiftBtn) shiftBtn.style.display = (slot.classroom_id || slot.mixed_group_id) ? '' : 'none';
         }
     } catch (e) {
         console.warn('Préremplissage du slot impossible:', e);
@@ -7672,6 +7682,10 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
     if (clearBtn) {
         clearBtn.style.display = hasExistingPlanning ? '' : 'none';
     }
+    const shiftBtn = document.getElementById('planningShiftBtn');
+    if (shiftBtn) {
+        shiftBtn.style.display = hasExistingPlanning ? '' : 'none';
+    }
 
     // Charger les groupes si c'est une classe normale
     if (!isMixedGroup) {
@@ -7721,6 +7735,8 @@ function closePlanningModal() {
     // Cacher le bouton Effacer (sera réactivé par openPlanningModal/showPeriodAttendance si besoin)
     const clearBtn = document.getElementById('planningClearBtn');
     if (clearBtn) clearBtn.style.display = 'none';
+    const shiftBtn = document.getElementById('planningShiftBtn');
+    if (shiftBtn) shiftBtn.style.display = 'none';
 
     // Fermer aussi le lecteur PDF (split 50%). Sans ça, on revoyait le
     // même PDF rouvert à la prochaine ouverture du modal de planification.
@@ -8117,6 +8133,53 @@ async function clearPlanningFromModal() {
         }
     } catch (e) {
         console.error('Erreur lors de l\'effacement :', e);
+        alert(CAL_I18N.serverConnectionError);
+    }
+}
+
+/**
+ * Décale la planification ouverte dans le modal, et toutes celles qui la
+ * suivent pour la même classe, d'un cours. Un aperçu (dry_run) annonce d'abord
+ * combien de cours bougent et jusqu'à quelle date.
+ */
+async function shiftPlanningFromModal() {
+    let date, periodNumber;
+    if (window.currentPlanningContext) {
+        date = window.currentPlanningContext.date;
+        periodNumber = parseInt(window.currentPlanningContext.periodNumber);
+    } else if (currentPlanningCell) {
+        date = currentPlanningCell.dataset.date;
+        const period = currentPlanningCell.dataset.period || '';
+        periodNumber = parseInt(period.includes('-') ? period.split('-')[0] : period);
+    } else {
+        return;
+    }
+    const call = async (dryRun) => (await fetch('/planning/api/shift-plannings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: date, period_number: periodNumber, dry_run: dryRun })
+    })).json();
+    const longDate = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString(
+        document.documentElement.lang || 'fr', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    try {
+        const preview = await call(true);
+        if (!preview.success) {
+            alert(calFmt(CAL_I18N.errorWithMsg, { error: preview.message || CAL_I18N.unknownError }));
+            return;
+        }
+        if (!confirm(calFmt(CAL_I18N.confirmShiftPlanning, {
+            count: preview.count, first: longDate(preview.first_target), last: longDate(preview.last_target)
+        }))) return;
+        const result = await call(false);
+        if (result.success) {
+            closePlanningModal();
+            location.reload();  // plusieurs semaines changent : on recharge la grille
+        } else {
+            alert(calFmt(CAL_I18N.errorWithMsg, { error: result.message || CAL_I18N.unknownError }));
+        }
+    } catch (e) {
+        console.error('Erreur lors du décalage :', e);
         alert(CAL_I18N.serverConnectionError);
     }
 }

@@ -29,6 +29,9 @@ const LESSON_I18N = {
     speechLang: {{ {'fr': 'fr-FR', 'en': 'en-US', 'de': 'de-DE', 'it': 'it-IT', 'es': 'es-ES'}.get(current_locale or 'fr', 'fr-FR')|tojson }},
     // Commun
     edit: {{ _('Modifier')|tojson }},
+    confirmPostponeTasks: {{ _('Reporter les tâches non cochées au début du cours suivant de cette classe ?')|tojson }},
+    tasksPostponed: {{ _('{count} tâche(s) reportée(s) au cours du {date}.')|tojson }},
+    confirmShiftPlanning: {{ _("Décaler ce cours et les suivants ?\n\n{count} planification(s) de cette classe avancent d'un cours.\nCe cours passe au {first}. Le dernier cours déplacé arrive le {last}.")|tojson }},
     delete: {{ _('Supprimer')|tojson }},
     cancel: {{ _('Annuler')|tojson }},
     close: {{ _('Fermer')|tojson }},
@@ -1522,10 +1525,24 @@ input, textarea, select {
                 <h2 class="section-title">
                     <i class="fas fa-clipboard-list"></i> {{ _('Planification du cours') }}
                 </h2>
-                <div style="display:flex;gap:0.5rem;">
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+                    {# « Modifier » reste le premier .edit-planning-btn du document :
+                       togglePlanningEdit() le retrouve avec querySelector. #}
                     <button class="edit-planning-btn" onclick="togglePlanningEdit()">
                         <i class="fas fa-edit"></i> <span id="editBtnText">{{ _('Modifier') }}</span>
                     </button>
+                    {% if planning and (planning.classroom_id or planning.mixed_group_id) %}
+                    {# Les tâches non cochées passent en tête du cours suivant de la classe. #}
+                    <button class="edit-planning-btn" type="button" onclick="postponeUncheckedTasks()"
+                            title="{{ _('Les tâches non cochées passent au début du cours suivant de cette classe') }}">
+                        <i class="fas fa-share"></i> <span>{{ _('Reporter les tâches non faites') }}</span>
+                    </button>
+                    {# Ce cours et tous les suivants de la classe avancent d'un cours. #}
+                    <button class="edit-planning-btn" type="button" onclick="shiftPlanningFromLesson()"
+                            title="{{ _("Cette planification et les suivantes de la même classe avancent d'un cours") }}">
+                        <i class="fas fa-forward"></i> <span>{{ _('Décaler au cours suivant') }}</span>
+                    </button>
+                    {% endif %}
                 </div>
             </div>
 
@@ -2654,6 +2671,69 @@ function escapeHtml(text) {
         "'": '&#039;'
     };
     return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// Date lisible (« jeudi 19 novembre ») pour les confirmations de report/décalage
+function lessonLongDate(iso) {
+    return new Date(iso + 'T12:00:00').toLocaleDateString(LESSON_I18N.dateLocale,
+        { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+// Reporter les tâches non cochées de ce cours au début du cours suivant de la classe
+async function postponeUncheckedTasks() {
+    if (!confirm(LESSON_I18N.confirmPostponeTasks)) return;
+    try {
+        // Les cases cochées sont enregistrées avec un délai : on force l'envoi
+        // pour que le serveur sache exactement ce qui est fait.
+        if (checkboxUpdateTimeout) { clearTimeout(checkboxUpdateTimeout); checkboxUpdateTimeout = null; }
+        await fetch('{{ url_for("planning.update_checklist_states") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ date: lessonDate, period_number: periodNumber, checklist_states: checklistStates })
+        });
+        const result = await (await fetch('{{ url_for("planning.postpone_planning_tasks") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ date: lessonDate, period_number: periodNumber })
+        })).json();
+        if (!result.success) {
+            alert(result.message || LESSON_I18N.saveError);
+            return;
+        }
+        alert(lessonFmt(LESSON_I18N.tasksPostponed, { count: result.count, date: lessonLongDate(result.target_date) }));
+        location.reload();
+    } catch (error) {
+        console.error('Erreur report des tâches:', error);
+        alert(LESSON_I18N.connectionError);
+    }
+}
+
+// Décaler ce cours et tous les suivants de la même classe d'un cours
+async function shiftPlanningFromLesson() {
+    const call = async (dryRun) => (await fetch('{{ url_for("planning.shift_plannings") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ date: lessonDate, period_number: periodNumber, dry_run: dryRun })
+    })).json();
+    try {
+        const preview = await call(true);
+        if (!preview.success) {
+            alert(preview.message || LESSON_I18N.saveError);
+            return;
+        }
+        if (!confirm(lessonFmt(LESSON_I18N.confirmShiftPlanning, {
+            count: preview.count, first: lessonLongDate(preview.first_target), last: lessonLongDate(preview.last_target)
+        }))) return;
+        const result = await call(false);
+        if (!result.success) {
+            alert(result.message || LESSON_I18N.saveError);
+            return;
+        }
+        location.reload();
+    } catch (error) {
+        console.error('Erreur décalage:', error);
+        alert(LESSON_I18N.connectionError);
+    }
 }
 
 // Fonction pour mettre à jour l'état d'une checkbox
