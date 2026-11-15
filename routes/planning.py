@@ -1906,6 +1906,102 @@ def save_planning():
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+def _planning_from_slot_payload(data):
+    """Planification de l'enseignant connecté sur le créneau {date, period_number}.
+    Renvoie (planification, None) ou (None, réponse d'erreur)."""
+    try:
+        planning_date = datetime.strptime(data.get('date') or '', '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None, (jsonify({'success': False, 'message': _gettext('Date invalide')}), 400)
+    period_number = extract_numeric_id(data.get('period_number'))
+    if not period_number:
+        return None, (jsonify({'success': False, 'message': _gettext('Numéro de période invalide')}), 400)
+    planning = Planning.query.filter_by(
+        user_id=current_user.id, date=planning_date, period_number=period_number
+    ).first()
+    if not planning:
+        return None, (jsonify({'success': False, 'message': _gettext('Planification non trouvée')}), 404)
+    return planning, None
+
+
+@planning_bp.route('/api/shift-plannings', methods=['POST'])
+@login_required
+def shift_plannings():
+    """Décaler d'un cours la planification d'un créneau et toutes celles qui la
+    suivent pour la même classe (et le même groupe), jusqu'au premier cours vide.
+
+    Corps JSON : date, period_number, dry_run? (true = aperçu, rien n'est modifié).
+    """
+    from utils.planning_shift import plan_shift, apply_shift, ShiftError
+
+    data = request.get_json(silent=True) or {}
+    planning, error = _planning_from_slot_payload(data)
+    if error:
+        return error
+    try:
+        if data.get('dry_run'):
+            moves, _absorber = plan_shift(current_user, planning)
+            return jsonify({
+                'success': True,
+                'count': len(moves),
+                'first_target': moves[0][1].isoformat(),
+                'last_target': moves[-1][1].isoformat(),
+            })
+        done = apply_shift(current_user, planning)
+        return jsonify({
+            'success': True,
+            'count': len(done),
+            'moves': [
+                {'title': title, 'from_date': d0.isoformat(), 'from_period': n0,
+                 'to_date': d1.isoformat(), 'to_period': n1}
+                for title, d0, n0, d1, n1 in done
+            ],
+        })
+    except ShiftError as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': _gettext(str(e))}), 400
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erreur shift-plannings: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/postpone-tasks', methods=['POST'])
+@login_required
+def postpone_planning_tasks():
+    """Reporter des tâches d'un cours sur le cours suivant de la même classe.
+
+    Corps JSON : date, period_number, indices? (numéros des cases à reporter ;
+    absent = toutes les cases non cochées).
+    """
+    from utils.planning_shift import postpone_tasks, ShiftError
+
+    data = request.get_json(silent=True) or {}
+    planning, error = _planning_from_slot_payload(data)
+    if error:
+        return error
+    indices = data.get('indices')
+    if indices is not None:
+        try:
+            indices = [int(i) for i in indices]
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'message': _gettext('Tâches invalides')}), 400
+    try:
+        count, target_date, target_period = postpone_tasks(current_user, planning, indices)
+        return jsonify({
+            'success': True, 'count': count,
+            'target_date': target_date.isoformat(), 'target_period': target_period,
+        })
+    except ShiftError as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': _gettext(str(e))}), 400
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erreur postpone-tasks: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+
 @planning_bp.route('/get_available_periods/<date>')
 @login_required
 def get_available_periods(date):

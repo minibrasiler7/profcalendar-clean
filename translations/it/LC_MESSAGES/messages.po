@@ -14061,6 +14061,57 @@ msgstr "Seleziona una classe qui sopra per inserirla con un solo clic. Senza sel
 msgid "Votre semaine est en place : voici votre calendrier. Cliquez sur une période pour préparer votre première leçon."
 msgstr "La tua settimana è pronta: ecco il tuo calendario. Clicca su un periodo per preparare la tua prima lezione."
 
+msgid "Décaler au cours suivant"
+msgstr "Sposta alla lezione successiva"
+
+msgid "Cette planification et les suivantes de la même classe avancent d'un cours"
+msgstr "Questa pianificazione e le successive della stessa classe avanzano di una lezione"
+
+msgid "Décaler ce cours et les suivants ?\n\n{count} planification(s) de cette classe avancent d'un cours.\nCe cours passe au {first}. Le dernier cours déplacé arrive le {last}."
+msgstr "Spostare questa lezione e le successive?\n\n{count} pianificazione/i di questa classe avanzano di una lezione.\nQuesta lezione passa a {first}. L'ultima lezione spostata arriva il {last}."
+
+msgid "Décaler ce cours et les suivants ?\n\n{count} planification(s) de cette classe avancent d'un cours.\nCe cours passe au {first}. Le dernier cours déplacé arrive le {last}.\n\nLes modifications non enregistrées de cette fenêtre seront perdues."
+msgstr "Spostare questa lezione e le successive?\n\n{count} pianificazione/i di questa classe avanzano di una lezione.\nQuesta lezione passa a {first}. L'ultima lezione spostata arriva il {last}.\n\nLe modifiche non salvate di questa finestra andranno perse."
+
+msgid "Reporter les tâches non faites"
+msgstr "Rinvia i compiti non svolti"
+
+msgid "Les tâches non cochées passent au début du cours suivant de cette classe"
+msgstr "I compiti non spuntati passano all'inizio della lezione successiva di questa classe"
+
+msgid "Reporter les tâches non cochées au début du cours suivant de cette classe ?"
+msgstr "Rinviare i compiti non spuntati all'inizio della lezione successiva di questa classe?"
+
+msgid "{count} tâche(s) reportée(s) au cours du {date}."
+msgstr "{count} compito/i rinviato/i alla lezione del {date}."
+
+msgid "Seul un cours lié à une classe peut être décalé."
+msgstr "Solo una lezione legata a una classe può essere spostata."
+
+msgid "Cette planification est vide : il n'y a rien à décaler."
+msgstr "Questa pianificazione è vuota: non c'è nulla da spostare."
+
+msgid "Planification introuvable sur ce créneau."
+msgstr "Nessuna pianificazione trovata in questa fascia."
+
+msgid "Il n'y a plus assez de cours avant la fin de l'année scolaire pour tout décaler."
+msgstr "Non restano abbastanza lezioni prima della fine dell'anno scolastico per spostare tutto."
+
+msgid "Rien à décaler."
+msgstr "Nulla da spostare."
+
+msgid "Seul un cours lié à une classe permet de reporter des tâches."
+msgstr "Si possono rinviare compiti solo da una lezione legata a una classe."
+
+msgid "Aucune tâche à reporter."
+msgstr "Nessun compito da rinviare."
+
+msgid "Aucun cours suivant n'a été trouvé pour cette classe."
+msgstr "Nessuna lezione successiva trovata per questa classe."
+
+msgid "Tâches invalides"
+msgstr "Compiti non validi"
+
 msgid "Votre essai Premium se termine dans %(num)d jour."
 msgid_plural "Votre essai Premium se termine dans %(num)d jours."
 msgstr[0] "La tua prova Premium termina tra %(num)d giorno."

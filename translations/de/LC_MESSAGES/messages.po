@@ -14061,6 +14061,57 @@ msgstr "Wählen Sie oben eine Klasse, um sie mit einem einzigen Klick zu platzie
 msgid "Votre semaine est en place : voici votre calendrier. Cliquez sur une période pour préparer votre première leçon."
 msgstr "Ihre Woche steht: Hier ist Ihr Kalender. Klicken Sie auf eine Lektion, um Ihre erste Stunde vorzubereiten."
 
+msgid "Décaler au cours suivant"
+msgstr "Auf die nächste Lektion verschieben"
+
+msgid "Cette planification et les suivantes de la même classe avancent d'un cours"
+msgstr "Diese Planung und die folgenden derselben Klasse rücken um eine Lektion nach hinten"
+
+msgid "Décaler ce cours et les suivants ?\n\n{count} planification(s) de cette classe avancent d'un cours.\nCe cours passe au {first}. Le dernier cours déplacé arrive le {last}."
+msgstr "Diese Lektion und die folgenden verschieben?\n\n{count} Planung(en) dieser Klasse rücken um eine Lektion nach hinten.\nDiese Lektion wandert auf {first}. Die letzte verschobene Lektion landet am {last}."
+
+msgid "Décaler ce cours et les suivants ?\n\n{count} planification(s) de cette classe avancent d'un cours.\nCe cours passe au {first}. Le dernier cours déplacé arrive le {last}.\n\nLes modifications non enregistrées de cette fenêtre seront perdues."
+msgstr "Diese Lektion und die folgenden verschieben?\n\n{count} Planung(en) dieser Klasse rücken um eine Lektion nach hinten.\nDiese Lektion wandert auf {first}. Die letzte verschobene Lektion landet am {last}.\n\nNicht gespeicherte Änderungen in diesem Fenster gehen verloren."
+
+msgid "Reporter les tâches non faites"
+msgstr "Unerledigte Aufgaben übertragen"
+
+msgid "Les tâches non cochées passent au début du cours suivant de cette classe"
+msgstr "Nicht abgehakte Aufgaben wandern an den Anfang der nächsten Lektion dieser Klasse"
+
+msgid "Reporter les tâches non cochées au début du cours suivant de cette classe ?"
+msgstr "Nicht abgehakte Aufgaben an den Anfang der nächsten Lektion dieser Klasse übertragen?"
+
+msgid "{count} tâche(s) reportée(s) au cours du {date}."
+msgstr "{count} Aufgabe(n) auf die Lektion vom {date} übertragen."
+
+msgid "Seul un cours lié à une classe peut être décalé."
+msgstr "Nur eine Lektion, die einer Klasse zugeordnet ist, kann verschoben werden."
+
+msgid "Cette planification est vide : il n'y a rien à décaler."
+msgstr "Diese Planung ist leer: Es gibt nichts zu verschieben."
+
+msgid "Planification introuvable sur ce créneau."
+msgstr "Für dieses Zeitfenster wurde keine Planung gefunden."
+
+msgid "Il n'y a plus assez de cours avant la fin de l'année scolaire pour tout décaler."
+msgstr "Bis zum Ende des Schuljahres bleiben nicht genug Lektionen, um alles zu verschieben."
+
+msgid "Rien à décaler."
+msgstr "Nichts zu verschieben."
+
+msgid "Seul un cours lié à une classe permet de reporter des tâches."
+msgstr "Aufgaben lassen sich nur aus einer Lektion übertragen, die einer Klasse zugeordnet ist."
+
+msgid "Aucune tâche à reporter."
+msgstr "Keine Aufgabe zu übertragen."
+
+msgid "Aucun cours suivant n'a été trouvé pour cette classe."
+msgstr "Für diese Klasse wurde keine folgende Lektion gefunden."
+
+msgid "Tâches invalides"
+msgstr "Ungültige Aufgaben"
+
 msgid "Votre essai Premium se termine dans %(num)d jour."
 msgid_plural "Votre essai Premium se termine dans %(num)d jours."
 msgstr[0] "Ihre Premium-Testphase endet in %(num)d Tag."

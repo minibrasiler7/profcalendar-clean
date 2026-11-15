@@ -14061,6 +14061,57 @@ msgstr "Select a class above to place it with a single click. With nothing selec
 msgid "Votre semaine est en place : voici votre calendrier. Cliquez sur une période pour préparer votre première leçon."
 msgstr "Your week is set up: here is your calendar. Click a period to prepare your first lesson."
 
+msgid "Décaler au cours suivant"
+msgstr "Shift to the next lesson"
+
+msgid "Cette planification et les suivantes de la même classe avancent d'un cours"
+msgstr "This lesson plan and the following ones of the same class move forward by one lesson"
+
+msgid "Décaler ce cours et les suivants ?\n\n{count} planification(s) de cette classe avancent d'un cours.\nCe cours passe au {first}. Le dernier cours déplacé arrive le {last}."
+msgstr "Shift this lesson and the following ones?\n\n{count} lesson plan(s) of this class move forward by one lesson.\nThis lesson moves to {first}. The last lesson moved lands on {last}."
+
+msgid "Décaler ce cours et les suivants ?\n\n{count} planification(s) de cette classe avancent d'un cours.\nCe cours passe au {first}. Le dernier cours déplacé arrive le {last}.\n\nLes modifications non enregistrées de cette fenêtre seront perdues."
+msgstr "Shift this lesson and the following ones?\n\n{count} lesson plan(s) of this class move forward by one lesson.\nThis lesson moves to {first}. The last lesson moved lands on {last}.\n\nUnsaved changes in this window will be lost."
+
+msgid "Reporter les tâches non faites"
+msgstr "Carry over unfinished tasks"
+
+msgid "Les tâches non cochées passent au début du cours suivant de cette classe"
+msgstr "Unchecked tasks move to the top of this class's next lesson"
+
+msgid "Reporter les tâches non cochées au début du cours suivant de cette classe ?"
+msgstr "Carry the unchecked tasks over to the top of this class's next lesson?"
+
+msgid "{count} tâche(s) reportée(s) au cours du {date}."
+msgstr "{count} task(s) carried over to the lesson on {date}."
+
+msgid "Seul un cours lié à une classe peut être décalé."
+msgstr "Only a lesson linked to a class can be shifted."
+
+msgid "Cette planification est vide : il n'y a rien à décaler."
+msgstr "This lesson plan is empty: there is nothing to shift."
+
+msgid "Planification introuvable sur ce créneau."
+msgstr "No lesson plan found for this slot."
+
+msgid "Il n'y a plus assez de cours avant la fin de l'année scolaire pour tout décaler."
+msgstr "There are not enough lessons left before the end of the school year to shift everything."
+
+msgid "Rien à décaler."
+msgstr "Nothing to shift."
+
+msgid "Seul un cours lié à une classe permet de reporter des tâches."
+msgstr "Tasks can only be carried over from a lesson linked to a class."
+
+msgid "Aucune tâche à reporter."
+msgstr "No task to carry over."
+
+msgid "Aucun cours suivant n'a été trouvé pour cette classe."
+msgstr "No following lesson was found for this class."
+
+msgid "Tâches invalides"
+msgstr "Invalid tasks"
+
 msgid "Votre essai Premium se termine dans %(num)d jour."
 msgid_plural "Votre essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."

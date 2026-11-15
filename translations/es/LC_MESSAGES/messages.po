@@ -14061,6 +14061,57 @@ msgstr "Selecciona una clase arriba para colocarla con un solo clic. Sin selecci
 msgid "Votre semaine est en place : voici votre calendrier. Cliquez sur une période pour préparer votre première leçon."
 msgstr "Tu semana está lista: aquí tienes tu calendario. Haz clic en un periodo para preparar tu primera clase."
 
+msgid "Décaler au cours suivant"
+msgstr "Desplazar a la sesión siguiente"
+
+msgid "Cette planification et les suivantes de la même classe avancent d'un cours"
+msgstr "Esta planificación y las siguientes de la misma clase avanzan una sesión"
+
+msgid "Décaler ce cours et les suivants ?\n\n{count} planification(s) de cette classe avancent d'un cours.\nCe cours passe au {first}. Le dernier cours déplacé arrive le {last}."
+msgstr "¿Desplazar esta clase y las siguientes?\n\n{count} planificación(es) de esta clase avanzan una sesión.\nEsta sesión pasa al {first}. La última sesión desplazada llega el {last}."
+
+msgid "Décaler ce cours et les suivants ?\n\n{count} planification(s) de cette classe avancent d'un cours.\nCe cours passe au {first}. Le dernier cours déplacé arrive le {last}.\n\nLes modifications non enregistrées de cette fenêtre seront perdues."
+msgstr "¿Desplazar esta clase y las siguientes?\n\n{count} planificación(es) de esta clase avanzan una sesión.\nEsta sesión pasa al {first}. La última sesión desplazada llega el {last}.\n\nLos cambios no guardados de esta ventana se perderán."
+
+msgid "Reporter les tâches non faites"
+msgstr "Aplazar las tareas no hechas"
+
+msgid "Les tâches non cochées passent au début du cours suivant de cette classe"
+msgstr "Las tareas sin marcar pasan al inicio de la siguiente sesión de esta clase"
+
+msgid "Reporter les tâches non cochées au début du cours suivant de cette classe ?"
+msgstr "¿Aplazar las tareas sin marcar al inicio de la siguiente sesión de esta clase?"
+
+msgid "{count} tâche(s) reportée(s) au cours du {date}."
+msgstr "{count} tarea(s) aplazada(s) a la sesión del {date}."
+
+msgid "Seul un cours lié à une classe peut être décalé."
+msgstr "Solo se puede desplazar una sesión vinculada a una clase."
+
+msgid "Cette planification est vide : il n'y a rien à décaler."
+msgstr "Esta planificación está vacía: no hay nada que desplazar."
+
+msgid "Planification introuvable sur ce créneau."
+msgstr "No se ha encontrado ninguna planificación en esta franja."
+
+msgid "Il n'y a plus assez de cours avant la fin de l'année scolaire pour tout décaler."
+msgstr "No quedan suficientes sesiones antes del final del curso para desplazarlo todo."
+
+msgid "Rien à décaler."
+msgstr "Nada que desplazar."
+
+msgid "Seul un cours lié à une classe permet de reporter des tâches."
+msgstr "Solo se pueden aplazar tareas de una sesión vinculada a una clase."
+
+msgid "Aucune tâche à reporter."
+msgstr "Ninguna tarea que aplazar."
+
+msgid "Aucun cours suivant n'a été trouvé pour cette classe."
+msgstr "No se ha encontrado ninguna sesión siguiente para esta clase."
+
+msgid "Tâches invalides"
+msgstr "Tareas no válidas"
+
 msgid "Votre essai Premium se termine dans %(num)d jour."
 msgid_plural "Votre essai Premium se termine dans %(num)d jours."
 msgstr[0] "Tu prueba Premium termina en %(num)d día."
