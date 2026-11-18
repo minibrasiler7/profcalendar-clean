@@ -17,6 +17,26 @@ from flask_babel import gettext as _, lazy_gettext as _l, get_locale as _get_loc
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
+def _norm_email(value):
+    """Adresse telle qu'on l'enregistre : sans espaces autour, en minuscules."""
+    return (value or '').strip().lower()
+
+
+def _users_by_email(value):
+    """Comptes enseignants pour cette adresse, SANS tenir compte des majuscules
+    ni des espaces. L'iPhone met volontiers une majuscule à l'adresse : un compte
+    créé « Prenom@… » ne se retrouvait plus en tapant « prenom@… », et la personne
+    recréait un compte. L'adresse exacte passe en premier, puis le compte le plus
+    récent (quelques doublons « à la casse près » existent déjà)."""
+    raw = (value or '').strip()
+    if not raw:
+        return []
+    from sqlalchemy import func
+    rows = User.query.filter(func.lower(User.email) == raw.lower()).order_by(User.id.desc()).all()
+    rows.sort(key=lambda u: u.email != raw)
+    return rows
+
+
 class LoginForm(FlaskForm):
     email = StringField(_l('Email'), validators=[DataRequired(), Email()])
     password = PasswordField(_l('Mot de passe'), validators=[DataRequired()])
@@ -45,8 +65,7 @@ class RegisterForm(FlaskForm):
                 raise ValidationError(_("Ce nom d'utilisateur est déjà pris."))
 
     def validate_email(self, email):
-        user = User.query.filter_by(email=email.data).first()
-        if user:
+        if _users_by_email(email.data):
             raise ValidationError(_('Cette adresse email est déjà enregistrée.'))
 
 
@@ -108,8 +127,9 @@ def login():
             return render_template('auth/login.html', form=form)
 
         # Ensuite vérifier l'enseignant
-        user = User.query.filter_by(email=form.email.data).first()
-        if user and user.check_password(form.password.data):
+        user = next((u for u in _users_by_email(form.email.data)
+                     if u.check_password(form.password.data)), None)
+        if user:
             # Reset des tentatives en cas de succès
             session.pop('login_attempts', None)
             session.pop('login_lockout', None)
@@ -171,19 +191,56 @@ def login():
 
     return render_template('auth/login.html', form=form)
 
+def _resume_unverified_signup(form):
+    """Le formulaire d'inscription est renvoyé pour un compte qui existe déjà mais
+    dont l'adresse n'est pas encore vérifiée, avec le bon mot de passe : c'est un
+    double appui sur « S'inscrire » ou quelqu'un qui revient finir. On l'emmène à
+    la saisie du code au lieu d'afficher « adresse déjà enregistrée ».
+    Retourne une réponse, ou None si ce n'est pas ce cas."""
+    email, password = (form.email.data or ''), (form.password.data or '')
+    if not email.strip() or not password:
+        return None
+    user = next((u for u in _users_by_email(email)
+                 if not u.email_verified and u.check_password(password)), None)
+    if not user:
+        return None
+    # Pas de second e-mail si un code vient d'être envoyé (double appui).
+    recent = EmailVerification.query.filter_by(email=user.email, user_type='teacher') \
+        .order_by(EmailVerification.created_at.desc()).first()
+    fresh = bool(recent and recent.created_at
+                 and (datetime.utcnow() - recent.created_at).total_seconds() < 60)
+    email_sent = True
+    if not fresh:
+        verification = EmailVerification.create_verification(user.email, 'teacher')
+        db.session.commit()
+        email_sent = send_verification_code(user.email, verification.code, 'teacher')
+    session['pending_user_id'] = user.id
+    session['pending_user_type'] = 'teacher'
+    session['verification_email'] = user.email
+    if email_sent:
+        flash(_('Un code de vérification a été envoyé à votre adresse email.'), 'info')
+    else:
+        flash(_("Compte créé, mais impossible d'envoyer le code de vérification. Veuillez réessayer."), 'error')
+    return redirect(url_for('auth.verify_email'))
+
+
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('planning.dashboard'))
 
     form = RegisterForm()
+    if request.method == 'POST':
+        resumed = _resume_unverified_signup(form)
+        if resumed is not None:
+            return resumed
     if form.validate_on_submit():
         username = (form.username.data or '').strip()
         if not username:
             username = _unique_username_from_email(form.email.data)
         user = User(
             username=username,
-            email=form.email.data
+            email=_norm_email(form.email.data)
         )
         user.set_password(form.password.data)
         # Onboarding sans friction : on pré-remplit la config avec des défauts
@@ -200,7 +257,16 @@ def register():
         except Exception:
             pass
         db.session.add(user)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception:
+            # Deux envois simultanés du formulaire : l'autre a créé le compte.
+            db.session.rollback()
+            resumed = _resume_unverified_signup(form)
+            if resumed is not None:
+                return resumed
+            flash(_('Cette adresse email est déjà enregistrée.'), 'error')
+            return render_template('auth/register.html', form=form)
         # Récréation et pause de midi par défaut (il faut l'id du compte).
         try:
             _remember_locale(user, force=True)
@@ -473,7 +539,7 @@ def forgot_password():
             return redirect(url_for('auth.forgot_password'))
         session['pwd_reset_last'] = now_ts
 
-        user = User.query.filter_by(email=form.email.data.strip()).first()
+        user = next(iter(_users_by_email(form.email.data)), None)
         if user:
             token = _make_reset_token(user)
             base = os.environ.get('APP_BASE_URL', 'https://profcalendar.org').rstrip('/')

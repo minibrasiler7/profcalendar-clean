@@ -38,7 +38,7 @@
                 {{ form.email.label(class="form-label") }}
                 <div class="input-group">
                     <i class="fas fa-envelope input-icon"></i>
-                    {{ form.email(class="form-control", placeholder="votre@email.com", autofocus=true, autocomplete="email") }}
+                    {{ form.email(class="form-control", placeholder="votre@email.com", autofocus=true, autocomplete="email", type="email", inputmode="email", autocapitalize="none", autocorrect="off", spellcheck="false") }}
                 </div>
                 {% if form.email.errors %}
                     <div class="form-error">
@@ -262,6 +262,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+});
+
+// Un seul envoi du formulaire : un double appui créait le compte, puis affichait
+// « adresse déjà enregistrée » à la place de la saisie du code.
+document.querySelectorAll('form.auth-form').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+        if (form.dataset.sent === '1') { event.preventDefault(); return; }
+        form.dataset.sent = '1';
+        var button = form.querySelector('[type="submit"]');
+        if (button) { button.setAttribute('aria-busy', 'true'); button.style.opacity = '0.7'; }
+    });
+});
+// Page restaurée par le retour arrière : le formulaire doit pouvoir repartir.
+window.addEventListener('pageshow', function () {
+    document.querySelectorAll('form.auth-form').forEach(function (form) {
+        delete form.dataset.sent;
+        var button = form.querySelector('[type="submit"]');
+        if (button) { button.removeAttribute('aria-busy'); button.style.opacity = ''; }
+    });
 });
 </script>
 {% endblock %}
