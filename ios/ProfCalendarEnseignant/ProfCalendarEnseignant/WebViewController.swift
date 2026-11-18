@@ -236,6 +236,13 @@ class WebViewController: UIViewController {
         pencilCanvas = PassthroughCanvasView()
         pencilCanvas.backgroundColor = .clear
         pencilCanvas.isOpaque = false
+        // Encre TOUJOURS rendue en apparence claire. Quand l'iPad est en mode
+        // sombre, PencilKit adapte les couleurs d'encre au fond supposé sombre :
+        // le noir devient blanc. Or la page PDF reste blanche et le web
+        // enregistre la couleur choisie → traits blancs pendant l'annotation,
+        // puis noirs au rechargement. Le canvas survole une page de papier :
+        // ses couleurs ne doivent jamais suivre le thème du système.
+        pencilCanvas.overrideUserInterfaceStyle = .light
         pencilCanvas.drawingPolicy = .pencilOnly  // Seul l'Apple Pencil dessine, le doigt scroll
         pencilCanvas.delegate = drawingCoordinator
         pencilCanvas.tool = drawingCoordinator.currentPKTool
