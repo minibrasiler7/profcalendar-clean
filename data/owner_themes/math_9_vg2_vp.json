@@ -1,0 +1,1384 @@
+[
+ {
+  "code": "ES",
+  "title": "Figures géométriques planes",
+  "level": "9e année · VG niveau 2 & VP",
+  "objectives": [
+   "Reconnaissance, dénomination, description de figures planes selon leurs propriétés (symétrie-s interne-s, côtés, angles, somme des angles, diagonales) et construction d'angles, triangles, quadrilatères, cercles",
+   "Reconnaissance et dénomination des angles (aigu, obtus, droit, plat, rentrant)",
+   "Estimation, comparaison, classement et mesure d'angles en degrés",
+   "Reconnaissance, dénomination, description des propriétés et construction de :",
+   "– droites parallèles, droites perpendiculaires",
+   "– hauteur, médiatrice, bissectrice",
+   "– médiane, cercles inscrit et circonscrit",
+   "Représentation de figures planes par un croquis et/ou un dessin à l'échelle (y compris 1:1)"
+  ],
+  "exercises": [
+   "Que sais-je ?",
+   "ES1",
+   "ES2",
+   "ES3",
+   "ES5",
+   "ES6",
+   "ES7",
+   "ES9",
+   "ES10",
+   "ES13",
+   "ES14",
+   "ES15",
+   "ES16",
+   "ES18",
+   "ES19",
+   "ES20",
+   "ES22",
+   "ES23",
+   "ES24",
+   "ES25",
+   "ES26",
+   "ES27",
+   "ES28",
+   "ES30",
+   "ES32",
+   "ES33",
+   "ES34",
+   "ES36",
+   "ES38",
+   "ES39",
+   "ES41",
+   "ES42",
+   "ES44",
+   "ES45",
+   "ES46",
+   "ES47",
+   "ES49",
+   "ES53",
+   "ES57",
+   "ES58",
+   "ES59",
+   "ES60",
+   "ES61",
+   "ES65",
+   "ES78",
+   "ES82",
+   "ES83",
+   "ES84",
+   "ES86",
+   "ES96"
+  ],
+  "notions": [
+   {
+    "n": 1,
+    "title": "Vocabulaire et définitions",
+    "exercises": [
+     "Que sais-je ?",
+     "ES1",
+     "ES2",
+     "ES3"
+    ]
+   },
+   {
+    "n": 2,
+    "title": "Construire des parallèles et des perpendiculaires",
+    "exercises": [
+     "ES6"
+    ]
+   },
+   {
+    "n": 3,
+    "title": "Mesurer des distances en géométrie",
+    "exercises": [
+     "ES5",
+     "ES7",
+     "ES9"
+    ]
+   },
+   {
+    "n": 4,
+    "title": "Mesurer et construire un angle",
+    "exercises": [
+     "ES10",
+     "ES13",
+     "ES14",
+     "ES15",
+     "ES16",
+     "ES18"
+    ]
+   },
+   {
+    "n": 5,
+    "title": "Construire un angle de 60° au compas",
+    "exercises": [
+     "ES20 A, B, D"
+    ]
+   },
+   {
+    "n": 6,
+    "title": "Report d'angle",
+    "exercises": [
+     "ES19"
+    ]
+   },
+   {
+    "n": 7,
+    "title": "Lieu géométrique",
+    "exercises": [
+     "ES22",
+     "ES24",
+     "ES25"
+    ]
+   },
+   {
+    "n": 8,
+    "title": "Médiatrice et bissectrice",
+    "exercises": [
+     "ES20 C, E, F",
+     "ES26",
+     "ES27",
+     "ES28",
+     "ES30",
+     "ES32",
+     "ES33",
+     "ES34"
+    ]
+   },
+   {
+    "n": 9,
+    "title": "Écrire une marche à suivre",
+    "exercises": [
+     "ES36",
+     "ES38",
+     "ES39"
+    ]
+   },
+   {
+    "n": 10,
+    "title": "Les triangles et leurs propriétés",
+    "exercises": [
+     "ES41",
+     "ES42 A, B, C, D",
+     "ES44"
+    ]
+   },
+   {
+    "n": 11,
+    "title": "Constructibilité des triangles",
+    "exercises": [
+     "ES45",
+     "ES46",
+     "ES47",
+     "ES48",
+     "ES53"
+    ]
+   },
+   {
+    "n": 12,
+    "title": "Droites et cercles remarquables dans un triangle",
+    "exercises": [
+     "ES57",
+     "ES58",
+     "ES59",
+     "ES60",
+     "ES61",
+     "ES65"
+    ]
+   },
+   {
+    "n": 13,
+    "title": "Propriétés des quadrilatères",
+    "exercises": [
+     "ES78",
+     "ES82",
+     "ES83",
+     "ES84",
+     "ES86",
+     "ES96"
+    ]
+   }
+  ],
+  "revision": "",
+  "subject": "Mathématiques"
+ },
+ {
+  "code": "ES",
+  "title": "Représentations de solides",
+  "level": "9e année · VG niveau 2 & VP",
+  "objectives": [
+   "Reconnaissance, dénomination, description de solides selon leurs propriétés (faces, sommets, arêtes, polyèdre ou non) : cube, parallélépipède rectangle, prisme droit, cylindre, pyramide",
+   "Réalisation de développements et construction de solides : cube, parallélépipède rectangle, prisme droit",
+   "Représentation de solides en perspective"
+  ],
+  "exercises": [
+   "Que sais-je ? p.142",
+   "ES97",
+   "ES98",
+   "ES99",
+   "ES100",
+   "ES101",
+   "ES102",
+   "ES103",
+   "ES104",
+   "ES105",
+   "ES106",
+   "Faire le point p.147",
+   "ES107",
+   "ES108",
+   "ES109",
+   "ES110",
+   "ES111"
+  ],
+  "notions": [
+   {
+    "n": 1,
+    "title": "Vocabulaire des solides",
+    "exercises": [
+     "Que sais-je ? p.142"
+    ]
+   },
+   {
+    "n": 2,
+    "title": "Nom et propriétés des solides",
+    "exercises": [
+     "ES97",
+     "ES98",
+     "ES99"
+    ]
+   },
+   {
+    "n": 3,
+    "title": "La perspective",
+    "exercises": [
+     "ES100",
+     "ES101",
+     "ES102"
+    ]
+   },
+   {
+    "n": 4,
+    "title": "Le développement (patron)",
+    "exercises": [
+     "ES103",
+     "ES104",
+     "ES105",
+     "ES106",
+     "Faire le point p.147",
+     "ES107",
+     "ES108",
+     "ES109"
+    ]
+   },
+   {
+    "n": 5,
+    "title": "Les points de vue",
+    "exercises": [
+     "ES110",
+     "ES111"
+    ]
+   }
+  ],
+  "revision": "",
+  "subject": "Mathématiques"
+ },
+ {
+  "code": "ES",
+  "title": "Transformations géométriques",
+  "level": "9e année · VG niveau 2 & VP",
+  "objectives": [
+   "Reconnaissance et dénomination des isométries : translation, symétrie axiale, rotation, symétrie centrale",
+   "Description et identification des caractéristiques d'une isométrie (vecteur de translation, axe de symétrie, centre de rotation ou de symétrie, conservation des grandeurs, …)",
+   "Anticipation de la position d'une figure plane après une isométrie",
+   "Réalisation de frises ou de pavages à l'aide d'isométries",
+   "Construction de l'image d'une figure plane par une isométrie (à l'aide des instruments ou de logiciels appropriés) : translation, symétrie axiale, rotation, symétrie centrale",
+   "Agrandissement et réduction de figures planes en utilisant la proportionnalité",
+   "Utilisation de systèmes de repérage pour communiquer des positions et des itinéraires, pour placer des points"
+  ],
+  "exercises": [
+   "Que sais-je ?",
+   "ES116",
+   "ES117",
+   "ES119",
+   "ES122",
+   "ES123",
+   "ES124",
+   "ES125",
+   "ES126",
+   "ES128",
+   "ES129",
+   "ES130",
+   "ES131",
+   "ES133",
+   "ES135",
+   "ES136",
+   "ES137",
+   "ES138",
+   "ES139",
+   "ES140",
+   "ES141",
+   "ES142",
+   "ES143",
+   "ES144"
+  ],
+  "notions": [
+   {
+    "n": 1,
+    "title": "Les isométries du plan",
+    "exercises": [
+     "Que sais-je ?",
+     "ES116",
+     "ES142"
+    ]
+   },
+   {
+    "n": 2,
+    "title": "Notation des transformations isométriques",
+    "exercises": []
+   },
+   {
+    "n": 3,
+    "title": "Construire les isométries aux instruments",
+    "exercises": [
+     "ES122",
+     "ES123",
+     "ES124",
+     "ES125",
+     "ES129",
+     "ES130",
+     "ES131",
+     "ES135",
+     "ES136",
+     "ES137",
+     "ES139",
+     "ES140"
+    ]
+   },
+   {
+    "n": 4,
+    "title": "Utiliser une grille pour effectuer les transformations",
+    "exercises": [
+     "ES117",
+     "ES126",
+     "ES128",
+     "ES138"
+    ]
+   },
+   {
+    "n": 5,
+    "title": "Utiliser une grille pour repérer des points",
+    "exercises": [
+     "ES141"
+    ]
+   },
+   {
+    "n": 6,
+    "title": "Les pavages",
+    "exercises": [
+     "ES119",
+     "ES133"
+    ]
+   },
+   {
+    "n": 7,
+    "title": "L'homothétie",
+    "exercises": [
+     "ES143",
+     "ES144"
+    ]
+   }
+  ],
+  "revision": "",
+  "subject": "Mathématiques"
+ },
+ {
+  "code": "FA",
+  "title": "Calcul littéral",
+  "level": "9e année · VG niveau 2 & VP",
+  "objectives": [
+   "Connaissance et utilisation des règles et conventions usuelles d'écriture algébrique",
+   "Détermination de la valeur numérique d'une expression littérale (bh/2, 4x + 5, abc, x³, …) en substituant des nombres aux lettres",
+   "Élaboration d'expressions littérales à partir de figures géométriques ou d'expressions verbales"
+  ],
+  "exercises": [
+   "Que sais-je ? p.92",
+   "FA58",
+   "FA60",
+   "FA61",
+   "FA62",
+   "FA63",
+   "FA64",
+   "FA66",
+   "FA69",
+   "FA70",
+   "FA71",
+   "FA73",
+   "FA74",
+   "FA75",
+   "FA76",
+   "Faire le point p.99",
+   "FA77",
+   "FA78",
+   "FA79"
+  ],
+  "notions": [
+   {
+    "n": 1,
+    "title": "Priorité des opérations (rappel)",
+    "exercises": []
+   },
+   {
+    "n": 2,
+    "title": "Transformer une addition en multiplication",
+    "exercises": []
+   },
+   {
+    "n": 3,
+    "title": "Transformer une multiplication en puissance",
+    "exercises": [
+     "Que sais-je ? p.92",
+     "FA58",
+     "FA60"
+    ]
+   },
+   {
+    "n": 4,
+    "title": "Les expressions littérales",
+    "exercises": []
+   },
+   {
+    "n": 5,
+    "title": "Simplifier une expression littérale",
+    "exercises": [
+     "FA61",
+     "FA62",
+     "FA63"
+    ]
+   },
+   {
+    "n": 6,
+    "title": "Une expression littérale vue comme une fonction",
+    "exercises": [
+     "FA64",
+     "FA66"
+    ]
+   },
+   {
+    "n": 7,
+    "title": "Évaluer une expression littérale",
+    "exercises": [
+     "FA69",
+     "FA70"
+    ]
+   },
+   {
+    "n": 8,
+    "title": "Des expressions littérales égales",
+    "exercises": [
+     "FA71",
+     "FA73",
+     "FA74",
+     "FA75",
+     "FA76",
+     "Faire le point p.99",
+     "FA77",
+     "FA78",
+     "FA79"
+    ]
+   }
+  ],
+  "revision": "",
+  "subject": "Mathématiques"
+ },
+ {
+  "code": "FA",
+  "title": "Fonctions et diagrammes",
+  "level": "9e année · VG niveau 2 & VP",
+  "objectives": [
+   "Reconnaissance de situations pouvant être modélisées par des fonctions",
+   "Lecture et interprétation de tableaux de valeurs, de représentations graphiques",
+   "Représentation d'une relation où interviennent deux grandeurs variables par :",
+   "– un tableau de valeurs",
+   "– une représentation graphique (à la main, à l'aide d'un tableur, d'un grapheur, …)",
+   "– un ou plusieurs opérateurs (sous forme de « machine » ou d'expression verbale)",
+   "Passage d'une représentation à une autre :",
+   "– de l'opérateur au tableau de valeurs et inversement",
+   "– du tableau de valeurs à la représentation graphique et inversement",
+   "Résolution de problèmes de proportionnalité (propriétés, facteur de la proportionnalité) :",
+   "– quantité / quantité (prix, poids, devises, …)",
+   "– agrandissement et réduction de figures",
+   "Lecture de données (horaires, statistiques, …) et interprétation de diagrammes",
+   "Réalisation de diagramme cartésien, en colonnes",
+   "Utilisation d'outils appropriés (tableur, grapheur, …)"
+  ],
+  "exercises": [
+   "Que sais-je ? p.79",
+   "FA1",
+   "FA3",
+   "FA5",
+   "FA6",
+   "FA7",
+   "FA9",
+   "FA10",
+   "FA11",
+   "FA12",
+   "FA13",
+   "Faire le point p.84",
+   "FA14",
+   "FA16",
+   "FA17",
+   "FA18",
+   "FA19",
+   "FA20",
+   "FA21",
+   "FA22",
+   "FA23",
+   "FA24",
+   "FA25",
+   "FA26",
+   "FA27",
+   "FA28",
+   "FA29",
+   "FA30",
+   "FA34",
+   "FA44",
+   "FA46",
+   "FA51",
+   "FA53",
+   "FA56",
+   "FA57"
+  ],
+  "notions": [
+   {
+    "n": 1,
+    "title": "Révision : le graphique",
+    "exercises": [
+     "Que sais-je ? p.79",
+     "FA1"
+    ]
+   },
+   {
+    "n": 2,
+    "title": "Introduction à la proportionnalité",
+    "exercises": []
+   },
+   {
+    "n": 3,
+    "title": "La fonction : définition",
+    "exercises": [
+     "FA3",
+     "FA5",
+     "FA6",
+     "FA7"
+    ]
+   },
+   {
+    "n": 4,
+    "title": "Le tableau de valeurs",
+    "exercises": []
+   },
+   {
+    "n": 5,
+    "title": "Représenter une fonction graphiquement, lire un graphique",
+    "exercises": [
+     "FA7",
+     "FA9",
+     "FA10",
+     "FA11",
+     "FA12",
+     "FA13",
+     "Faire le point p.84"
+    ]
+   },
+   {
+    "n": 6,
+    "title": "La proportionnalité en situation",
+    "exercises": [
+     "FA14",
+     "FA16",
+     "FA17",
+     "FA18",
+     "FA19",
+     "FA20",
+     "FA21",
+     "FA22",
+     "FA23",
+     "FA24",
+     "FA25",
+     "FA26",
+     "FA27",
+     "FA28",
+     "FA29",
+     "FA30",
+     "FA34"
+    ]
+   },
+   {
+    "n": 7,
+    "title": "Trouver le coefficient de proportionnalité",
+    "exercises": []
+   },
+   {
+    "n": 8,
+    "title": "Vérifier si une fonction est linéaire",
+    "exercises": []
+   },
+   {
+    "n": 9,
+    "title": "Diagramme cartésien et diagramme en barres",
+    "exercises": [
+     "FA44",
+     "FA46",
+     "FA48",
+     "FA51",
+     "FA53",
+     "FA56",
+     "FA57"
+    ]
+   }
+  ],
+  "revision": "",
+  "subject": "Mathématiques"
+ },
+ {
+  "code": "GM",
+  "title": "Lignes et surfaces",
+  "level": "9e année · VG niveau 2 & VP",
+  "objectives": [
+   "Comparaison, classement et mesure de grandeurs par manipulation de lignes, angles, surfaces, en utilisant des unités conventionnelles et non conventionnelles",
+   "Estimation de grandeurs, choix d'une unité adéquate, prise de mesure à l'aide d'un instrument adapté et expression d'une grandeur avec des unités de longueur et d'aire",
+   "Mesure des dimensions adéquates et calcul :",
+   "– du périmètre d'un polygone",
+   "– de l'aire d'un carré, d'un rectangle, d'un triangle, d'un parallélogramme, d'un losange, d'un trapèze",
+   "– de l'aire d'un polygone par décomposition en figures simples"
+  ],
+  "exercises": [
+   "Que sais-je ?",
+   "GM1",
+   "GM2",
+   "GM3",
+   "GM5",
+   "GM6",
+   "GM7",
+   "GM8",
+   "GM10",
+   "GM12",
+   "GM13",
+   "GM14",
+   "GM15",
+   "GM16",
+   "GM18",
+   "GM20",
+   "GM21",
+   "GM22",
+   "GM23",
+   "GM24",
+   "GM26",
+   "GM27",
+   "GM28",
+   "GM30",
+   "GM31",
+   "GM32",
+   "GM33",
+   "GM34",
+   "GM35",
+   "GM41",
+   "GM44",
+   "GM45",
+   "GM49",
+   "GM50",
+   "GM51",
+   "GM53"
+  ],
+  "notions": [
+   {
+    "n": 1,
+    "title": "Calcul du périmètre d'un polygone",
+    "exercises": [
+     "GM1",
+     "GM10"
+    ]
+   },
+   {
+    "n": 2,
+    "title": "Calcul d'aire du carré et du rectangle",
+    "exercises": [
+     "GM2",
+     "GM50"
+    ]
+   },
+   {
+    "n": 3,
+    "title": "Calcul d'aire de figures complexes",
+    "exercises": [
+     "GM5",
+     "GM7",
+     "GM12",
+     "GM20",
+     "GM21",
+     "GM22",
+     "GM23",
+     "GM24",
+     "GM33",
+     "GM35",
+     "GM44"
+    ]
+   },
+   {
+    "n": 4,
+    "title": "Transformation d'unités de longueur",
+    "exercises": [
+     "Que sais-je ?",
+     "GM3",
+     "GM13"
+    ]
+   },
+   {
+    "n": 5,
+    "title": "Transformation d'unités d'aire",
+    "exercises": [
+     "GM14",
+     "GM15",
+     "GM16",
+     "GM18",
+     "GM41"
+    ]
+   },
+   {
+    "n": 6,
+    "title": "L'échelle",
+    "exercises": [
+     "GM6"
+    ]
+   },
+   {
+    "n": 7,
+    "title": "Mesurer avec une unité quelconque",
+    "exercises": [
+     "GM8"
+    ]
+   },
+   {
+    "n": 8,
+    "title": "Formules d'aire : parallélogramme, triangle, trapèze, losange",
+    "exercises": [
+     "GM26",
+     "GM27",
+     "GM28",
+     "GM29",
+     "GM31",
+     "GM32",
+     "GM34",
+     "GM49"
+    ]
+   },
+   {
+    "n": 9,
+    "title": "Formule inversée : introduction au concept d'équation",
+    "exercises": [
+     "GM45",
+     "GM51",
+     "GM53"
+    ]
+   }
+  ],
+  "revision": "",
+  "subject": "Mathématiques"
+ },
+ {
+  "code": "GM",
+  "title": "Solides et diverses mesures",
+  "level": "9e année · VG niveau 2 & VP",
+  "objectives": [
+   "Estimation, comparaison, classement et mesure de grandeurs par manipulation de solides, en utilisant des unités conventionnelles et non conventionnelles",
+   "Mesure des dimensions adéquates et calcul :",
+   "– du volume et de l'aire du cube et du parallélépipède rectangle",
+   "– du volume (par décomposition et à l'aide d'une formule) et de l'aire de prismes droits",
+   "Estimation, comparaison, classement et mesure de grandeurs, choix d'une unité adéquate, prise de mesure à l'aide d'un instrument adapté et expression d'une grandeur dans diverses unités : longueur et aire ; volume, capacité ; masse ; temps",
+   "Sensibilisation aux aspects culturels et historiques de la mesure"
+  ],
+  "exercises": [
+   "Que sais-je ? p.197",
+   "GM55",
+   "GM56",
+   "GM57",
+   "GM58",
+   "GM59",
+   "GM61",
+   "GM62",
+   "GM63",
+   "GM64",
+   "GM65",
+   "GM66",
+   "Faire le point p.201",
+   "Que sais-je ? p.202",
+   "GM67",
+   "GM68",
+   "GM69",
+   "GM70",
+   "GM71",
+   "GM74",
+   "GM76",
+   "GM77",
+   "GM79",
+   "GM81",
+   "GM82",
+   "GM83",
+   "GM84",
+   "Faire le point p.206"
+  ],
+  "notions": [
+   {
+    "n": 1,
+    "title": "Rappel : le cube",
+    "exercises": []
+   },
+   {
+    "n": 2,
+    "title": "Le parallélépipède rectangle (pavé droit)",
+    "exercises": [
+     "Que sais-je ? p.197",
+     "GM55",
+     "GM56",
+     "GM65"
+    ]
+   },
+   {
+    "n": 3,
+    "title": "Volume d'un prisme droit",
+    "exercises": [
+     "GM57",
+     "GM62",
+     "GM63",
+     "GM66"
+    ]
+   },
+   {
+    "n": 4,
+    "title": "Aire d'un prisme droit",
+    "exercises": []
+   },
+   {
+    "n": 5,
+    "title": "Inversion de formule",
+    "exercises": [
+     "GM58",
+     "GM59"
+    ]
+   },
+   {
+    "n": 6,
+    "title": "Longueur totale des arêtes",
+    "exercises": [
+     "GM61",
+     "GM64",
+     "Faire le point p.201"
+    ]
+   },
+   {
+    "n": 7,
+    "title": "Rappel : les unités de temps",
+    "exercises": [
+     "Que sais-je ? p.202",
+     "GM67",
+     "GM68",
+     "GM69",
+     "GM70"
+    ]
+   },
+   {
+    "n": 8,
+    "title": "Les unités de masse",
+    "exercises": [
+     "GM82",
+     "GM83",
+     "GM84"
+    ]
+   },
+   {
+    "n": 9,
+    "title": "Transformation d'unités de temps complète",
+    "exercises": [
+     "GM71",
+     "GM74",
+     "GM76",
+     "GM77",
+     "GM79",
+     "GM81",
+     "Faire le point p.206"
+    ]
+   }
+  ],
+  "revision": "",
+  "subject": "Mathématiques"
+ },
+ {
+  "code": "NO",
+  "title": "Nombres naturels et décimaux",
+  "level": "9e année · VG niveau 2 & VP",
+  "objectives": [
+   "Reconnaissance et utilisation de propriétés des nombres naturels :",
+   "– critères de divisibilité, multiples et diviseurs communs",
+   "– ppmc, pgdc, nombres premiers, produit de facteurs (ne pas tester la recherche du ppmc et pgdc par décomposition en nombres premiers)",
+   "Connaissance et utilisation de différentes écritures d'un même nombre",
+   "Connaissance et utilisation des priorités des opérations (y compris parenthèses)",
+   "Connaissance et utilisation des propriétés des opérations pour organiser et effectuer des calculs de manière efficace et pour donner des estimations : addition, soustraction, multiplication, division",
+   "Exploration de quelques systèmes de numération",
+   "Connaissance et utilisation de diverses fonctions de la calculatrice : quatre opérations de base, parenthèses, mise en mémoire et récupération de valeurs, puissance, racine, …",
+   "Prise en compte de l'ordre dans lequel la calculatrice effectue les opérations"
+  ],
+  "exercises": [
+   "Que sais-je ?",
+   "NO2",
+   "NO3",
+   "NO10",
+   "NO15",
+   "NO16",
+   "NO17",
+   "NO26",
+   "NO27",
+   "NO28",
+   "NO29",
+   "NO34",
+   "NO35",
+   "NO36",
+   "NO37",
+   "NO41",
+   "NO42",
+   "NO43",
+   "NO45",
+   "NO47",
+   "NO52",
+   "NO53",
+   "NO54",
+   "NO55",
+   "NO56",
+   "NO62",
+   "NO63",
+   "NO70",
+   "NO71",
+   "NO72",
+   "NO73",
+   "NO82",
+   "NO83",
+   "NO93"
+  ],
+  "notions": [
+   {
+    "n": 1,
+    "title": "Les ensembles de nombres",
+    "exercises": []
+   },
+   {
+    "n": 2,
+    "title": "Placer un nombre sur une droite numérique",
+    "exercises": [
+     "Que sais-je ? 2)"
+    ]
+   },
+   {
+    "n": 3,
+    "title": "Priorité des opérations",
+    "exercises": [
+     "NO10"
+    ]
+   },
+   {
+    "n": 4,
+    "title": "Estimer un résultat, arrondir",
+    "exercises": [
+     "NO26",
+     "NO93"
+    ]
+   },
+   {
+    "n": 5,
+    "title": "Critères de divisibilité",
+    "exercises": [
+     "NO28",
+     "NO29"
+    ]
+   },
+   {
+    "n": 6,
+    "title": "Les multiples et les diviseurs",
+    "exercises": [
+     "NO27",
+     "NO36",
+     "NO37"
+    ]
+   },
+   {
+    "n": 7,
+    "title": "Multiples et diviseurs communs",
+    "exercises": [
+     "NO34",
+     "NO35",
+     "NO41",
+     "NO42",
+     "NO43"
+    ]
+   },
+   {
+    "n": 8,
+    "title": "Les nombres premiers",
+    "exercises": [
+     "NO45",
+     "NO47"
+    ]
+   },
+   {
+    "n": 9,
+    "title": "Décomposition en produit de facteurs premiers",
+    "exercises": []
+   },
+   {
+    "n": 10,
+    "title": "PPMC et PGDC",
+    "exercises": [
+     "NO41",
+     "NO42",
+     "NO43",
+     "NO52",
+     "NO53",
+     "NO54",
+     "NO55",
+     "NO56"
+    ]
+   },
+   {
+    "n": 11,
+    "title": "Puissances et écriture en puissances de 10",
+    "exercises": [
+     "NO62",
+     "NO63",
+     "NO72"
+    ]
+   },
+   {
+    "n": 12,
+    "title": "Produit de puissances de même base",
+    "exercises": [
+     "NO70",
+     "NO71"
+    ]
+   },
+   {
+    "n": 13,
+    "title": "Le système binaire",
+    "exercises": [
+     "NO73"
+    ]
+   }
+  ],
+  "revision": "Que sais-je ? 1) et 3) NO2 NO3 NO15 NO16 NO17 NO82 NO83",
+  "subject": "Mathématiques"
+ },
+ {
+  "code": "NO",
+  "title": "Nombres rationnels",
+  "level": "9e année · VG niveau 2 & VP · 4 semaines",
+  "objectives": [
+   "Connaissance et utilisation de différentes écritures d'un même nombre",
+   "Comparaison, approximation, encadrement, représentation sur une droite et ordre de grandeur de nombres écrits sous forme :",
+   "– entière dans ℤ",
+   "– décimale dans ℚ",
+   "– fractionnaire (y compris simplification et amplification) dans ℚ",
+   "– de pourcentage",
+   "– de puissance aᵇ (a sous forme décimale dans ℚ et b dans ℕ)",
+   "Utilisation de procédures de calcul réfléchi ou de calcul mental avec des nombres rationnels positifs : sous forme décimale (+, –, ·, :) et sous forme fractionnaire (+, –)",
+   "Utilisation des algorithmes pour effectuer des calculs de façon efficace avec des nombres rationnels positifs :",
+   "– sous forme décimale, inférieurs à 10 000, ayant au plus deux décimales (+, –, ·, :)",
+   "– sous forme fractionnaire (+, –)",
+   "Discernement des ensembles de nombres"
+  ],
+  "exercises": [
+   "NO162",
+   "NO163",
+   "NO164",
+   "NO165",
+   "NO167",
+   "NO168",
+   "NO169",
+   "NO170",
+   "NO171",
+   "NO174",
+   "NO175",
+   "NO176",
+   "NO178",
+   "NO181",
+   "NO182",
+   "NO183",
+   "NO185",
+   "NO186",
+   "NO188",
+   "NO189",
+   "NO190",
+   "NO192",
+   "NO193",
+   "NO194",
+   "NO199",
+   "NO201",
+   "NO202",
+   "NO204",
+   "NO208",
+   "NO209",
+   "NO213",
+   "NO215",
+   "NO216",
+   "NO217",
+   "NO220",
+   "NO221",
+   "NO222",
+   "NO224",
+   "NO231",
+   "NO235"
+  ],
+  "notions": [
+   {
+    "n": 1,
+    "title": "Qu'est-ce qu'un nombre rationnel ?",
+    "exercises": []
+   },
+   {
+    "n": 2,
+    "title": "Représenter un rationnel : dessin et axe numérique",
+    "exercises": [
+     "NO164",
+     "NO165",
+     "NO168",
+     "NO170",
+     "NO171",
+     "NO174",
+     "NO175",
+     "NO176",
+     "NO186",
+     "NO188"
+    ]
+   },
+   {
+    "n": 3,
+    "title": "Valeur relative d'une quantité par rapport à une autre",
+    "exercises": [
+     "NO167",
+     "NO224"
+    ]
+   },
+   {
+    "n": 4,
+    "title": "Simplification et amplification de fractions",
+    "exercises": [
+     "NO169",
+     "NO178",
+     "NO181",
+     "NO182",
+     "NO183"
+    ]
+   },
+   {
+    "n": 5,
+    "title": "Comparer des fractions",
+    "exercises": [
+     "NO178",
+     "NO185",
+     "NO199"
+    ]
+   },
+   {
+    "n": 6,
+    "title": "De la fraction au décimal (et inversement)",
+    "exercises": [
+     "NO189",
+     "NO190",
+     "NO192",
+     "NO193",
+     "NO194"
+    ]
+   },
+   {
+    "n": 7,
+    "title": "Du pourcentage à la fraction (et inversement)",
+    "exercises": [
+     "NO201",
+     "NO202",
+     "NO204"
+    ]
+   },
+   {
+    "n": 8,
+    "title": "Fraction d'un nombre",
+    "exercises": [
+     "NO208",
+     "NO209",
+     "NO213"
+    ]
+   },
+   {
+    "n": 9,
+    "title": "Addition et soustraction de fractions",
+    "exercises": [
+     "NO215",
+     "NO216",
+     "NO217",
+     "NO220",
+     "NO221",
+     "NO222"
+    ]
+   },
+   {
+    "n": 10,
+    "title": "Compléter à l'unité",
+    "exercises": [
+     "NO226",
+     "NO231",
+     "NO235"
+    ]
+   }
+  ],
+  "revision": "NO162 NO163",
+  "subject": "Mathématiques"
+ },
+ {
+  "code": "NO",
+  "title": "Nombres relatifs",
+  "level": "9e année · VG niveau 2 & VP",
+  "objectives": [
+   "Connaissance et utilisation de différentes écritures d'un même nombre relatif",
+   "Comparaison, approximation, encadrement et représentation sur une droite de nombres relatifs",
+   "Utilisation de procédures de calcul réfléchi ou de calcul mental avec des nombres relatifs de –100 à +100 (+, –, ·, :)"
+  ],
+  "exercises": [
+   "Que sais-je ?",
+   "NO103",
+   "NO104",
+   "NO105",
+   "NO107",
+   "NO108",
+   "NO109",
+   "NO110",
+   "NO111",
+   "NO112",
+   "NO113",
+   "NO114",
+   "NO115",
+   "NO117",
+   "NO120",
+   "NO121",
+   "NO122",
+   "NO123",
+   "NO126",
+   "NO127",
+   "NO128",
+   "NO129",
+   "NO131",
+   "NO132",
+   "NO133",
+   "NO134",
+   "NO135",
+   "NO137",
+   "NO138",
+   "NO139",
+   "NO140",
+   "NO142",
+   "NO144",
+   "NO145",
+   "NO146",
+   "NO149",
+   "NO151",
+   "NO152",
+   "NO157"
+  ],
+  "notions": [
+   {
+    "n": 1,
+    "title": "Qu'est-ce qu'un nombre relatif ?",
+    "exercises": [
+     "NO110",
+     "NO113"
+    ]
+   },
+   {
+    "n": 2,
+    "title": "Construire une droite numérique précise",
+    "exercises": [
+     "NO103",
+     "NO104"
+    ]
+   },
+   {
+    "n": 3,
+    "title": "Distance entre deux points et valeur absolue",
+    "exercises": [
+     "NO105",
+     "NO107",
+     "NO111",
+     "NO112",
+     "NO114",
+     "NO139",
+     "NO140"
+    ]
+   },
+   {
+    "n": 4,
+    "title": "Comparer des nombres relatifs : les symboles < et >",
+    "exercises": [
+     "NO108",
+     "NO109",
+     "NO115"
+    ]
+   },
+   {
+    "n": 5,
+    "title": "Additionner et soustraire des nombres relatifs",
+    "exercises": [
+     "NO117",
+     "NO120",
+     "NO121",
+     "NO123",
+     "NO126",
+     "NO127",
+     "NO128",
+     "NO129"
+    ]
+   },
+   {
+    "n": 6,
+    "title": "Le nombre opposé",
+    "exercises": [
+     "NO122"
+    ]
+   },
+   {
+    "n": 7,
+    "title": "Simplification d'écriture : la règle des signes",
+    "exercises": [
+     "NO131",
+     "NO132",
+     "NO133",
+     "NO134",
+     "NO135",
+     "NO137"
+    ]
+   },
+   {
+    "n": 8,
+    "title": "Moyenne avec des nombres relatifs",
+    "exercises": [
+     "NO138"
+    ]
+   },
+   {
+    "n": 9,
+    "title": "Multiplication et division de nombres relatifs",
+    "exercises": [
+     "NO142",
+     "NO144",
+     "NO145",
+     "NO146",
+     "NO149",
+     "NO151",
+     "NO152",
+     "NO157"
+    ]
+   }
+  ],
+  "revision": "Que sais-je ?",
+  "subject": "Mathématiques"
+ }
+]

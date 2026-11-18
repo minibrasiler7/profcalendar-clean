@@ -1513,6 +1513,13 @@ def create_app(config_name='development'):
     register_feature_gate(app)
     app.context_processor(feature_context)
 
+    # Outils personnels (thèmes et exercices, décalage des planifications, fiche
+    # d'objectifs) : réservés aux comptes de utils/owner_features.py.
+    from utils.owner_features import owner_context
+    app.context_processor(owner_context)
+    from routes.owner_tools import owner_tools_bp
+    app.register_blueprint(owner_tools_bp)
+
     @app.errorhandler(404)
     def not_found_error(error):
         return render_template('errors/404.html'), 404
@@ -2101,6 +2108,15 @@ def create_app(config_name='development'):
             EmailLog.__table__.create(db.engine, checkfirst=True)
     except Exception as e:
         print(f"[schema-safety] table email_log: {e}", flush=True)
+
+    # --- Filet de sécurité schéma (thèmes de cours et avancement par classe) ---
+    try:
+        from models.course_theme import CourseTheme, CourseThemeProgress
+        with app.app_context():
+            CourseTheme.__table__.create(db.engine, checkfirst=True)
+            CourseThemeProgress.__table__.create(db.engine, checkfirst=True)
+    except Exception as e:
+        print(f"[schema-safety] tables course_themes: {e}", flush=True)
 
     return app
 

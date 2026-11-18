@@ -3,6 +3,7 @@
 {% block title %}{{ _('Calendrier') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
+{% if owner_features %}<link rel="stylesheet" href="{{ url_for('static', filename='css/owner-tools.css') }}?v=1">{% endif %}
 <!-- Cache busting pour forcer le rechargement -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -1737,10 +1738,11 @@ html.fm-modal-lock #annualCalendarContainer {
     font-size: 10px !important;
 }
 
-/* Masquer les outils non essentiels dans calendar (garder seulement stylo, gomme, fermer) */
-/* Masquer tous les boutons sauf pen, eraser et close */
-#pdf-viewer-container-calendar .toolbar-btn:not([data-tool="pen"]):not([data-tool="eraser"]):not(#btn-close),
-#pdf-viewer-container-calendar button:not([data-tool="pen"]):not([data-tool="eraser"]):not(#btn-close):not(.toolbar-separator) {
+/* Masquer les outils non essentiels dans calendar (garder seulement stylo, gomme,
+   imprimer, fermer). Le bouton d'impression était masqué avec le reste : on ne
+   pouvait pas imprimer un fichier ouvert depuis le calendrier. */
+#pdf-viewer-container-calendar .toolbar-btn:not([data-tool="pen"]):not([data-tool="eraser"]):not(#btn-print-pdf):not(#btn-close),
+#pdf-viewer-container-calendar button:not([data-tool="pen"]):not([data-tool="eraser"]):not(#btn-print-pdf):not(#btn-close):not(.toolbar-separator) {
     display: none !important;
 }
 
@@ -1798,6 +1800,11 @@ html.fm-modal-lock #annualCalendarContainer {
 
 #pdf-viewer-container-calendar button[data-tool="eraser"] {
     order: 2 !important;
+}
+
+/* Imprimer : juste après la gomme */
+#pdf-viewer-container-calendar #btn-print-pdf {
+    order: 3 !important;
 }
 
 /* Styles pour le menu de sélection des feuilles blanches */
@@ -2450,6 +2457,12 @@ html.fm-modal-lock #annualCalendarContainer {
                 <small class="form-text text-muted"><i class="far fa-lightbulb"></i> {{ _('Astuce : commencez une ligne par « - [ ] » pour créer une case à cocher.') }}</small>
             </div>
 
+            {% if owner_features %}
+            {# Outil personnel : notions et exercices du thème, suivi des corrections,
+               fiche d'objectifs (static/js/owner-tools.js). #}
+            <div class="ot-panel" id="otThemePanel" hidden></div>
+            {% endif %}
+
             <!-- Section mémos -->
             <div class="form-group" id="modalMemosSection" style="display: none; margin-top: 20px; padding: 15px; background-color: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
                 <label class="form-label" style="color: #92400E; font-weight: 600;">
@@ -2468,6 +2481,12 @@ html.fm-modal-lock #annualCalendarContainer {
                     style="margin-right: auto; display: none;" onclick="openDevoirFromPlanningModal()">
                 <i class="fas fa-plus"></i> {{ _('Créer un devoir') }}
             </button>
+            {% if owner_features %}
+            <button type="button" class="btn btn-outline" id="otShiftBtn" hidden
+                    title="Le contenu de ce cours glisse sur le cours suivant, et les suivants avec lui">
+                <i class="fas fa-forward"></i> Cours non donné : décaler
+            </button>
+            {% endif %}
             <button class="btn btn-outline" onclick="closePlanningModal()">{{ _('Annuler') }}</button>
             {# Bouton "Effacer" : visible seulement quand une planification existe
                déjà sur la période (classe ou titre rempli). Activé/désactivé
@@ -2844,6 +2863,22 @@ html.fm-modal-lock #annualCalendarContainer {
     <input type="hidden" name="week" id="weekInput">
     <input type="hidden" name="classroom" value="{{ selected_classroom_id }}">
 </form>
+
+{% if owner_features %}
+<div class="ot-dialog" id="otShiftDialog" role="dialog" aria-modal="true" aria-labelledby="otShiftTitle" hidden>
+    <div class="ot-dialog-card">
+        <header>
+            <h3 id="otShiftTitle">Décaler</h3>
+            <p></p>
+        </header>
+        <div class="ot-dialog-main"></div>
+        <footer>
+            <button type="button" class="btn btn-outline" data-close>Annuler</button>
+            <button type="button" class="btn btn-primary" id="otShiftConfirm" disabled>Décaler</button>
+        </footer>
+    </div>
+</div>
+{% endif %}
 
 {% endblock %}
 
@@ -8425,5 +8460,7 @@ function showAttendanceError(message) {
     };
 })();
 </script>
+
+{% if owner_features %}<script src="{{ url_for('static', filename='js/owner-tools.js') }}?v=1"></script>{% endif %}
 
 {% endblock %}

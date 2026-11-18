@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{# Outil personnel (utils/owner_features.py) : thèmes de cours — objectifs, notions, exercices. #}
+
+{% block title %}Mes thèmes - ProfCalendar{% endblock %}
+
+{% block extra_css %}
+<style>
+.th-wrap { max-width: 62rem; margin: 2rem auto; padding: 0 1rem; }
+.th-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+.th-top h1 { font-size: 1.6rem; margin: 0; color: var(--dark-color); }
+.th-top p { margin: 0.3rem 0 0; color: var(--gray-color); max-width: 40rem; }
+.th-tools { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.th-list { display: grid; gap: 0.7rem; }
+.th-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 0.7rem; padding: 0.9rem 1rem; display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.th-card h2 { font-size: 1.05rem; margin: 0; color: var(--dark-color); }
+.th-card h2 span { display: inline-block; min-width: 2.2rem; color: var(--primary-color); font-variant-numeric: tabular-nums; }
+.th-card small { color: var(--gray-color); }
+.th-meta { font-size: 0.85rem; color: #4B5563; margin-top: 0.2rem; font-variant-numeric: tabular-nums; }
+.th-card .th-tools .btn { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
+.th-empty { background: #fff; border: 1px dashed #D1D5DB; border-radius: 0.7rem; padding: 1.5rem; color: var(--gray-color); text-align: center; }
+.th-form { background: #fff; border: 1px solid #C7D2FE; border-radius: 0.8rem; padding: 1.1rem 1.2rem; margin-bottom: 1.2rem; }
+.th-form[hidden] { display: none; }
+.th-form h2 { font-size: 1.15rem; margin: 0 0 0.8rem; }
+.th-grid { display: grid; grid-template-columns: 6rem 1fr 12rem; gap: 0.7rem; }
+.th-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-top: 0.7rem; }
+.th-form label { display: block; font-size: 0.82rem; font-weight: 600; color: #374151; margin-bottom: 0.2rem; }
+.th-form textarea, .th-form input[type="text"] { width: 100%; padding: 0.5rem 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.45rem; font: inherit; font-size: 0.9rem; }
+.th-form textarea { min-height: 7.5rem; resize: vertical; line-height: 1.4; }
+.th-field { margin-top: 0.7rem; }
+.th-hint { font-size: 0.78rem; color: var(--gray-color); margin-top: 0.2rem; }
+.th-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.9rem; flex-wrap: wrap; }
+.th-msg { margin-top: 0.6rem; font-size: 0.86rem; color: #7F1D1D; }
+.th-msg.ok { color: #065F46; }
+@media (max-width: 640px) { .th-grid, .th-grid-2 { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="th-wrap">
+    <div class="th-top">
+        <div>
+            <h1>Mes thèmes</h1>
+            <p>Objectifs, notions et exercices de chaque chapitre. Ils alimentent le panneau « Thème et exercices » du calendrier et la fiche d'objectifs.</p>
+        </div>
+        <div class="th-tools">
+            <label class="btn btn-outline" style="margin:0; cursor:pointer;">
+                <i class="fas fa-file-import"></i> Importer un dossier théorique (PDF)
+                <input type="file" id="thImport" accept="application/pdf,.pdf" hidden>
+            </label>
+            <button type="button" class="btn btn-primary" id="thNew"><i class="fas fa-plus"></i> Nouveau thème</button>
+        </div>
+    </div>
+
+    <form class="th-form" id="thForm" hidden>
+        <h2 id="thFormTitle">Nouveau thème</h2>
+        <input type="hidden" id="thId">
+        <div class="th-grid">
+            <div><label for="thCode">Code</label><input type="text" id="thCode" maxlength="10" placeholder="NO"></div>
+            <div><label for="thTitle">Titre</label><input type="text" id="thTitle" maxlength="200" placeholder="Nombres relatifs" required></div>
+            <div><label for="thSubject">Matière</label><input type="text" id="thSubject" maxlength="100" placeholder="Mathématiques"></div>
+        </div>
+        <div class="th-hint">La matière doit être celle de la classe (« Mathématiques », « Sciences ») pour que le thème lui soit proposé.</div>
+        <div class="th-grid-2">
+            <div><label for="thLevel">Niveau</label><input type="text" id="thLevel" maxlength="120" placeholder="9e année · VG niveau 2 & VP"></div>
+            <div><label for="thRevision">Pour réviser</label><input type="text" id="thRevision" maxlength="255" placeholder="Que sais-je ?"></div>
+        </div>
+        <div class="th-field">
+            <label for="thObjectives">Ce que l'élève doit savoir faire</label>
+            <textarea id="thObjectives" placeholder="Un objectif par ligne"></textarea>
+            <div class="th-hint">Un objectif par ligne. Commencez la ligne par un tiret pour un sous-point.</div>
+        </div>
+        <div class="th-field">
+            <label for="thNotions">Notions du chapitre</label>
+            <textarea id="thNotions" placeholder="Qu'est-ce qu'un nombre relatif ? | NO110 NO113"></textarea>
+            <div class="th-hint">Une notion par ligne, dans l'ordre : le titre, une barre verticale, puis ses exercices.</div>
+        </div>
+        <div class="th-field">
+            <label for="thExercises">Exercices à faire</label>
+            <textarea id="thExercises" style="min-height:4.5rem" placeholder="Que sais-je ? NO103 NO104 NO105"></textarea>
+            <div class="th-hint">La liste complète, séparée par des espaces. Les exercices cités dans une notion y sont ajoutés d'office.</div>
+        </div>
+        <div class="th-msg" id="thMsg" role="status"></div>
+        <div class="th-actions">
+            <button type="button" class="btn btn-outline" id="thCancel">Annuler</button>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+    </form>
+
+    <div class="th-list" id="thList"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var themes = {{ themes|tojson }};
+    var list = document.getElementById('thList'), form = document.getElementById('thForm'), msg = document.getElementById('thMsg');
+    function el(id) { return document.getElementById(id); }
+    function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+    function draw() {
+        if (!themes.length) { list.innerHTML = '<div class="th-empty">Aucun thème. Importez un dossier théorique ou créez-en un.</div>'; return; }
+        list.innerHTML = themes.map(function (t) {
+            return '<div class="th-card"><div><h2><span>' + esc(t.code) + '</span> ' + esc(t.title) + '</h2>' +
+                '<div class="th-meta">' + t.notions.length + ' notions · ' + t.exercises.length + ' exercices · ' + t.objectives.length + ' objectifs' +
+                (t.subject ? ' · ' + esc(t.subject) : '') + (t.level ? ' <small>· ' + esc(t.level) + '</small>' : '') + '</div></div>' +
+                '<div class="th-tools"><button type="button" class="btn btn-outline" data-edit="' + t.id + '"><i class="fas fa-pen"></i> Modifier</button>' +
+                '<button type="button" class="btn btn-outline" data-del="' + t.id + '" style="color:#B91C1C"><i class="fas fa-trash-alt"></i> Supprimer</button></div></div>';
+        }).join('');
+    }
+
+    function fill(t, heading) {
+        el('thFormTitle').textContent = heading;
+        el('thId').value = t.id || '';
+        el('thCode').value = t.code || '';
+        el('thTitle').value = t.title || '';
+        el('thSubject').value = t.subject || '';
+        el('thLevel').value = t.level || '';
+        el('thRevision').value = t.revision || '';
+        el('thObjectives').value = (t.objectives || []).join('\n');
+        el('thNotions').value = (t.notions || []).map(function (n) { return n.title + ((n.exercises || []).length ? ' | ' + n.exercises.join(' ') : ''); }).join('\n');
+        el('thExercises').value = (t.exercises || []).join(' ');
+        msg.textContent = ''; msg.className = 'th-msg';
+        form.hidden = false;
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el('thTitle').focus();
+    }
+
+    el('thNew').addEventListener('click', function () { fill({ subject: 'Mathématiques' }, 'Nouveau thème'); });
+    el('thCancel').addEventListener('click', function () { form.hidden = true; });
+
+    list.addEventListener('click', function (event) {
+        var button = event.target.closest('button');
+        if (!button) return;
+        if (button.dataset.edit) {
+            fill(themes.find(function (t) { return String(t.id) === button.dataset.edit; }), 'Modifier le thème');
+        } else if (button.dataset.del) {
+            var theme = themes.find(function (t) { return String(t.id) === button.dataset.del; });
+            if (!window.confirm('Supprimer « ' + theme.label + ' » ? Le suivi des classes pour ce thème est supprimé avec lui.')) return;
+            fetch('/perso/api/themes/' + theme.id + '/delete', { method: 'POST', headers: { 'Accept': 'application/json' } })
+                .then(function (r) { return r.json(); }).then(function (d) {
+                    if (d.success) { themes = themes.filter(function (t) { return t.id !== theme.id; }); draw(); }
+                });
+        }
+    });
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var body = { id: el('thId').value || null, code: el('thCode').value, title: el('thTitle').value, subject: el('thSubject').value,
+                     level: el('thLevel').value, revision: el('thRevision').value, objectives: el('thObjectives').value,
+                     notions: el('thNotions').value, exercises: el('thExercises').value };
+        fetch('/perso/api/themes/save', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(body) })
+            .then(function (r) { return r.json(); }).then(function (d) {
+                if (!d.success) { msg.textContent = d.error || 'Enregistrement impossible.'; return; }
+                var i = themes.findIndex(function (t) { return t.id === d.theme.id; });
+                if (i >= 0) themes[i] = d.theme; else themes.push(d.theme);
+                form.hidden = true;
+                draw();
+            });
+    });
+
+    el('thImport').addEventListener('change', function () {
+        var file = this.files[0];
+        if (!file) return;
+        var data = new FormData();
+        data.append('file', file);
+        this.value = '';
+        fetch('/perso/api/themes/import', { method: 'POST', body: data, headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); }).then(function (d) {
+                if (!d.success) { window.alert(d.error || 'Import impossible.'); return; }
+                d.theme.subject = d.theme.subject || 'Mathématiques';
+                fill(d.theme, 'Thème lu dans le PDF : vérifiez, puis enregistrez');
+                msg.textContent = 'Rien n\'est encore enregistré.'; msg.className = 'th-msg ok';
+            });
+    });
+
+    draw();
+})();
+</script>
+{% endblock %}

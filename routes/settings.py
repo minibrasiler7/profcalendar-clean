@@ -778,6 +778,13 @@ def _delete_all_user_data(user_id):
     AppleSubscription.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     Subscription.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     EmailLog.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    # Thèmes de cours et avancement par classe (outils personnels).
+    try:
+        from models.course_theme import CourseTheme, CourseThemeProgress
+        CourseThemeProgress.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+        CourseTheme.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
+    except Exception:
+        pass
     DeletedClassroom.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     Announcement.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     _dv_ids = [d.id for d in Devoir.query.filter_by(user_id=user_id).all()]

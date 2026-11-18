@@ -13,6 +13,7 @@ pytz==2024.1
 resend==2.21.0
 cryptography==43.0.0
 reportlab==4.1.0
+pypdf==6.15.0
 pyotp==2.9.0
 qrcode[pil]==7.4.2
 stripe==10.12.0
